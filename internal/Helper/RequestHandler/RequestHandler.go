@@ -2,13 +2,16 @@ package helper
 
 import (
 	hashapi "AuthenticationService/internal/Helper/HashAPI"
-	model "AuthenticationService/internal/Model/UserService"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/mitchellh/mapstructure"
 )
+
+type ReqVal struct {
+	EncryptedData []string `json:"encryptedData"`
+}
 
 func RequestHandler[T any](c *gin.Context) (*T, bool) {
 	// Extract token from context
@@ -22,7 +25,7 @@ func RequestHandler[T any](c *gin.Context) (*T, bool) {
 	}
 
 	// Bind encrypted body
-	var encryptedData model.ReqVal
+	var encryptedData ReqVal
 	if err := c.BindJSON(&encryptedData); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"status":  false,
