@@ -1,6 +1,7 @@
 package main
 
 import (
+	routesAppointment "AuthenticationService/routes/Appointment"
 	routes "AuthenticationService/routes/Authentication"
 	routesProfile "AuthenticationService/routes/ProfileService"
 	routesUser "AuthenticationService/routes/UserService"
@@ -38,28 +39,157 @@ func main() {
 		AllowOriginFunc: func(origin string) bool {
 			return true // allow all origins dynamically
 		},
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		AllowCredentials: true,
 	}))
 
 	//API calls 🚀
 
+	fmt.Println()
+	fmt.Println("*****************Authentication*****************")
+	fmt.Println()
+
 	//Authentication
+	fmt.Println("=================Login=================")
+	fmt.Println()
 	routes.InitLoginRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================Forget Password=================")
+	fmt.Println()
 	routes.InitForgetPasswordRoutes(r)
 
+	fmt.Println()
+	fmt.Println("*****************UserService*****************")
+	fmt.Println()
+
 	//UserService
-	routesUser.IntiCreateAccountsRoutes(r)
-	routesUser.InitUpdateAccountsRouter(r)
+	fmt.Println("=================File Upload=================")
+	fmt.Println()
+	routesUser.InitFilesRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================Image Upload=================")
+	fmt.Println()
+	routesUser.InitImageRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================Create Scan Center=================")
+	fmt.Println()
+	routesUser.InitScanCenterRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================Create Technician=================")
+	fmt.Println()
 	routesUser.InitTechnicianRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================Create Receptionist=================")
+	fmt.Println()
 	routesUser.InitReceptionistRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================Create Patient=================")
+	fmt.Println()
 	routesUser.InitPatientRoutes(r)
 
+	fmt.Println()
+	fmt.Println("=================Create Radiologist=================")
+	fmt.Println()
+	routesUser.InitRadiologistRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================Create Doctor=================")
+	fmt.Println()
+	routesUser.InitDoctorRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================Create Scribe=================")
+	fmt.Println()
+	routesUser.InitScribeRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================Create Manager=================")
+	fmt.Println()
+	routesUser.InitManagerRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================Create Co-Doctor=================")
+	fmt.Println()
+	routesUser.InitCoDoctorRoutes(r)
+
+	fmt.Println()
+	fmt.Println("*****************ProfileService*****************")
+	fmt.Println()
+
 	//profileService
-	routesProfile.InitScanCenterRoutes(r)
-	routesProfile.InitTechnicianRoutes(r)
+	fmt.Println("=================View Radiologist=================")
+	fmt.Println()
+	routesProfile.InitRadiologistRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================View Doctor=================")
+	fmt.Println()
+	routesProfile.InitDoctorRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================View Co-Doctor=================")
+	fmt.Println()
+	routesProfile.InitCoDoctorRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================View Receptionist=================")
+	fmt.Println()
 	routesProfile.InitReceptionistRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================View Scribe=================")
+	fmt.Println()
+	routesProfile.InitScribeRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================View Manager=================")
+	fmt.Println()
+	routesProfile.InitManagerRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================View Technician=================")
+	fmt.Println()
+	routesProfile.InitTechnicianRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================View Scan Center=================")
+	fmt.Println()
+	routesProfile.InitScanCenterRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================View User=================")
+	fmt.Println()
+	routesProfile.InitUserRoutes(r)
+
+	fmt.Println()
+	fmt.Println("*****************AppointmentService*****************")
+	fmt.Println()
+
+	//profileService
+	fmt.Println("=================Management Appointment=================")
+	fmt.Println()
+	routesAppointment.InitManageAppointmentRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================Intake Form=================")
+	fmt.Println()
+
+	routesAppointment.InitIntakeFormRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================OverRide Form=================")
+	fmt.Println()
+
+	routesAppointment.InitOverrideRoutes(r)
+	fmt.Println()
+	fmt.Println()
 
 	//Ping 🎯API
 	r.GET("/ping", func(c *gin.Context) {
