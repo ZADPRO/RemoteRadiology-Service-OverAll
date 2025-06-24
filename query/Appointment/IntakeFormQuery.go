@@ -1,0 +1,97 @@
+package query
+
+var InsertAnswerSQL = `
+WITH
+  input_data AS (
+    SELECT
+      ?::int AS refUserId,
+      ?::int AS refAppointmentId,
+      ?::int AS refCreatedAt,
+      jsonb_array_elements(?::jsonb) AS item
+  )
+INSERT INTO
+  notes."refIntakeForm" (
+    "refUserId",
+    "refAppointmentId",
+    "refITFQId",
+    "refITFAnswer",
+    "refITFCreatedAt",
+    "refITFCreatedBy",
+    "refITFUpdatedBy"
+  )
+SELECT
+  refUserId,
+  refAppointmentId,
+  (item ->> 'questionId')::int,
+  item ->> 'answer',
+  NOW(),
+  refCreatedAt,
+  refCreatedAt
+FROM
+  input_data;
+`
+
+var ViewIntakeFormQuery = `
+SELECT
+  *
+FROM
+  notes."refIntakeForm"
+WHERE
+  "refUserId" = ?
+  AND "refAppointmentId" = ?
+`
+
+var GetVerifyIntakeFormQuery = `
+SELECT
+  *
+FROM
+  notes."refOverRide"
+WHERE
+  "refAppointmentId" = ?
+`
+
+var UpdateAppointment = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refCategoryId" = ?
+WHERE
+  "refAppointmentId" = ?
+`
+
+var GetIntakeDataSQL = `
+SELECT
+  *
+FROM
+  notes."refIntakeForm"
+WHERE
+  "refITFId" = ?
+`
+
+var InsertTransactionDataSQL = `
+WITH input_data AS (
+  SELECT
+    ?::integer AS transTypeId,
+    ?::integer AS refUserId,
+    ?::integer AS refTHActionBy,
+    jsonb_array_elements(
+      ?::jsonb
+    ) AS refTHData
+)
+INSERT INTO "aduit"."refTransHistory" (
+  "transTypeId", "refTHData", "refUserId", "refTHActionBy"
+)
+SELECT
+  transTypeId, refTHData, refUserId, refTHActionBy
+FROM input_data;
+`
+
+var UpdateIntakeDataSQL = `
+UPDATE
+  notes."refIntakeForm"
+SET
+  "refITFAnswer" = ?,
+  "refITFVerifiedTechnician" = ?,
+WHERE
+  "refITFId" = ?
+`
