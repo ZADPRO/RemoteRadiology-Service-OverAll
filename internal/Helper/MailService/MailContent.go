@@ -218,7 +218,7 @@ func RegisterationMailContent(userName string) string {
           We’re excited to have you on board. You can now log in using your
           registered email and the password you created.
         </p>
-        <a href="https://zadroit.com" class="button">Login Now</a>
+        <a href="https://easeqt.brightoncloudtech.com/" class="button">Login Now</a>
         <p>If you didn’t register with us, please ignore this email.</p>
       </div>
       <div class="footer">
