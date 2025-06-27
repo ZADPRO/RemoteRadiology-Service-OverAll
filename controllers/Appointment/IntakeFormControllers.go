@@ -92,10 +92,12 @@ func ViewIntakeFormController() gin.HandlerFunc {
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
 
-		ViewIntakeData := service.ViewIntakeService(dbConn, *data)
+		ViewIntakeData, AuditData := service.ViewIntakeService(dbConn, *data)
 
 		payload := map[string]interface{}{
-			"data": ViewIntakeData,
+			"data":      ViewIntakeData,
+			"auditdata": AuditData,
+			"status":    true,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)
