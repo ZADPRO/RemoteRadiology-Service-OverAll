@@ -59,6 +59,15 @@ WHERE
   "refAppointmentId" = ?
 `
 
+var UpdateAppointmentStatus = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentComplete" = ?
+WHERE
+  "refAppointmentId" = ?
+`
+
 var GetIntakeDataSQL = `
 SELECT
   *
@@ -91,7 +100,18 @@ UPDATE
   notes."refIntakeForm"
 SET
   "refITFAnswer" = ?,
-  "refITFVerifiedTechnician" = ?,
+  "refITFUpdatedBy" = ?,                
+  "refITFUpdatedAt" = NOW(),           
+  "refITFVerifiedTechnician" = ?      
 WHERE
-  "refITFId" = ?
+  "refITFId" = ?                     
+`
+
+var GetAuditforIntakeForm = `
+SELECT
+  *
+FROM
+  aduit."refTransHistory"
+WHERE
+  "transTypeId" IN (23, 24);
 `

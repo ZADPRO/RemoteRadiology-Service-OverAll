@@ -26,12 +26,17 @@ type ViewIntakeReq struct {
 	AppointmentId int `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
 }
 
+type FileData struct {
+	Base64Data  string `json:"base64Data"`  // base64-encoded file content
+	ContentType string `json:"contentType"` // e.g., "image/jpeg"
+}
+
 type GetViewIntakeData struct {
-	IntakeId         int    `json:"refITFId" gorm:"column:refITFId"`
-	CategoryId       int    `json:"categoryId" gorm:"column:refCategoryId"`
-	QuestionId       int    `json:"questionId" gorm:"column:refITFQId"`
-	Answer           string `json:"answer" gorm:"column:refITFAnswer"`
-	VerifyTechnician int    `json:"verifyTechnician" gorm:"column:refITFVerifiedTechnician"`
+	IntakeId         int       `json:"refITFId" gorm:"column:refITFId"`
+	QuestionId       int       `json:"questionId" gorm:"column:refITFQId"`
+	Answer           string    `json:"answer" gorm:"column:refITFAnswer"`
+	File             *FileData `json:"file" gorm:"-"`
+	VerifyTechnician bool      `json:"verifyTechnician" gorm:"column:refITFVerifiedTechnician"`
 }
 
 type OverrideRequestModel struct {
@@ -57,6 +62,17 @@ type UpdateReqModel struct {
 }
 
 type UpdateIntakeFormReq struct {
-	UserId  int              `json:"refUserId" gorm:"column:refUserId"`
-	Answers []UpdateReqModel `json:"answers" binding:"required" mapstructure:"answers"`
+	PatientId     int              `json:"patientId" binding:"required" mapstructure:"patientId"`
+	CategoryId    int              `json:"categoryId" mapstructure:"categoryId"`
+	AppointmentId int              `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
+	UserId        int              `json:"refUserId" gorm:"column:refUserId"`
+	Answers       []UpdateReqModel `json:"answers" binding:"required" mapstructure:"answers"`
+}
+
+type AduitModel struct {
+	TransTypeId int    `json:"transTypeId" gorm:"column:transTypeId"`
+	THData      string `json:"refTHData" gorm:"column:refTHData"`
+	CreatedAt   string `json:"refTHTime" gorm:"column:refTHTime"`
+	UserId      int    `json:"refUserId" gorm:"column:refUserId"`
+	THActionBy  int    `json:"refTHActionBy" gorm:"column:refTHActionBy"`
 }
