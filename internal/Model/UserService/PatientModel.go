@@ -2,7 +2,7 @@ package model
 
 type RegisterPatientReq struct {
 	FirstName          string `json:"firstname" binding:"required"  mapstructure:"firstname"`
-	LastName           string `json:"lastname" binding:"required"  mapstructure:"lastname"`
+	LastName           string `json:"lastname"  mapstructure:"lastname"`
 	Email              string `json:"email" binding:"required"  mapstructure:"email"`
 	PhoneNoCountryCode string `json:"phoneCountryCode" binding:"required"  mapstructure:"phoneCountryCode"`
 	PhoneNo            string `json:"phone" binding:"required"  mapstructure:"phone"`

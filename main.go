@@ -184,6 +184,12 @@ func main() {
 	routesAppointment.InitIntakeFormRoutes(r)
 
 	fmt.Println()
+	fmt.Println("=================Technician Intake Form=================")
+	fmt.Println()
+
+	routesAppointment.InitTechnicianIntakeFormRoutes(r)
+
+	fmt.Println()
 	fmt.Println("=================OverRide Form=================")
 	fmt.Println()
 

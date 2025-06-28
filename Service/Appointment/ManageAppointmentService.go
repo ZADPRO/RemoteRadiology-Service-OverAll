@@ -24,9 +24,21 @@ func AddAppointmentService(db *gorm.DB, reqVal model.AddAppointmentReq, idValue 
 		}
 	}()
 
+	var FindScancenter []model.ScanCenterModel
+
+	findScancenterErr := db.Raw(query.FindScanCenterSQL, reqVal.SCId).Scan(&FindScancenter).Error
+	if findScancenterErr != nil {
+		log.Printf("ERROR: Failed to fetch Scan Centers: %v", findScancenterErr)
+	}
+
+	if len(FindScancenter) == 0 {
+		return false, "Invalid Scan Center Id"
+	}
+
 	var TotalCount []model.TotalCountModel
 
-	err := db.Raw(query.VerifyAppointment, reqVal.SCId, reqVal.AppointmentDate, reqVal.AppointmentStartTime, reqVal.AppointmentEndTime).Scan(&TotalCount).Error
+	// err := db.Raw(query.VerifyAppointment, reqVal.SCId, reqVal.AppointmentDate, reqVal.AppointmentStartTime, reqVal.AppointmentEndTime).Scan(&TotalCount).Error
+	err := db.Raw(query.VerifyAppointment, reqVal.SCId, reqVal.AppointmentDate).Scan(&TotalCount).Error
 	if err != nil {
 		log.Printf("ERROR: Failed to fetch User Total Count: %v", err)
 		return false, "Something went wrong, Try Again"
@@ -37,13 +49,14 @@ func AddAppointmentService(db *gorm.DB, reqVal model.AddAppointmentReq, idValue 
 	}
 
 	Appointment := model.CreateAppointmentModel{
-		UserId:               idValue,
-		SCId:                 reqVal.SCId,
-		AppointmentDate:      reqVal.AppointmentDate,
-		AppointmentStartTime: reqVal.AppointmentStartTime,
-		AppointmentEndTime:   reqVal.AppointmentEndTime,
-		AppointmentUrgency:   reqVal.AppointmentUrgency,
-		AppointmentStatus:    true,
+		UserId:          idValue,
+		SCId:            FindScancenter[0].SCId,
+		AppointmentDate: reqVal.AppointmentDate,
+		// AppointmentStartTime: reqVal.AppointmentStartTime,
+		// AppointmentEndTime:   reqVal.AppointmentEndTime,
+		// AppointmentUrgency: reqVal.AppointmentUrgency,
+		AppointmentStatus:   true,
+		AppointmentComplete: "fillform",
 	}
 
 	Appointmenterr := db.Create(&Appointment).Error
@@ -73,4 +86,32 @@ func AddAppointmentService(db *gorm.DB, reqVal model.AddAppointmentReq, idValue 
 	}
 
 	return true, "Successfully Appointment Created"
+}
+
+func ViewPatientHistoryService(db *gorm.DB, idValue int) []model.ViewPatientHistoryModel {
+	log := logger.InitLogger()
+
+	var patientHistory []model.ViewPatientHistoryModel
+
+	err := db.Raw(query.ViewPatientHistorySQL, idValue).Scan(&patientHistory).Error
+	if err != nil {
+		log.Printf("ERROR: Failed to View Patient History: %v", err)
+		return []model.ViewPatientHistoryModel{}
+	}
+
+	return patientHistory
+}
+
+func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int) []model.ViewTechnicianPatientQueueModel {
+	log := logger.InitLogger()
+
+	var patientQueue []model.ViewTechnicianPatientQueueModel
+
+	err := db.Raw(query.ViewTechnicianPatientQueueSQL, idValue).Scan(&patientQueue).Error
+	if err != nil {
+		log.Printf("ERROR: Failed to View Patient Queue: %v", err)
+		return []model.ViewTechnicianPatientQueueModel{}
+	}
+
+	return patientQueue
 }
