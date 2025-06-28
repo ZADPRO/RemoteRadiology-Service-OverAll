@@ -255,6 +255,18 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 
 	}
 
+	//Updating a Appointment Status
+	UpdateAppointmentStatuserr := tx.Exec(
+		query.UpdateAppointmentStatus,
+		"doctorreview",
+		reqVal.AppointmentId,
+	).Error
+	if UpdateAppointmentStatuserr != nil {
+		log.Printf("ERROR: Failed to Update Appointment Status: %v\n", UpdateAppointmentStatuserr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
 	if err := tx.Commit().Error; err != nil {
 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
 		tx.Rollback()
