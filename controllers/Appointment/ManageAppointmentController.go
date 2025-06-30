@@ -26,10 +26,10 @@ func AddAppointmentController() gin.HandlerFunc {
 			return
 		}
 
-		data, ok := helper.RequestHandler[model.AddAppointmentReq](c)
-		if !ok {
-			return
-		}
+		// data, ok := helper.RequestHandler[model.AddAppointmentReq](c)
+		// if !ok {
+		// 	return
+		// }
 
 		// var reqVal model.AddAppointmentReq
 
@@ -41,10 +41,15 @@ func AddAppointmentController() gin.HandlerFunc {
 		// 	return
 		// }
 
+		data, ok := helper.GetRequestBody[model.AddAppointmentReq](c, true)
+		if !ok {
+			return
+		}
+
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
 
-		status, message := service.AddAppointmentService(dbConn, *data, int(idValue.(float64)))
+		status, message := service.AddAppointmentService(dbConn, data, int(idValue.(float64)))
 
 		payload := map[string]interface{}{
 			"status":  status,
@@ -140,6 +145,112 @@ func ViewTechnicianPatientQueue() gin.HandlerFunc {
 		payload := map[string]interface{}{
 			"status": true,
 			"data":   queueData,
+		}
+
+		token := accesstoken.CreateToken(idValue, roleIdValue)
+
+		c.JSON(http.StatusOK, gin.H{
+			"data":  hashapi.Encrypt(payload, true, token),
+			"token": token,
+		})
+	}
+}
+
+func AddAddtionalFilesController() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idValue, idExists := c.Get("id")
+		roleIdValue, roleIdExists := c.Get("roleId")
+
+		if !idExists || !roleIdExists {
+			// Handle error: ID is missing from context (e.g., middleware didn't set it)
+			c.JSON(http.StatusUnauthorized, gin.H{ // Or StatusInternalServerError depending on why it's missing
+				"status":  false,
+				"message": "User ID, RoleID, Branch ID not found in request context.",
+			})
+			return
+		}
+
+		// data, ok := helper.RequestHandler[model.AddAppointmentReq](c)
+		// if !ok {
+		// 	return
+		// }
+
+		// var reqVal model.AddAppointmentReq
+
+		// if err := c.BindJSON(&reqVal); err != nil {
+		// 	c.JSON(http.StatusOK, gin.H{
+		// 		"status":  false,
+		// 		"message": "Something went wrong, Try Again " + err.Error(),
+		// 	})
+		// 	return
+		// }
+
+		data, ok := helper.GetRequestBody[model.AddAddtionalFilesReq](c, true)
+		if !ok {
+			return
+		}
+
+		dbConn, sqlDB := db.InitDB()
+		defer sqlDB.Close()
+
+		status, message := service.AddAddtionalFilesService(dbConn, data, int(idValue.(float64)))
+
+		payload := map[string]interface{}{
+			"status":  status,
+			"message": message,
+		}
+
+		token := accesstoken.CreateToken(idValue, roleIdValue)
+
+		c.JSON(http.StatusOK, gin.H{
+			"data":  hashapi.Encrypt(payload, true, token),
+			"token": token,
+		})
+	}
+}
+
+func ViewAddtionalFilesController() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idValue, idExists := c.Get("id")
+		roleIdValue, roleIdExists := c.Get("roleId")
+
+		if !idExists || !roleIdExists {
+			// Handle error: ID is missing from context (e.g., middleware didn't set it)
+			c.JSON(http.StatusUnauthorized, gin.H{ // Or StatusInternalServerError depending on why it's missing
+				"status":  false,
+				"message": "User ID, RoleID, Branch ID not found in request context.",
+			})
+			return
+		}
+
+		// data, ok := helper.RequestHandler[model.AddAppointmentReq](c)
+		// if !ok {
+		// 	return
+		// }
+
+		// var reqVal model.AddAppointmentReq
+
+		// if err := c.BindJSON(&reqVal); err != nil {
+		// 	c.JSON(http.StatusOK, gin.H{
+		// 		"status":  false,
+		// 		"message": "Something went wrong, Try Again " + err.Error(),
+		// 	})
+		// 	return
+		// }
+
+		data, ok := helper.GetRequestBody[model.ViewAddtionalFileReq](c, true)
+		if !ok {
+			return
+		}
+
+		dbConn, sqlDB := db.InitDB()
+		defer sqlDB.Close()
+
+		Data := service.ViewAddtionalFilesService(dbConn, data)
+
+		payload := map[string]interface{}{
+			"status": true,
+			"data":   Data,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)

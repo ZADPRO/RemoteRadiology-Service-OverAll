@@ -52,8 +52,35 @@ type ViewPatientHistoryModel struct {
 type ViewTechnicianPatientQueueModel struct {
 	AppointmentId       int    `json:"refAppointmentId" gorm:"column:refAppointmentId"`
 	AppointmentDate     string `json:"refAppointmentDate" gorm:"column:refAppointmentDate"`
-	Username            int    `json:"refUserFirstName" gorm:"column:refUserFirstName"`
+	Username            string `json:"refUserFirstName" gorm:"column:refUserFirstName"`
 	UserCustId          string `json:"refUserCustId" gorm:"column:refUserCustId"`
 	CategoryId          int    `json:"refCategoryId" gorm:"column:refCategoryId"`
+	UserId              int    `json:"refUserId" gorm:"column:refUserId"`
 	AppointmentComplete string `json:"refAppointmentComplete" gorm:"column:refAppointmentComplete"`
+}
+
+type AdditionalFileModel struct {
+	FileName    string `json:"refFileName" binding:"required" mapstructure:"refFileName"`
+	OldFileName string `json:"refOldFileName" binding:"required" mapstructure:"refOldFileName"`
+}
+
+type AddAddtionalFilesReq struct {
+	AppointmentId int                   `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
+	Files         []AdditionalFileModel `json:"files" binding:"required" mapstructure:"files"`
+}
+
+type AdditionalFileUploadModel struct {
+	ADId          int       `json:"refADId" gorm:"column:refADId"`
+	UserId        int       `json:"refUserId" gorm:"column:refUserId"`
+	AppointmentId int       `json:"refAppointmentId" gorm:"column:refAppointmentId"`
+	FileName      string    `json:"refADFileName"  gorm:"column:refADFileName"`
+	OldFileName   string    `json:"refADOldFileName"  gorm:"column:refADOldFileName"`
+	FileData      *FileData `json:"fileData" gorm:"column:-"`
+	Status        bool      `json:"refADStatus"  gorm:"column:refADStatus"`
+	CreatedAt     string    `json:"refADCreatedAt"  gorm:"column:refADCreatedAt"`
+}
+
+type ViewAddtionalFileReq struct {
+	UserId        int `json:"refUserId" binding:"required" mapstructure:"refUserId"`
+	AppointmentId int `json:"refAppointmentId" binding:"required" mapstructure:"refAppointmentId"`
 }
