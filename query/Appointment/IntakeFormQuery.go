@@ -68,6 +68,16 @@ WHERE
   "refAppointmentId" = ?
 `
 
+var UpdateTechnicianAppointmentStatus = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentComplete" = ?,
+  refAppointmentPriority = ?
+WHERE
+  "refAppointmentId" = ?
+`
+
 var GetIntakeDataSQL = `
 SELECT
   *

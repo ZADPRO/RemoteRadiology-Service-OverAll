@@ -159,6 +159,19 @@ func AddIntakeFormService(db *gorm.DB, reqVal model.AddIntakeFormReq, idValue in
 		return false, "Something went wrong, Try Again"
 	}
 
+	reportStatus := model.RefTransHistory{
+		TransTypeId: 25,
+		THData:      "Patient Intake Filled Successfully",
+		UserId:      idValue,
+		THActionBy:  idValue,
+	}
+
+	errreportStatus := db.Create(&reportStatus).Error
+	if errreportStatus != nil {
+		log.Error("errreportStatus INSERT ERROR at Trnasaction: " + errreportStatus.Error())
+		return false, "Something went wrong, Try Again"
+	}
+
 	if err := tx.Commit().Error; err != nil {
 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
 		tx.Rollback()
@@ -376,6 +389,19 @@ func UpdateIntakeFormService(db *gorm.DB, reqVal model.UpdateIntakeFormReq, idVa
 
 		}
 
+	}
+
+	reportStatus := model.RefTransHistory{
+		TransTypeId: 25,
+		THData:      "Patient Intake Updated Successfully",
+		UserId:      reqVal.UserId,
+		THActionBy:  idValue,
+	}
+
+	errreportStatus := db.Create(&reportStatus).Error
+	if errreportStatus != nil {
+		log.Error("errreportStatus INSERT ERROR at Trnasaction: " + errreportStatus.Error())
+		return false, "Something went wrong, Try Again"
 	}
 
 	return true, "Intakeform Updated from Technician"
