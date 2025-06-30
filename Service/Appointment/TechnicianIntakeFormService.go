@@ -123,10 +123,23 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 			//Insert Aduit Row for Answers Update
 			transData := 24
 
-			errTrans := tx.Exec(query.InsertTransactionDataSQL, int(transData), int(reqVal.PatientId), int(idValue), hashdb.Encrypt(string(ChangesDataJSON))).Error
-			if errTrans != nil {
-				log.Printf("ERROR: Failed to Transaction History: %v\n", errTrans)
-				tx.Rollback()
+			// errTrans := tx.Exec(query.InsertTransactionDataSQL, int(transData), int(reqVal.PatientId), int(idValue), hashdb.Encrypt(string(ChangesDataJSON))).Error
+			// if errTrans != nil {
+			// 	log.Printf("ERROR: Failed to Transaction History: %v\n", errTrans)
+			// 	tx.Rollback()
+			// 	return false, "Something went wrong, Try Again"
+			// }
+
+			errTrans := model.RefTransHistory{
+				TransTypeId: transData,
+				THData:      hashdb.Encrypt(string(ChangesDataJSON)),
+				UserId:      reqVal.PatientId,
+				THActionBy:  idValue,
+			}
+
+			errTransStatus := db.Create(&errTrans).Error
+			if errTransStatus != nil {
+				log.Error("errreportStatus INSERT ERROR at Trnasaction: " + errTransStatus.Error())
 				return false, "Something went wrong, Try Again"
 			}
 
