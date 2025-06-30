@@ -78,3 +78,77 @@ func RequestHandler[T any](c *gin.Context) (*T, bool) {
 
 	return &data, true
 }
+
+func GetRequestBody[T any](c *gin.Context, useEncryption bool) (T, bool) {
+	var data T
+
+	if useEncryption {
+		// Extract token
+		tokenVal, exists := c.Get("token")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"status":  false,
+				"message": "Token not found in context.",
+			})
+			return data, false
+		}
+
+		// Bind encrypted request
+		var encrypted ReqVal
+		if err := c.ShouldBindJSON(&encrypted); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  false,
+				"message": "Invalid encrypted body: " + err.Error(),
+			})
+			return data, false
+		}
+
+		if len(encrypted.EncryptedData) < 2 {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  false,
+				"message": "Invalid encrypted data format",
+			})
+			return data, false
+		}
+
+		// Decrypt
+		decryptedInterface, err := hashapi.Decrypt(encrypted.EncryptedData, tokenVal.(string))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": "Decryption failed: " + err.Error(),
+			})
+			return data, false
+		}
+
+		mapData, ok := decryptedInterface.(map[string]interface{})
+		if !ok {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": "Invalid decrypted format",
+			})
+			return data, false
+		}
+
+		if err := mapstructure.Decode(mapData, &data); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": "Failed to decode decrypted data: " + err.Error(),
+			})
+			return data, false
+		}
+
+	} else {
+		// Bind normal JSON
+		if err := c.ShouldBindJSON(&data); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  false,
+				"message": "Invalid request body: " + err.Error(),
+			})
+			return data, false
+		}
+	}
+
+	fmt.Println("--- Final Decoded Struct Data:", data)
+	return data, true
+}
