@@ -257,13 +257,27 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 
 	//Updating a Appointment Status
 	UpdateAppointmentStatuserr := tx.Exec(
-		query.UpdateAppointmentStatus,
+		query.UpdateTechnicianAppointmentStatus,
 		"doctorreview",
+		reqVal.Priority,
 		reqVal.AppointmentId,
 	).Error
 	if UpdateAppointmentStatuserr != nil {
 		log.Printf("ERROR: Failed to Update Appointment Status: %v\n", UpdateAppointmentStatuserr)
 		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	reportStatus := model.RefTransHistory{
+		TransTypeId: 25,
+		THData:      "Technician Form Filled Successfully",
+		UserId:      idValue,
+		THActionBy:  idValue,
+	}
+
+	errreportStatus := db.Create(&reportStatus).Error
+	if errreportStatus != nil {
+		log.Error("errreportStatus INSERT ERROR at Trnasaction: " + errreportStatus.Error())
 		return false, "Something went wrong, Try Again"
 	}
 
