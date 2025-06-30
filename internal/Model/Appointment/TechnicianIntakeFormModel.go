@@ -3,10 +3,10 @@ package model
 import "time"
 
 type UpdateAnswersReqModel struct {
-	ITFId             int    `json:"ITFId" binding:"required" mapstructure:"ITFId"`
+	ITFId             int    `json:"refITFId" binding:"required" mapstructure:"refITFId"`
 	QuestionId        int    `json:"questionId" binding:"required" mapstructure:"questionId"`
 	Answer            string `json:"answer" binding:"required" mapstructure:"answer"`
-	TechinicianStatus bool   `json:"techinicianStatus" binding:"required" mapstructure:"techinicianStatus"`
+	TechinicianStatus bool   `json:"verifyTechnician" binding:"required" mapstructure:"verifyTechnician"`
 }
 
 type Change struct {
@@ -23,6 +23,7 @@ type AddTechnicianIntakeFormReq struct {
 	PatientId         int                     `json:"patientId" binding:"required" mapstructure:"patientId"`
 	CategoryId        int                     `json:"categoryId" mapstructure:"categoryId"`
 	AppointmentId     int                     `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
+	Priority          string                  `json:"priority" binding:"required" mapstructure:"priority"`
 	UpdatedAnswers    []UpdateAnswersReqModel `json:"updatedAnswers" binding:"required" mapstructure:"updatedAnswers"`
 	TechnicianAnswers []AnswersReqModel       `json:"technicianAnswers" binding:"required" mapstructure:"technicianAnswers"`
 	DicomFiles        []DicomFile             `json:"dicom_files" binding:"required" mapstructure:"dicom_files"`
