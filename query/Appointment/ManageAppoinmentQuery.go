@@ -43,6 +43,20 @@ FROM
   JOIN map."refScanCenterMap" rscm ON rscm."refSCId" = ra."refSCId"
 WHERE
   rscm."refUserId" = ?
+  AND rscm."refSCId" = ?
+`
+
+var ViewAllPatientQueueSQL = `
+SELECT
+  u."refUserCustId" AS "refUserCustId",
+  u."refUserFirstName" AS "refUserFirstName",
+  u."refUserId" AS "refUserId",
+  ra.*,
+  sc.*
+FROM
+  appointment."refAppointments" ra
+  JOIN public."ScanCenter" sc ON sc."refSCId" = ra."refSCId"
+  JOIN public."Users" u ON u."refUserId" = ra."refUserId"
 `
 
 var InsertAdditionalFiles = `
@@ -80,4 +94,45 @@ FROM
 WHERE
   "refUserId" = ?
   AND "refAppointmentId" = ?
+`
+
+var GetUserWithScanDetails = `
+SELECT
+  *
+FROM
+  public."Users" u
+  JOIN map."refScanCenterMap" rscm ON rscm."refUserId" = u."refUserId"
+WHERE
+  u."refRTId" = ?
+  AND rscm."refSCId" = ?
+  AND (
+    u."refRTId" = 2
+  )
+`
+
+var GetUserDetails = `
+SELECT
+  *
+FROM
+  public."Users"
+WHERE
+  "refRTId" IN (?)
+`
+
+var IdentifyScanCenterWithUser = `
+SELECT
+  *
+FROM
+  map."refScanCenterMap"
+WHERE
+  "refUserId" = ?
+`
+
+var UpdateAssignUser = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentAssignedUserId" = ?
+WHERE
+  "refAppointmentId" = ?
 `

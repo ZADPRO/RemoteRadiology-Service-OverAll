@@ -7,6 +7,7 @@ import (
 	model "AuthenticationService/internal/Model/Appointment"
 	query "AuthenticationService/query/Appointment"
 	"encoding/json"
+	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -105,22 +106,147 @@ func ViewPatientHistoryService(db *gorm.DB, idValue int) []model.ViewPatientHist
 	return patientHistory
 }
 
-func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int) []model.ViewTechnicianPatientQueueModel {
+func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int, roleIdValue int) ([]model.ViewTechnicianPatientQueueModel, []model.StaffAvailableModel) {
 	log := logger.InitLogger()
+
+	var StaffAvailable []model.StaffAvailableModel
 
 	var patientQueue []model.ViewTechnicianPatientQueueModel
 
-	err := db.Raw(query.ViewTechnicianPatientQueueSQL, idValue).Scan(&patientQueue).Error
-	if err != nil {
-		log.Printf("ERROR: Failed to View Patient Queue: %v", err)
-		return []model.ViewTechnicianPatientQueueModel{}
+	var Scancenter []model.ScanCenterModel
+
+	IdentifyScancentererr := db.Raw(query.IdentifyScanCenterWithUser, idValue).Scan(&Scancenter).Error
+	if IdentifyScancentererr != nil {
+		log.Printf("ERROR: Failed to Identify Scan Center: %v", IdentifyScancentererr)
+		return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
 	}
 
-	for i, data := range patientQueue {
-		patientQueue[i].Username = hashdb.Decrypt(data.Username)
+	if roleIdValue == 2 || roleIdValue == 3 || roleIdValue == 5 || roleIdValue == 8 {
+
+		err := db.Raw(query.ViewTechnicianPatientQueueSQL, idValue, Scancenter[0].SCId).Scan(&patientQueue).Error
+		if err != nil {
+			log.Printf("ERROR: Failed to View Patient Queue: %v", err)
+			return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
+		}
+
+		for i, data := range patientQueue {
+			patientQueue[i].Username = hashdb.Decrypt(data.Username)
+
+			var dicom []model.GetDicomFile
+			log.Printf("Fetching Dicom for AppointmentId=%d, UserId=%d", data.AppointmentId, data.UserId)
+
+			dicomErr := db.Raw(query.ViewGetDicomFile, data.AppointmentId, data.UserId).Scan(&dicom).Error
+			if dicomErr != nil {
+				log.Printf("ERROR: Failed to fetch Dicom Files: %v", dicomErr)
+				return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
+			}
+
+			patientQueue[i].DicomFiles = dicom
+		}
+
+		var suggestId []int
+		switch roleIdValue {
+		case 5:
+			suggestId = []int{8}
+		case 8:
+			suggestId = []int{1, 5}
+		}
+
+		if len(suggestId) != 0 {
+
+			if roleIdValue == 5 {
+				SuggestUserErr := db.Raw(query.GetUserWithScanDetails, suggestId[0], Scancenter[0].SCId).Scan(&StaffAvailable).Error
+				if SuggestUserErr != nil {
+					log.Printf("ERROR: Failed to fetch Staff Available: %v", SuggestUserErr)
+					return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
+				}
+				for i, data := range StaffAvailable {
+					StaffAvailable[i].Username = hashdb.Decrypt(data.Username)
+				}
+				return patientQueue, StaffAvailable
+			} else {
+				SuggestUserErr := db.Raw(query.GetUserDetails, suggestId).Scan(&StaffAvailable).Error
+				if SuggestUserErr != nil {
+					log.Printf("ERROR: Failed to fetch Staff Available: %v", SuggestUserErr)
+					return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
+				}
+				for i, data := range StaffAvailable {
+					StaffAvailable[i].Username = hashdb.Decrypt(data.Username)
+				}
+				return patientQueue, StaffAvailable
+
+			}
+
+		} else {
+
+			return patientQueue, []model.StaffAvailableModel{}
+		}
+
+	} else {
+
+		err := db.Raw(query.ViewAllPatientQueueSQL).Scan(&patientQueue).Error
+		if err != nil {
+			log.Printf("ERROR: Failed to View Patient Queue: %v", err)
+			return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
+		}
+
+		for i, data := range patientQueue {
+			patientQueue[i].Username = hashdb.Decrypt(data.Username)
+
+			var dicom []model.GetDicomFile
+			log.Printf("Fetching Dicom for AppointmentId=%d, UserId=%d", data.AppointmentId, data.UserId)
+
+			dicomErr := db.Raw(query.ViewGetDicomFile, data.AppointmentId, data.UserId).Scan(&dicom).Error
+			if dicomErr != nil {
+				log.Printf("ERROR: Failed to fetch Dicom Files: %v", dicomErr)
+				return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
+			}
+
+			patientQueue[i].DicomFiles = dicom
+		}
+
+		var suggestId []int
+		switch roleIdValue {
+		case 7:
+			suggestId = []int{6}
+		case 6:
+			suggestId = []int{7, 6}
+		}
+
+		if len(suggestId) != 0 {
+
+			// if roleIdValue == 7 {
+			// 	SuggestUserErr := db.Raw(query.GetUserWithScanDetails, suggestId[0], Scancenter[0].SCId).Scan(&StaffAvailable).Error
+			// 	if SuggestUserErr != nil {
+			// 		log.Printf("ERROR: Failed to fetch Staff Available: %v", SuggestUserErr)
+			// 		return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
+			// 	}
+			// 	for i, data := range StaffAvailable {
+			// 		StaffAvailable[i].Username = hashdb.Decrypt(data.Username)
+			// 	}
+			// 	return patientQueue, StaffAvailable
+			// } else {
+
+			fmt.Println(suggestId)
+
+			SuggestUserErr := db.Raw(query.GetUserDetails, suggestId).Scan(&StaffAvailable).Error
+			if SuggestUserErr != nil {
+				log.Printf("ERROR: Failed to fetch Staff Available: %v", SuggestUserErr)
+				return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
+			}
+			for i, data := range StaffAvailable {
+				StaffAvailable[i].Username = hashdb.Decrypt(data.Username)
+			}
+			return patientQueue, StaffAvailable
+
+			// }
+
+		} else {
+
+			return patientQueue, []model.StaffAvailableModel{}
+		}
 	}
 
-	return patientQueue
 }
 
 func AddAddtionalFilesService(db *gorm.DB, reqVal model.AddAddtionalFilesReq, idValue int) (bool, string) {
@@ -188,4 +314,58 @@ func ViewAddtionalFilesService(db *gorm.DB, reqVal model.ViewAddtionalFileReq) [
 	}
 
 	return ViewFile
+}
+
+func AssignUserService(db *gorm.DB, reqVal model.AssignUserReq, idValue int) (bool, string) {
+	log := logger.InitLogger()
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
+		return false, "Something went wrong, Try Again"
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("ERROR: Recovered from panic, rolling back transaction:", r)
+			tx.Rollback()
+		}
+	}()
+
+	fmt.Println(reqVal.AssingUserId, reqVal.AppointmentId)
+
+	//Updating the Assigning User
+	errExec := tx.Exec(
+		query.UpdateAssignUser,
+		reqVal.AssingUserId,
+		reqVal.AppointmentId,
+	).Error
+	if errExec != nil {
+		log.Printf("ERROR: Failed to update assign user: %v\n", errExec)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	//Adding Audit Page
+	history := model.RefTransHistory{
+		TransTypeId: 33,
+		THData:      "Report was Assigned for " + reqVal.AssingUserCustId,
+		UserId:      reqVal.PatientId,
+		THActionBy:  idValue,
+	}
+
+	errhistory := db.Create(&history).Error
+	if errhistory != nil {
+		log.Error("LoginService INSERT ERROR at Trnasaction: " + errhistory.Error())
+		return false, "Something went wrong, Try Again"
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	return true, "Added Successfully!"
+
 }
