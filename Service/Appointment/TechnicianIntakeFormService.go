@@ -7,6 +7,7 @@ import (
 	model "AuthenticationService/internal/Model/Appointment"
 	query "AuthenticationService/query/Appointment"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -64,7 +65,7 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 
 		// combined := string(ChangesDataJSON) + "," + fmt.Sprintf(`"questionId": %d}`, answer.QuestionId)
 		// Insert Aduit Row for Category ID
-		transData := 24
+		transData := 22
 
 		errTrans := tx.Exec(query.InsertTransactionDataSQL, int(transData), int(reqVal.PatientId), int(idValue), string(ChangesDataJSON)).Error
 		if errTrans != nil {
@@ -177,7 +178,7 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 	//Inserting the Technician Intake Form
 	InsertAnswer := tx.Exec(
 		query.TechnicianInsertAnswerSQL,
-		idValue,
+		reqVal.PatientId,
 		reqVal.AppointmentId,
 		idValue,
 		string(jsonAnswers),
@@ -188,95 +189,50 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 		return false, "Something went wrong, Try Again"
 	}
 
-	// Get Patient Customer ID
-	var patientCustId string
-	errPatient := tx.Table("\"Users\"").Select("\"refUserCustId\"").Where("\"refUserId\" = ?", reqVal.PatientId).Scan(&patientCustId).Error
-	if errPatient != nil {
-		log.Printf("ERROR: Failed to get patient custom ID: %v\n", errPatient)
+	// Storing the Technician Aduit Row for Answers
+
+	var techallChangeLogs []any
+
+	for _, answer := range reqVal.TechnicianAnswers {
+
+		oldData := map[string]interface{}{
+			fmt.Sprintf("%d", answer.QuestionId): "",
+		}
+
+		updatedData := map[string]interface{}{
+			fmt.Sprintf("%d", answer.QuestionId): answer.Answer,
+		}
+
+		ChangesData := helper.GetChanges(updatedData, oldData)
+
+		if len(ChangesData) > 0 {
+			var ChangesDataJSON []byte
+			var errChange error
+			ChangesDataJSON, errChange = json.Marshal(ChangesData)
+			if errChange != nil {
+				// Corrected log message
+				log.Printf("ERROR: Failed to marshal ChangesData to JSON: %v\n", errChange)
+				tx.Rollback()
+				return false, "Something went wrong, Try Again"
+			}
+
+			techallChangeLogs = append(techallChangeLogs, hashdb.Encrypt(string(ChangesDataJSON)))
+
+		}
+	}
+
+	technfinalJSON, techerr := json.Marshal(techallChangeLogs)
+	if techerr != nil {
+		log.Printf("ERROR: Failed to marshal allChangeLogs: %v\n", techerr)
 		tx.Rollback()
 		return false, "Something went wrong, Try Again"
 	}
-	if patientCustId == "" {
-		log.Printf("ERROR: Patient custom ID not found for user ID: %d\n", reqVal.PatientId)
-		tx.Rollback()
-		return false, "Patient not found"
-	}
 
-	// Get Scan Center Customer ID from Technician ID
-	var scanCenterCustId string
-	errSC := tx.Table("map.refScanCenterMap as scm").
-		Select("sc.\"refSCCustId\"").
-		Joins("join \"public\".\"ScanCenter\" as sc on sc.refSCId = scm.refSCId").
-		Where("scm.\"refUserId\" = ? AND scm.\"refSCMStatus\" = ?", idValue, true).
-		First(&scanCenterCustId).Error
+	transData := 26
 
-	if errSC != nil {
-		if errSC == gorm.ErrRecordNotFound {
-			log.Printf("ERROR: No active scan center mapping found for technician ID: %d\n", idValue)
-			tx.Rollback()
-			return false, "Technician not mapped to an active scan center"
-		}
-		log.Printf("ERROR: Failed to get scan center custom ID: %v\n", errSC)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again"
-	}
-	if scanCenterCustId == "" {
-		log.Printf("ERROR: Scan center custom ID is empty for technician ID: %d\n", idValue)
-		tx.Rollback()
-		return false, "Scan center configuration error"
-	}
-
-	//Handle Dicom File Store Process
-	currentDate := time.Now().Format("02-01-2006")
-	for i, file := range reqVal.DicomFiles {
-		// Get the file extension
-		ext := filepath.Ext(file.FilesName)
-		if ext == "" {
-			ext = ".zip" // Default to .zip if no extension
-		}
-
-		// Construct the new filename
-		newFilename := fmt.Sprintf("%s_%s_%s_%d%s",
-			scanCenterCustId,
-			currentDate,
-			strings.ToUpper(patientCustId),
-			i+1,
-			ext)
-
-		oldPath := filepath.Join("./Assets/Dicom/", file.FilesName)
-		newPath := filepath.Join("./Assets/Dicom/", newFilename)
-
-		// Rename the file
-		if err := os.Rename(oldPath, newPath); err != nil {
-			log.Printf("ERROR: Failed to rename DICOM file from %s to %s: %v\n", oldPath, newPath, err)
-			tx.Rollback()
-			return false, "Failed to process DICOM file"
-		}
-
-		DicomFile := model.DicomFileModel{
-			UserId:        reqVal.PatientId,
-			AppointmentId: reqVal.AppointmentId,
-			FileName:      newFilename,
-			CreatedAt:     time.Now(),
-		}
-
-		DicomFileerr := db.Create(&DicomFile).Error
-		if DicomFileerr != nil {
-			log.Error("DicomFile INSERT ERROR at Technician Intake: " + DicomFileerr.Error())
-			return false, "Something went wrong, Try Again"
-		}
-
-	}
-
-	//Updating a Appointment Status
-	UpdateAppointmentStatuserr := tx.Exec(
-		query.UpdateTechnicianAppointmentStatus,
-		"doctorreview",
-		reqVal.Priority,
-		reqVal.AppointmentId,
-	).Error
-	if UpdateAppointmentStatuserr != nil {
-		log.Printf("ERROR: Failed to Update Appointment Status: %v\n", UpdateAppointmentStatuserr)
+	errTrans := tx.Exec(query.InsertTransactionDataSQL, int(transData), int(idValue), int(idValue), string(technfinalJSON)).Error
+	if errTrans != nil {
+		log.Printf("ERROR: Failed to Transaction History: %v\n", errTrans)
 		tx.Rollback()
 		return false, "Something went wrong, Try Again"
 	}
@@ -294,6 +250,19 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 		return false, "Something went wrong, Try Again"
 	}
 
+	//Updating a Appointment Status
+	UpdateAppointmentStatuserr := tx.Exec(
+		query.UpdateTechnicianAppointmentStatus,
+		"reportformfill",
+		reqVal.Priority,
+		reqVal.AppointmentId,
+	).Error
+	if UpdateAppointmentStatuserr != nil {
+		log.Printf("ERROR: Failed to Update Appointment Status: %v\n", UpdateAppointmentStatuserr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
 	if err := tx.Commit().Error; err != nil {
 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
 		tx.Rollback()
@@ -301,4 +270,191 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 	}
 
 	return true, "Successfully Technician Intake Form Created"
+}
+
+func ViewTechnicianIntakeFormService(db *gorm.DB, reqVal model.ViewTechnicianIntakeFormReq, idValue int) ([]model.GetViewIntakeData, []model.AduitModel, []model.TechIntakeModel) {
+	log := logger.InitLogger()
+
+	var ViewIntakeData []model.GetViewIntakeData
+
+	err := db.Raw(query.ViewIntakeFormQuery, reqVal.PatientId, reqVal.AppointmentId).Scan(&ViewIntakeData).Error
+	if err != nil {
+		log.Printf("ERROR: Failed to fetch scan centers: %v", err)
+		return []model.GetViewIntakeData{}, []model.AduitModel{}, []model.TechIntakeModel{}
+	}
+
+	// for i, data := range Aduit {
+	// 	ViewIntakeData[i] = hashdb.Decrypt(strings.Trim(data.THData, `"`))
+	// }
+
+	var Aduit []model.AduitModel
+
+	Aduiterr := db.Raw(query.GetAuditforIntakeForm).Scan(&Aduit).Error
+	if Aduiterr != nil {
+		log.Printf("ERROR: Failed to fetch Aduit: %v", Aduiterr)
+		return []model.GetViewIntakeData{}, []model.AduitModel{}, []model.TechIntakeModel{}
+	}
+
+	for i, data := range Aduit {
+		Aduit[i].THData = hashdb.Decrypt(strings.Trim(data.THData, `"`))
+	}
+
+	var TechIntakeData []model.TechIntakeModel
+
+	TechDataerr := db.Raw(query.GetTechIntakeForm, reqVal.AppointmentId, reqVal.PatientId).Scan(&TechIntakeData).Error
+	if TechDataerr != nil {
+		log.Printf("ERROR: Failed to fetch Tech Aduit: %v", TechDataerr)
+		return []model.GetViewIntakeData{}, []model.AduitModel{}, []model.TechIntakeModel{}
+	}
+
+	for i, data := range TechIntakeData {
+		TechIntakeData[i].TITFAnswer = hashdb.Decrypt(data.TITFAnswer)
+	}
+
+	return ViewIntakeData, Aduit, TechIntakeData
+}
+
+func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool, string) {
+	log := logger.InitLogger()
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
+		return false, "Something went wrong, Try Again"
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("ERROR: Recovered from panic, rolling back transaction:", r)
+			tx.Rollback()
+		}
+	}()
+
+	// Get Patient Customer ID
+	var patientCustId string
+	errPatient := tx.Table("\"Users\"").Select("\"refUserCustId\"").Where("\"refUserId\" = ?", reqVal.PatientId).Scan(&patientCustId).Error
+	if errPatient != nil {
+		log.Printf("ERROR: Failed to get patient custom ID: %v\n", errPatient)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+	if patientCustId == "" {
+		log.Printf("ERROR: Patient custom ID not found for user ID: %d\n", reqVal.PatientId)
+		tx.Rollback()
+		return false, "Patient not found"
+	}
+
+	// Get Scan Center Customer ID from Technician ID
+	// Define a struct to hold the result
+	type ScanCenterResult struct {
+		RefSCCustId string `gorm:"column:refSCCustId"`
+	}
+
+	var scanCenterCustId ScanCenterResult
+
+	// Perform the join query
+	errSC := tx.Table("map.\"refScanCenterMap\" AS scm").
+		Joins("JOIN public.\"ScanCenter\" AS sc ON sc.\"refSCId\" = scm.\"refSCId\"").
+		Select("sc.\"refSCCustId\"").
+		Where("scm.\"refUserId\" = ? AND scm.\"refSCMStatus\" = ?", idValue, true).
+		Scan(&scanCenterCustId).Error
+
+	// Error handling
+	if errSC != nil {
+		if errors.Is(errSC, gorm.ErrRecordNotFound) {
+			log.Printf("ERROR: No active scan center mapping found for technician ID: %d\n", idValue)
+			tx.Rollback()
+			return false, "Technician not mapped to an active scan center"
+		}
+		log.Printf("ERROR: Failed to get scan center customer ID: %v\n", errSC)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	if scanCenterCustId.RefSCCustId == "" {
+		log.Printf("ERROR: Scan center customer ID is empty for technician ID: %d\n", idValue)
+		tx.Rollback()
+		return false, "Scan center configuration error"
+	}
+
+	//Handle Dicom File Store Process
+	currentDate := time.Now().Format("02-01-2006")
+	for i, file := range reqVal.DicomFiles {
+		// Get the file extension
+		ext := filepath.Ext(file.FilesName)
+		if ext == "" {
+			ext = ".zip" // Default to .zip if no extension
+		}
+
+		side := "R"
+
+		if file.Side == "Left" {
+			side = "L"
+		}
+
+		// Construct the new filename
+		newFilename := fmt.Sprintf("%s_%s_%s_%s_%d%s",
+			scanCenterCustId.RefSCCustId,
+			strings.ToUpper(patientCustId),
+			currentDate,
+			side,
+			i+1,
+			ext,
+		)
+
+		oldPath := filepath.Join("./Assets/Dicom/", file.FilesName)
+		newPath := filepath.Join("./Assets/Dicom/", newFilename)
+
+		// Ensure old file exists
+		if _, err := os.Stat(oldPath); os.IsNotExist(err) {
+			log.Printf("ERROR: Source file does not exist: %s\n", oldPath)
+			tx.Rollback()
+			return false, "DICOM source file not found"
+		}
+
+		// Try renaming
+		if err := os.Rename(oldPath, newPath); err != nil {
+			log.Printf("ERROR: Failed to rename DICOM file from %s to %s: %v\n", oldPath, newPath, err)
+			tx.Rollback()
+			return false, "Failed to process DICOM file"
+		}
+
+		DicomFile := model.DicomFileModel{
+			UserId:        reqVal.PatientId,
+			AppointmentId: reqVal.AppointmentId,
+			FileName:      newFilename,
+			CreatedAt:     time.Now(),
+			CreatedBy:     idValue,
+			Side:          file.Side,
+		}
+
+		DicomFileerr := db.Create(&DicomFile).Error
+		if DicomFileerr != nil {
+			log.Error("DicomFile INSERT ERROR at Technician Intake: " + DicomFileerr.Error())
+			return false, "Something went wrong, Try Again"
+		}
+
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	return true, "Successfully Dicom File Saved"
+}
+
+func ViewDicomService(db *gorm.DB, reqVal model.ViewTechnicianIntakeFormReq, idValue int) []model.DicomFileModel {
+	log := logger.InitLogger()
+
+	var DicomModel []model.DicomFileModel
+
+	DicomErr := db.Raw(query.ViewGetDicomFile, reqVal.AppointmentId, reqVal.PatientId).Scan(&DicomModel).Error
+	if DicomErr != nil {
+		log.Printf("ERROR: Failed to fetch scan centers: %v", DicomErr)
+		return []model.DicomFileModel{}
+	}
+
+	return DicomModel
 }
