@@ -103,7 +103,8 @@ func PostCoDoctorService(db *gorm.DB, reqVal model.DoctorRegisterReq, idValue in
 
 	AuthData := model.CreateDoctorAuthModel{
 		UserId:         int(UserData.UserId),
-		Password:       hashdb.Encrypt(reqVal.DOB),
+		// Password:       hashdb.Encrypt(reqVal.DOB),
+		Password:       hashdb.Encrypt("test@123"),
 		HashPassword:   hashPassword,
 		PasswordStatus: true,
 	}
