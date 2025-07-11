@@ -26,7 +26,10 @@ SET
   "refSCPhoneNo1" = ?,
   "refSCEmail" = ?,
   "refSCWebsite" = ?,
-  "refSCAppointments" = ?
+  "refSCAppointments" = ?,
+  refSCDisclamer = ?,
+  refSCBrouchure = ?,
+  refSCGuidelines = ?
 WHERE
   "refSCId" = ?
 `

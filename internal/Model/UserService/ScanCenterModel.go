@@ -24,6 +24,9 @@ type ScanCenterModel struct {
 	Email               string `json:"refSCEmail" gorm:"column:refSCEmail"`
 	Website             string `json:"refSCWebsite" gorm:"column:refSCWebsite"`
 	Appointments        bool   `json:"refSCAppointments" gorm:"column:refSCAppointments"`
+	Disclaimer          string `json:"refSCDisclamer" gorm:"column:refSCDisclamer"`
+	Brouchure           string `json:"refSCBrouchure" gorm:"column:refSCBrouchure"`
+	Guidelines          string `json:"refSCGuidelines" gorm:"column:refSCGuidelines"`
 }
 
 func (ScanCenterModel) TableName() string {
@@ -38,5 +41,8 @@ type UpdateScanCentertReq struct {
 	Website      string `json:"website" binding:"required" mapstructure:"website"`
 	Telephone    string `json:"telephone" binding:"required" mapstructure:"telephone"`
 	Logo         string `json:"logo" binding:"required" mapstructure:"logo"`
+	Disclaimer   string `json:"disclamer" binding:"required" mapstructure:"disclamer"`
+	Brouchure    string `json:"brouchure" binding:"required" mapstructure:"brouchure"`
+	Guidelines   string `json:"guidelines" binding:"required" mapstructure:"guidelines"`
 	Appointments bool   `json:"appointments" mapstructure:"appointments"`
 }

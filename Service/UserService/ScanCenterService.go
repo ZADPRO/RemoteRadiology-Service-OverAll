@@ -147,6 +147,9 @@ func PatchScanCenterService(db *gorm.DB, reqVal model.UpdateScanCentertReq, idVa
 		"Logo":               hashdb.Decrypt(PreviousData.Logo),
 		"Website":            hashdb.Decrypt(PreviousData.Website),
 		"Appointment Status": PreviousData.Appointments,
+		"Disclaimer":         PreviousData.Disclaimer,
+		"Brouchure":          PreviousData.Brouchure,
+		"Guidelines":         PreviousData.Guidelines,
 	}
 
 	updatedData := map[string]interface{}{
@@ -157,6 +160,9 @@ func PatchScanCenterService(db *gorm.DB, reqVal model.UpdateScanCentertReq, idVa
 		"Logo":               reqVal.Logo,
 		"Website":            reqVal.Website,
 		"Appointment Status": reqVal.Appointments,
+		"Disclaimer":         reqVal.Disclaimer,
+		"Brouchure":          reqVal.Brouchure,
+		"Guidelines":         PreviousData.Guidelines,
 	}
 
 	ChangesData := helper.GetChanges(updatedData, oldData)
@@ -191,6 +197,9 @@ func PatchScanCenterService(db *gorm.DB, reqVal model.UpdateScanCentertReq, idVa
 		reqVal.Email,
 		hashdb.Encrypt(reqVal.Website),
 		reqVal.Appointments,
+		reqVal.Disclaimer,
+		reqVal.Brouchure,
+		reqVal.Guidelines,
 		reqVal.ID,
 	).Error
 	if ScanCenterErr != nil {
