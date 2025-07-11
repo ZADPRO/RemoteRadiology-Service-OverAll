@@ -140,11 +140,12 @@ func ViewTechnicianPatientQueue() gin.HandlerFunc {
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
 
-		queueData := service.ViewTechnicianPatientQueueService(dbConn, int(idValue.(float64)))
+		queueData, staffData := service.ViewTechnicianPatientQueueService(dbConn, int(idValue.(float64)), int(roleIdValue.(float64)))
 
 		payload := map[string]interface{}{
-			"status": true,
-			"data":   queueData,
+			"status":    true,
+			"data":      queueData,
+			"staffData": staffData,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)
@@ -223,21 +224,6 @@ func ViewAddtionalFilesController() gin.HandlerFunc {
 			return
 		}
 
-		// data, ok := helper.RequestHandler[model.AddAppointmentReq](c)
-		// if !ok {
-		// 	return
-		// }
-
-		// var reqVal model.AddAppointmentReq
-
-		// if err := c.BindJSON(&reqVal); err != nil {
-		// 	c.JSON(http.StatusOK, gin.H{
-		// 		"status":  false,
-		// 		"message": "Something went wrong, Try Again " + err.Error(),
-		// 	})
-		// 	return
-		// }
-
 		data, ok := helper.GetRequestBody[model.ViewAddtionalFileReq](c, true)
 		if !ok {
 			return
@@ -251,6 +237,44 @@ func ViewAddtionalFilesController() gin.HandlerFunc {
 		payload := map[string]interface{}{
 			"status": true,
 			"data":   Data,
+		}
+
+		token := accesstoken.CreateToken(idValue, roleIdValue)
+
+		c.JSON(http.StatusOK, gin.H{
+			"data":  hashapi.Encrypt(payload, true, token),
+			"token": token,
+		})
+	}
+}
+
+func AssignUserController() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idValue, idExists := c.Get("id")
+		roleIdValue, roleIdExists := c.Get("roleId")
+
+		if !idExists || !roleIdExists {
+			// Handle error: ID is missing from context (e.g., middleware didn't set it)
+			c.JSON(http.StatusUnauthorized, gin.H{ // Or StatusInternalServerError depending on why it's missing
+				"status":  false,
+				"message": "User ID, RoleID, Branch ID not found in request context.",
+			})
+			return
+		}
+
+		data, ok := helper.GetRequestBody[model.AssignUserReq](c, true)
+		if !ok {
+			return
+		}
+
+		dbConn, sqlDB := db.InitDB()
+		defer sqlDB.Close()
+
+		status, message := service.AssignUserService(dbConn, data, int(idValue.(float64)))
+
+		payload := map[string]interface{}{
+			"status":  status,
+			"message": message,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)

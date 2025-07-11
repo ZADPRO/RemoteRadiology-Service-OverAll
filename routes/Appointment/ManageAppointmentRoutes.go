@@ -14,4 +14,5 @@ func InitManageAppointmentRoutes(router *gin.Engine) {
 	route.GET("/viewtechnicianpatientqueue", accesstoken.JWTMiddleware(), controllers.ViewTechnicianPatientQueue())
 	route.POST("/addAddtionalFiles", accesstoken.JWTMiddleware(), controllers.AddAddtionalFilesController())
 	route.POST("/viewAddtionalFiles", accesstoken.JWTMiddleware(), controllers.ViewAddtionalFilesController())
+	route.POST("/assignUser", accesstoken.JWTMiddleware(), controllers.AssignUserController())
 }
