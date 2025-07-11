@@ -63,5 +63,18 @@ func AdminOverallOneAnalayticsService(db *gorm.DB, reqVal model.AdminOverallOneA
 		return model.AdminOverallAnalyticsResponse{}
 	}
 
+	err := db.Raw(query.GetAllScanCenter).Scan(&response.GetAllScaCenter).Error
+	if err != nil {
+		log.Printf("ERROR: Failed to fetch scan centers: %v", err)
+		return model.AdminOverallAnalyticsResponse{}
+	}
+
+	for i, tech := range response.GetAllScaCenter {
+		response.GetAllScaCenter[i].SCProfile = hashdb.Decrypt(tech.SCProfile)
+		response.GetAllScaCenter[i].SCName = hashdb.Decrypt(tech.SCName)
+		response.GetAllScaCenter[i].SCAddress = hashdb.Decrypt(tech.SCAddress)
+		response.GetAllScaCenter[i].SCWebsite = hashdb.Decrypt(tech.SCWebsite)
+	}
+
 	return response
 }

@@ -3,14 +3,11 @@ package service
 import (
 	accesstoken "AuthenticationService/internal/Helper/AccessToken"
 	becrypt "AuthenticationService/internal/Helper/Becrypt"
-	helper "AuthenticationService/internal/Helper/GenerateOTP"
 	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
-	mailservice "AuthenticationService/internal/Helper/MailService"
 	model "AuthenticationService/internal/Model/Authentication"
 	query "AuthenticationService/query/Authentication"
 	"fmt"
-	"strconv"
 
 	"gorm.io/gorm"
 )
@@ -52,39 +49,39 @@ func LoginServices(db *gorm.DB, reqVal model.LoginReq) model.LoginResponse {
 
 	log.Info("LoginService Logined Successfully for Username: " + reqVal.Username)
 
-	otp := helper.GenerateOTP()
+	// otp := helper.GenerateOTP()
 
-	deleteOTP := db.Exec(query.DeleteOTPSQL, strconv.Itoa(user.UserId), 1).Error
-	if deleteOTP != nil {
-		log.Error("LoginService DB Error: " + deleteOTP.Error())
-		return model.LoginResponse{
-			Status:  false,
-			Message: "Something went wrong, Try Again",
-		}
-	}
+	// deleteOTP := db.Exec(query.DeleteOTPSQL, strconv.Itoa(user.UserId), 1).Error
+	// if deleteOTP != nil {
+	// 	log.Error("LoginService DB Error: " + deleteOTP.Error())
+	// 	return model.LoginResponse{
+	// 		Status:  false,
+	// 		Message: "Something went wrong, Try Again",
+	// 	}
+	// }
 
-	otperr := db.Exec(query.CreateOTPSQL, strconv.Itoa(user.UserId), otp, 1).Error
-	if otperr != nil {
-		log.Error("LoginService DB Error: " + otperr.Error())
-		return model.LoginResponse{
-			Status:  false,
-			Message: "Something went wrong, Try Again",
-		}
-	}
+	// otperr := db.Exec(query.CreateOTPSQL, strconv.Itoa(user.UserId), otp, 1).Error
+	// if otperr != nil {
+	// 	log.Error("LoginService DB Error: " + otperr.Error())
+	// 	return model.LoginResponse{
+	// 		Status:  false,
+	// 		Message: "Something went wrong, Try Again",
+	// 	}
+	// }
 
-	htmlContent := mailservice.LoginOTPContent(otp)
+	// htmlContent := mailservice.LoginOTPContent(otp)
 
-	subject := "Your Login Passcode"
+	// subject := "Your Login Passcode"
 
-	emailStatus := mailservice.MailService(user.CODOEmail, htmlContent, subject)
+	// emailStatus := mailservice.MailService(user.CODOEmail, htmlContent, subject)
 
-	if !emailStatus {
-		log.Error("Sending Mail Meets Error")
-		return model.LoginResponse{
-			Status:  false,
-			Message: "Something went wrong, Try Again",
-		}
-	}
+	// if !emailStatus {
+	// 	log.Error("Sending Mail Meets Error")
+	// 	return model.LoginResponse{
+	// 		Status:  false,
+	// 		Message: "Something went wrong, Try Again",
+	// 	}
+	// }
 
 	return model.LoginResponse{
 		Status:   true,
@@ -130,32 +127,32 @@ func VerifyOTPService(db *gorm.DB, reqVal model.VerifyReq) model.LoginResponse {
 		}
 	}
 
-	var VerifyOTP []model.VerifyOTP
+	// var VerifyOTP []model.VerifyOTP
 
-	otpverification := db.Raw(query.VerifyOTPSQL, strconv.Itoa(user.UserId), reqVal.OTP, 1).Scan(&VerifyOTP).Error
-	if otpverification != nil {
-		log.Error("LoginService DB Error: " + otpverification.Error())
-		return model.LoginResponse{
-			Status:  false,
-			Message: "Something went wrong, Try Again",
-		}
-	}
+	// otpverification := db.Raw(query.VerifyOTPSQL, strconv.Itoa(user.UserId), reqVal.OTP, 1).Scan(&VerifyOTP).Error
+	// if otpverification != nil {
+	// 	log.Error("LoginService DB Error: " + otpverification.Error())
+	// 	return model.LoginResponse{
+	// 		Status:  false,
+	// 		Message: "Something went wrong, Try Again",
+	// 	}
+	// }
 
-	if !VerifyOTP[0].Result {
-		return model.LoginResponse{
-			Status:  false,
-			Message: "Invalid Passcode",
-		}
-	}
+	// if !VerifyOTP[0].Result {
+	// 	return model.LoginResponse{
+	// 		Status:  false,
+	// 		Message: "Invalid Passcode",
+	// 	}
+	// }
 
-	deleteOTP := db.Exec(query.DeleteOTPSQL, strconv.Itoa(user.UserId), 1).Error
-	if deleteOTP != nil {
-		log.Error("LoginService DB Error: " + deleteOTP.Error())
-		return model.LoginResponse{
-			Status:  false,
-			Message: "Something went wrong, Try Again",
-		}
-	}
+	// deleteOTP := db.Exec(query.DeleteOTPSQL, strconv.Itoa(user.UserId), 1).Error
+	// if deleteOTP != nil {
+	// 	log.Error("LoginService DB Error: " + deleteOTP.Error())
+	// 	return model.LoginResponse{
+	// 		Status:  false,
+	// 		Message: "Something went wrong, Try Again",
+	// 	}
+	// }
 
 	history := model.RefTransHistory{
 		TransTypeId: 1,
