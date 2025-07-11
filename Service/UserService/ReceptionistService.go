@@ -110,8 +110,9 @@ func PostReceptionistService(db *gorm.DB, reqVal model.ReceptionistRegisterReq, 
 	}
 
 	AuthData := model.CreateRadiologistAuthModel{
-		UserId:         int(UserData.UserId),
-		Password:       hashdb.Encrypt(reqVal.DOB),
+		UserId: int(UserData.UserId),
+		// Password:       hashdb.Encrypt(reqVal.DOB),
+		Password:       hashdb.Encrypt("test@123"),
 		HashPassword:   hashPassword,
 		PasswordStatus: true,
 	}

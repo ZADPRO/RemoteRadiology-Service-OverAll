@@ -104,8 +104,9 @@ func PostManagerService(db *gorm.DB, reqVal model.ManagerRegisterReq, idValue in
 	}
 
 	AuthData := model.CreateRadiologistAuthModel{
-		UserId:         int(UserData.UserId),
-		Password:       hashdb.Encrypt(reqVal.DOB),
+		UserId: int(UserData.UserId),
+		// Password:       hashdb.Encrypt(reqVal.DOB),
+		Password:       hashdb.Encrypt("test@123"),
 		HashPassword:   hashPassword,
 		PasswordStatus: true,
 	}
