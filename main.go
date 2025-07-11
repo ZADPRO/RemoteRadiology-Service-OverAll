@@ -1,6 +1,7 @@
 package main
 
 import (
+	routesAnalaytics "AuthenticationService/routes/Analaytics"
 	routesAppointment "AuthenticationService/routes/Appointment"
 	routes "AuthenticationService/routes/Authentication"
 	routesProfile "AuthenticationService/routes/ProfileService"
@@ -194,6 +195,19 @@ func main() {
 	fmt.Println()
 
 	routesAppointment.InitOverrideRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================Report Intake Form=================")
+	fmt.Println()
+
+	routesAppointment.InitReportIntakeFormRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================Analaytics=================")
+	fmt.Println()
+
+	routesAnalaytics.InitAnalayticsRoutes(r)
+
 	fmt.Println()
 	fmt.Println()
 

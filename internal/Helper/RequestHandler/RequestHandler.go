@@ -65,7 +65,7 @@ func RequestHandler[T any](c *gin.Context) (*T, bool) {
 	}
 
 	// fmt.Println("---> Decrypted MapData", mapData)
-	fmt.Println("--- Decoded Struct Data:", mapData)
+	// fmt.Println("--- Decoded Struct Data:", mapData)
 
 	var data T
 	if err := mapstructure.Decode(mapData, &data); err != nil {
