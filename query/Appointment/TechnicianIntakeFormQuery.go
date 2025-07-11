@@ -29,13 +29,13 @@ WITH
       jsonb_array_elements(?::jsonb) AS item
   )
 INSERT INTO
-  notes."refIntakeForm" (
+  notes."refTechnicianIntakeForm" (
     "refUserId",
     "refAppointmentId",
-    "refITFQId",
-    "refITFAnswer",
-    "refITFCreatedAt",
-    "refITFCreatedBy"
+    "refTITFQId",
+    "refTITFAnswer",
+    "refTITFCreatedAt",
+    "refTITFCreatedBy"
   )
 SELECT
   refUserId,
@@ -46,4 +46,44 @@ SELECT
   refCreatedAt
 FROM
   input_data;
+`
+
+var GetDicomFileSQL = `
+SELECT
+  *
+FROM
+  dicom."refDicomFiles"
+WHERE
+  "refDFId" = ?
+`
+
+var GetTechIntakeForm = `
+SELECT
+  *
+FROM
+  notes."refTechnicianIntakeForm"
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var ViewGetDicomFile = `
+SELECT
+  *
+FROM
+  dicom."refDicomFiles"
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var GetDicomFile = `
+SELECT
+  *
+FROM
+  dicom."refDicomFiles"
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+  AND "refDFSide" = ?
 `
