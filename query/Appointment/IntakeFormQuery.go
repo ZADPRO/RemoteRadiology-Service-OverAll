@@ -41,6 +41,8 @@ WHERE
   AND "refAppointmentId" = ?
 `
 
+
+
 var GetVerifyIntakeFormQuery = `
 SELECT
   *
@@ -73,7 +75,7 @@ UPDATE
   appointment."refAppointments"
 SET
   "refAppointmentComplete" = ?,
-  refAppointmentPriority = ?
+  "refAppointmentPriority" = ?
 WHERE
   "refAppointmentId" = ?
 `

@@ -10,6 +10,9 @@ type GetAllScaCenter struct {
 	SCEmail        string    `json:"refSCEmail" gorm:"column:refSCEmail"`
 	SCWebsite      string    `json:"refSCWebsite" gorm:"column:refSCWebsite"`
 	SCAppointments bool      `json:"refSCAppointments" gorm:"column:refSCAppointments"`
+	SCDisclamer    string    `json:"refSCDisclamer" gorm:"column:refSCDisclamer"`
+	SCBrouchure    string    `json:"refSCBrouchure" gorm:"column:refSCBrouchure"`
+	SCGuidelines   string    `json:"refSCGuidelines" gorm:"column:refSCGuidelines"`
 	ProfileImgFile *FileData `json:"profileImgFile" gorm:"-"`
 }
 

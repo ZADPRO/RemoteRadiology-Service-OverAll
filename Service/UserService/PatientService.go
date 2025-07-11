@@ -238,7 +238,7 @@ func PostRegisterPatientService(db *gorm.DB, reqVal model.RegisterPatientReq) mo
 		FirstName:       hashdb.Encrypt(reqVal.FirstName),
 		LastName:        hashdb.Encrypt(reqVal.LastName),
 		Status:          true,
-		AgreementStatus: false,
+		AgreementStatus: true,
 	}
 
 	PatientDataErr := tx.Create(&PatientData).Error
@@ -282,7 +282,7 @@ func PostRegisterPatientService(db *gorm.DB, reqVal model.RegisterPatientReq) mo
 		UserId:         int(PatientData.UserId),
 		Password:       hashdb.Encrypt(reqVal.Password),
 		HashPassword:   hashPassword,
-		PasswordStatus: true,
+		PasswordStatus: false,
 	}
 
 	AuthDataerr := tx.Create(&AuthData).Error
