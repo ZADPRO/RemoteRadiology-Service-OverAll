@@ -87,3 +87,14 @@ WHERE
   AND "refUserId" = ?
   AND "refDFSide" = ?
 `
+
+var ListTechnicianSQL = `
+SELECT
+  *
+FROM
+  notes."refReportsHistory"
+WHERE
+  "refUserId" = ?
+  AND "refAppointmentId" = ?
+  AND "refRHHandledUserId" = ?
+`
