@@ -2,7 +2,6 @@ package service
 
 import (
 	becrypt "AuthenticationService/internal/Helper/Becrypt"
-	helper "AuthenticationService/internal/Helper/GenerateOTP"
 	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
 	mailservice "AuthenticationService/internal/Helper/MailService"
@@ -59,41 +58,41 @@ func PostGetOtpPatientService(db *gorm.DB, reqVal model.GetOtpPatient) model.Reg
 
 	}
 
-	otp := helper.GenerateOTP()
+	// otp := helper.GenerateOTP()
 
-	deleteOTP := db.Exec(query.DeleteOTPSQL, reqVal.Email, 3).Error
-	if deleteOTP != nil {
-		log.Error("LoginService DB Error: " + deleteOTP.Error())
-		return model.RegisterPatientRes{
-			Status:  false,
-			Message: "Something went wrong, Try Again",
-		}
-	}
+	// deleteOTP := db.Exec(query.DeleteOTPSQL, reqVal.Email, 3).Error
+	// if deleteOTP != nil {
+	// 	log.Error("LoginService DB Error: " + deleteOTP.Error())
+	// 	return model.RegisterPatientRes{
+	// 		Status:  false,
+	// 		Message: "Something went wrong, Try Again",
+	// 	}
+	// }
 
-	otperr := db.Exec(query.CreateOTPSQL, reqVal.Email, otp, 3).Error
-	if otperr != nil {
-		log.Error("LoginService DB Error: " + otperr.Error())
-		return model.RegisterPatientRes{
-			Status:  false,
-			Message: "Something went wrong, Try Again",
-		}
-	}
+	// otperr := db.Exec(query.CreateOTPSQL, reqVal.Email, otp, 3).Error
+	// if otperr != nil {
+	// 	log.Error("LoginService DB Error: " + otperr.Error())
+	// 	return model.RegisterPatientRes{
+	// 		Status:  false,
+	// 		Message: "Something went wrong, Try Again",
+	// 	}
+	// }
 
-	userName := reqVal.FirstName + " " + reqVal.LastName
+	// userName := reqVal.FirstName + " " + reqVal.LastName
 
-	subject := "Verify OTP"
+	// subject := "Verify OTP"
 
-	htmlContent := mailservice.GetOTPMailContent(userName, otp)
+	// htmlContent := mailservice.GetOTPMailContent(userName, otp)
 
-	emailStatus := mailservice.MailService(reqVal.Email, htmlContent, subject)
+	// emailStatus := mailservice.MailService(reqVal.Email, htmlContent, subject)
 
-	if !emailStatus {
-		log.Error("Sending Mail Meets Error")
-		return model.RegisterPatientRes{
-			Status:  false,
-			Message: "Something went wrong, Try Again",
-		}
-	}
+	// if !emailStatus {
+	// 	log.Error("Sending Mail Meets Error")
+	// 	return model.RegisterPatientRes{
+	// 		Status:  false,
+	// 		Message: "Something went wrong, Try Again",
+	// 	}
+	// }
 
 	if err := tx.Commit().Error; err != nil {
 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
@@ -174,23 +173,23 @@ func PostRegisterPatientService(db *gorm.DB, reqVal model.RegisterPatientReq) mo
 		}
 	}()
 
-	var VerifyOTP []model.VerifyOTP
+	// var VerifyOTP []model.VerifyOTP
 
-	otpverification := db.Raw(query.VerifyOTPSQL, reqVal.Email, reqVal.OTP, 3).Scan(&VerifyOTP).Error
-	if otpverification != nil {
-		log.Error("LoginService DB Error: " + otpverification.Error())
-		return model.RegisterPatientRes{
-			Status:  false,
-			Message: "Something went wrong, Try Again",
-		}
-	}
+	// otpverification := db.Raw(query.VerifyOTPSQL, reqVal.Email, reqVal.OTP, 3).Scan(&VerifyOTP).Error
+	// if otpverification != nil {
+	// 	log.Error("LoginService DB Error: " + otpverification.Error())
+	// 	return model.RegisterPatientRes{
+	// 		Status:  false,
+	// 		Message: "Something went wrong, Try Again",
+	// 	}
+	// }
 
-	if !VerifyOTP[0].Result {
-		return model.RegisterPatientRes{
-			Status:  false,
-			Message: "Invalid OTP",
-		}
-	}
+	// if !VerifyOTP[0].Result {
+	// 	return model.RegisterPatientRes{
+	// 		Status:  false,
+	// 		Message: "Invalid OTP",
+	// 	}
+	// }
 
 	var verifyData []model.VerifyData
 
