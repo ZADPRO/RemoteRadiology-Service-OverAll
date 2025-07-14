@@ -130,23 +130,23 @@ func PostCheckOTPPatientService(db *gorm.DB, reqVal model.VerifyOtpPatient) mode
 		}
 	}()
 
-	var VerifyOTP []model.VerifyOTP
+	// var VerifyOTP []model.VerifyOTP
 
-	otpverification := db.Raw(query.VerifyOTPSQL, reqVal.Email, reqVal.OTP, 3).Scan(&VerifyOTP).Error
-	if otpverification != nil {
-		log.Error("LoginService DB Error: " + otpverification.Error())
-		return model.RegisterPatientRes{
-			Status:  false,
-			Message: "Something went wrong, Try Again",
-		}
-	}
+	// otpverification := db.Raw(query.VerifyOTPSQL, reqVal.Email, reqVal.OTP, 3).Scan(&VerifyOTP).Error
+	// if otpverification != nil {
+	// 	log.Error("LoginService DB Error: " + otpverification.Error())
+	// 	return model.RegisterPatientRes{
+	// 		Status:  false,
+	// 		Message: "Something went wrong, Try Again",
+	// 	}
+	// }
 
-	if !VerifyOTP[0].Result {
-		return model.RegisterPatientRes{
-			Status:  false,
-			Message: "Invalid OTP",
-		}
-	}
+	// if !VerifyOTP[0].Result {
+	// 	return model.RegisterPatientRes{
+	// 		Status:  false,
+	// 		Message: "Invalid OTP",
+	// 	}
+	// }
 
 	return model.RegisterPatientRes{
 		Status:  true,
