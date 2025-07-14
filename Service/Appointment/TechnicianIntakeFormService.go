@@ -263,6 +263,52 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 		return false, "Something went wrong, Try Again"
 	}
 
+	//Updating Report Hstory
+	//Inserting the Audit for the Report Accessing
+	HistoryoldDataCat := map[string]interface{}{
+		"Report Access ID": idValue,
+	}
+
+	HistoryupdatedDataCat := map[string]interface{}{
+		"Report Access ID": "",
+	}
+
+	HistoryChangesDataCat := helper.GetChanges(HistoryupdatedDataCat, HistoryoldDataCat)
+
+	var HistoryChangesDataJSON []byte
+	var HistoryerrChange error
+	HistoryChangesDataJSON, HistoryerrChange = json.Marshal(HistoryChangesDataCat)
+	if HistoryerrChange != nil {
+		// Corrected log message
+		log.Printf("ERROR: Failed to marshal ChangesData to JSON: %v\n", HistoryerrChange)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	HistorytransData := 28
+
+	HistoryerrTrans := tx.Exec(query.InsertTransactionDataSQL, int(HistorytransData), int(reqVal.PatientId), int(idValue), string(HistoryChangesDataJSON)).Error
+	if HistoryerrTrans != nil {
+		log.Printf("ERROR: Failed to Transaction History: %v\n", HistoryerrTrans)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	//Updating the End Time For the Report History
+	ReportHistoryErr := tx.Exec(
+		query.CompleteReportHistorySQL,
+		"technologistformfill",
+		"",
+		reqVal.AppointmentId,
+		idValue,
+		reqVal.PatientId,
+	).Error
+	if ReportHistoryErr != nil {
+		log.Printf("ERROR: Failed to Update Report History: %v\n", ReportHistoryErr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
 	if err := tx.Commit().Error; err != nil {
 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
 		tx.Rollback()
@@ -312,6 +358,88 @@ func ViewTechnicianIntakeFormService(db *gorm.DB, reqVal model.ViewTechnicianInt
 	}
 
 	return ViewIntakeData, Aduit, TechIntakeData
+}
+
+func AssignTechnicianService(db *gorm.DB, reqVal model.ViewTechnicianIntakeFormReq, idValue int) (bool, string) {
+	log := logger.InitLogger()
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
+		return false, "Something went wrong, Try Again"
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("ERROR: Recovered from panic, rolling back transaction:", r)
+			tx.Rollback()
+		}
+	}()
+
+	var ListUserData []model.ListUserModel
+
+	ViewTechnicianErr := db.Raw(query.ListTechnicianSQL, reqVal.PatientId, reqVal.AppointmentId, idValue).Scan(&ListUserData).Error
+	if ViewTechnicianErr != nil {
+		log.Printf("ERROR: Failed to fetch Tech Aduit: %v", ViewTechnicianErr)
+		return false, "Something went wrong, Try Again"
+	}
+
+	if len(ListUserData) > 0 {
+		return true, "UserId Already Assigned"
+	}
+
+	oldDataCat := map[string]interface{}{
+		"Report Access ID": "",
+	}
+
+	updatedDataCat := map[string]interface{}{
+		"Report Access ID": idValue,
+	}
+
+	ChangesDataCat := helper.GetChanges(updatedDataCat, oldDataCat)
+
+	if len(ChangesDataCat) > 0 {
+		var ChangesDataJSON []byte
+		var errChange error
+		ChangesDataJSON, errChange = json.Marshal(ChangesDataCat)
+		if errChange != nil {
+			// Corrected log message
+			log.Printf("ERROR: Failed to marshal ChangesData to JSON: %v\n", errChange)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again"
+		}
+
+		transData := 28
+
+		errTrans := tx.Exec(query.InsertTransactionDataSQL, int(transData), reqVal.PatientId, int(idValue), string(ChangesDataJSON)).Error
+		if errTrans != nil {
+			log.Printf("ERROR: Failed to Transaction History: %v\n", errTrans)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again"
+		}
+
+	}
+
+	//Insert the History
+	ReportHistoryErr := tx.Exec(
+		query.InsertReportHistorySQL,
+		reqVal.PatientId,
+		reqVal.AppointmentId,
+		idValue,
+	).Error
+	if ReportHistoryErr != nil {
+		log.Printf("ERROR: Failed to Insert Report History: %v\n", ReportHistoryErr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	return true, "Successfully Assigned"
 }
 
 func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool, string) {
