@@ -58,6 +58,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 		}
 	}()
 
+	fmt.Println("Check1---------------------------")
 	//patientCustId
 	var PatientUserDetails []model.PatientCustId
 	PatientUserDetailsErr := db.Raw(query.PatientUserDetailsSQL, reqVal.PatientId).Scan(&PatientUserDetails).Error
@@ -65,6 +66,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 		log.Fatal(PatientUserDetailsErr)
 	}
 
+	fmt.Println("Check2---------------------------")
 	//GetUserDetails
 	var UserDetails []model.GetUserDetails
 	UserDetailsErr := db.Raw(query.GetUserDetailsSQL, idValue).Scan(&UserDetails).Error
@@ -72,6 +74,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 		log.Fatal(UserDetailsErr)
 	}
 
+	fmt.Println("Check3---------------------------")
 	//Decrypt UserDetails
 	for i, data := range UserDetails {
 		UserDetails[i].FirstName = hashdb.Decrypt(data.FirstName)
@@ -83,14 +86,20 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 		}
 	}
 
+	fmt.Println("Check4---------------------------")
 	checkAccessReq := model.CheckAccessReq{
 		AppointmentId: reqVal.AppointmentId,
 	}
 
+	fmt.Println("Check5---------------------------")
 	status, message, _ := CheckAccessService(db, checkAccessReq, idValue)
 
-	if (status && !reqVal.ReadOnlyStatus) || (!status && reqVal.ReadOnlyStatus) {
+	fmt.Println(status, message)
 
+	fmt.Println("Check6---------------------------")
+	if (status && !reqVal.ReadOnlyStatus) || (!status && reqVal.ReadOnlyStatus) || (status && reqVal.ReadOnlyStatus) {
+
+		fmt.Println("Check7---------------------------")
 		//Appointment Table
 		var Appointment []model.AppointmentModel
 		Appointmenterr := db.Raw(query.GetAppointmentSQL, reqVal.AppointmentId).Scan(&Appointment).Error
@@ -98,6 +107,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			log.Fatal(Appointmenterr)
 		}
 
+		fmt.Println("Check8---------------------------")
 		if !reqVal.ReadOnlyStatus {
 			oldDataCat := map[string]interface{}{
 				"Report Access ID": Appointment[0].AppointmentAccessId,
@@ -131,7 +141,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 				}
 
 				transData := 28
-
+				fmt.Println("Check9---------------------------")
 				errTrans := tx.Exec(query.InsertTransactionDataSQL, int(transData), int(Appointment[0].UserId), int(idValue), string(ChangesDataJSON)).Error
 				if errTrans != nil {
 					log.Printf("ERROR: Failed to Transaction History: %v\n", errTrans)
@@ -149,12 +159,14 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						[]model.PatientCustId{}
 				}
 
+				fmt.Println("Check10---------------------------")
 				categoryUpdate := tx.Exec(
 					query.UpdateAccessAppointment,
 					true,
 					idValue,
 					reqVal.AppointmentId,
 				).Error
+				fmt.Println("Check11---------------------------")
 				if categoryUpdate != nil {
 					log.Printf("ERROR: Failed toCategory Id: %v\n", categoryUpdate)
 					tx.Rollback()
@@ -170,18 +182,18 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						[]model.GetUserDetails{},
 						[]model.PatientCustId{}
 				}
-
-				//Insert the History
-				ReportHistoryErr := tx.Exec(
-					query.InsertReportHistorySQL,
-					reqVal.PatientId,
-					reqVal.AppointmentId,
-					idValue,
-				).Error
-				if ReportHistoryErr != nil {
-					log.Printf("ERROR: Failed to Insert Report History: %v\n", ReportHistoryErr)
+				fmt.Println("Check12--------------------------")
+				//List the Latest Report History
+				var ReportHistory []model.GetReportHistory
+				ListReportHistoryErr := db.Raw(query.CheckLatestReportSQL, reqVal.AppointmentId, reqVal.PatientId).Scan(&ReportHistory).Error
+				if ListReportHistoryErr != nil {
+					log.Fatal(ListReportHistoryErr)
+				}
+				fmt.Println("Check13---------------------------")
+				if ListReportHistoryErr != nil {
+					log.Printf("ERROR: Failed to marshal ChangesData to JSON: %v\n", errChange)
 					tx.Rollback()
-					return false, "Something went wrong, Try Again",
+					return false, "Invalid User Accessing",
 						[]model.GetViewIntakeData{},
 						[]model.GetTechnicianIntakeData{},
 						[]model.GetReportIntakeData{},
@@ -194,8 +206,135 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						[]model.PatientCustId{}
 				}
 
+				fmt.Println("Check14---------------------------")
+				if len(ReportHistory) > 0 {
+					//Insert the History
+					ReportHistoryErr := tx.Exec(
+						query.InsertReportHistorySQL,
+						reqVal.PatientId,
+						reqVal.AppointmentId,
+						idValue,
+						ReportHistory[0].HandleEndTime,
+					).Error
+					if ReportHistoryErr != nil {
+						log.Printf("ERROR: Failed to Insert Report History: %v\n", ReportHistoryErr)
+						tx.Rollback()
+						return false, "Something went wrong, Try Again",
+							[]model.GetViewIntakeData{},
+							[]model.GetTechnicianIntakeData{},
+							[]model.GetReportIntakeData{},
+							[]model.GetReportTextContent{},
+							[]model.GetReportHistory{},
+							[]model.GetReportComments{},
+							[]model.GetOneUserAppointmentModel{},
+							[]model.ReportFormateModel{},
+							[]model.GetUserDetails{},
+							[]model.PatientCustId{}
+					}
+				}
+
 			}
 
+		}
+
+		var IntakeFormData []model.GetViewIntakeData
+		var OneUserAppointment []model.GetOneUserAppointmentModel
+		fmt.Println("Check15---------------------------")
+		//Appointment Table
+		ViewAppointmentErr := db.Raw(query.GetOneUserAppointment, reqVal.PatientId, reqVal.AppointmentId).Scan(&OneUserAppointment).Error
+		if ViewAppointmentErr != nil {
+			log.Fatal(ViewAppointmentErr)
+		}
+		fmt.Println("Check16---------------------------")
+
+		//Decrypt Appointment Table
+		for i, data := range OneUserAppointment {
+			OneUserAppointment[i].SCName = hashdb.Decrypt(data.SCName)
+		}
+		fmt.Println("Check17---------------------------")
+		//Intake Form Table
+		IntakeFormDataerr := db.Raw(query.GetIntakeFormSQL, reqVal.AppointmentId).Scan(&IntakeFormData).Error
+		if IntakeFormDataerr != nil {
+			log.Fatal(IntakeFormDataerr)
+		}
+		fmt.Println("Check18---------------------------")
+		//Decrypt Intake Form Table
+		for i, data := range IntakeFormData {
+			IntakeFormData[i].Answer = hashdb.Decrypt(data.Answer)
+		}
+		fmt.Println("Check19---------------------------")
+		//Technician Intake Form Table
+		var TechnicianIntakeFormData []model.GetTechnicianIntakeData
+		TechnicianIntakeFormDataerr := db.Raw(query.GetTechnicianIntakeFormSQL, reqVal.AppointmentId).Scan(&TechnicianIntakeFormData).Error
+		if TechnicianIntakeFormDataerr != nil {
+			log.Fatal(TechnicianIntakeFormDataerr)
+		}
+		fmt.Println("Check20---------------------------")
+		//Decrypt the Techncian Form Table
+		for i, data := range TechnicianIntakeFormData {
+			TechnicianIntakeFormData[i].Answer = hashdb.Decrypt(data.Answer)
+		}
+		fmt.Println("Check21---------------------------")
+		//Report Intake Form Table
+		var ReportIntakeFormData []model.GetReportIntakeData
+		ReportIntakeFormDataerr := db.Raw(query.GetReportIntakeFormSQL, reqVal.AppointmentId).Scan(&ReportIntakeFormData).Error
+		if ReportIntakeFormDataerr != nil {
+			log.Fatal(ReportIntakeFormDataerr)
+		}
+		fmt.Println("Check22---------------------------")
+		//Decrypt Report Intake Form Table
+		for i, data := range ReportIntakeFormData {
+			ReportIntakeFormData[i].Answer = hashdb.Decrypt(data.Answer)
+		}
+		fmt.Println("Check23---------------------------")
+		//Report Text Content Table
+		var ReportTextContentData []model.GetReportTextContent
+		ReportTextContentDataerr := db.Raw(query.GetReporttextContent, reqVal.AppointmentId).Scan(&ReportTextContentData).Error
+		if ReportTextContentDataerr != nil {
+			log.Fatal(ReportTextContentDataerr)
+		}
+		fmt.Println("Check24---------------------------")
+		//Decrypt Report Text Content Table
+		for i, data := range ReportTextContentData {
+			ReportTextContentData[i].TextContent = hashdb.Decrypt(data.TextContent)
+		}
+		fmt.Println("Check25---------------------------")
+		//Report History Table
+		var ReportHistoryData []model.GetReportHistory
+		ReportHistoryDataerr := db.Raw(query.GetReportHistorySQL, reqVal.AppointmentId).Scan(&ReportHistoryData).Error
+		if ReportHistoryDataerr != nil {
+			log.Fatal(ReportHistoryDataerr)
+		}
+		fmt.Println("Check26---------------------------")
+		//Decrypt Report History Table
+		for i, data := range ReportHistoryData {
+			ReportHistoryData[i].HandleUserName = hashdb.Decrypt(data.HandleUserName)
+			ReportHistoryData[i].HandleContentText = hashdb.Decrypt(data.HandleContentText)
+		}
+		fmt.Println("Check27---------------------------")
+		// Report Comment Table
+		var ReportCommentsData []model.GetReportComments
+		ReportCommentsDataerr := db.Raw(query.GetReportCommentsSQL, reqVal.AppointmentId).Scan(&ReportCommentsData).Error
+		if ReportCommentsDataerr != nil {
+			log.Fatal(ReportCommentsDataerr)
+		}
+		fmt.Println("Check28---------------------------")
+		// Decrypt Report Comment Table
+		for i, data := range ReportCommentsData {
+			ReportCommentsData[i].Status = hashdb.Decrypt(data.Status)
+			ReportCommentsData[i].Comments = hashdb.Decrypt(data.Comments)
+		}
+		fmt.Println("Check29---------------------------")
+		//Get the Template all listed
+		var ReportFormateList []model.ReportFormateModel
+		ReportFormateListErr := db.Raw(query.GetReportFormateListSQL).Scan(&ReportFormateList).Error
+		if ReportFormateListErr != nil {
+			log.Fatal(ReportFormateListErr)
+		}
+		fmt.Println("Check30--------------------------")
+		// Decrypt Report Formate List
+		for i, data := range ReportFormateList {
+			ReportFormateList[i].RFName = hashdb.Decrypt(data.RFName)
 		}
 
 		if err := tx.Commit().Error; err != nil {
@@ -212,105 +351,6 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 				[]model.ReportFormateModel{},
 				[]model.GetUserDetails{},
 				[]model.PatientCustId{}
-		}
-
-		var IntakeFormData []model.GetViewIntakeData
-		var OneUserAppointment []model.GetOneUserAppointmentModel
-
-		//Appointment Table
-		ViewAppointmentErr := db.Raw(query.GetOneUserAppointment, reqVal.PatientId, reqVal.AppointmentId).Scan(&OneUserAppointment).Error
-		if ViewAppointmentErr != nil {
-			log.Fatal(ViewAppointmentErr)
-		}
-
-		//Decrypt Appointment Table
-		for i, data := range OneUserAppointment {
-			OneUserAppointment[i].SCName = hashdb.Decrypt(data.SCName)
-		}
-
-		//Intake Form Table
-		IntakeFormDataerr := db.Raw(query.GetIntakeFormSQL, reqVal.AppointmentId).Scan(&IntakeFormData).Error
-		if IntakeFormDataerr != nil {
-			log.Fatal(IntakeFormDataerr)
-		}
-
-		//Decrypt Intake Form Table
-		for i, data := range IntakeFormData {
-			IntakeFormData[i].Answer = hashdb.Decrypt(data.Answer)
-		}
-
-		//Technician Intake Form Table
-		var TechnicianIntakeFormData []model.GetTechnicianIntakeData
-		TechnicianIntakeFormDataerr := db.Raw(query.GetTechnicianIntakeFormSQL, reqVal.AppointmentId).Scan(&TechnicianIntakeFormData).Error
-		if TechnicianIntakeFormDataerr != nil {
-			log.Fatal(TechnicianIntakeFormDataerr)
-		}
-
-		//Decrypt the Techncian Form Table
-		for i, data := range TechnicianIntakeFormData {
-			TechnicianIntakeFormData[i].Answer = hashdb.Decrypt(data.Answer)
-		}
-
-		//Report Intake Form Table
-		var ReportIntakeFormData []model.GetReportIntakeData
-		ReportIntakeFormDataerr := db.Raw(query.GetReportIntakeFormSQL, reqVal.AppointmentId).Scan(&ReportIntakeFormData).Error
-		if ReportIntakeFormDataerr != nil {
-			log.Fatal(ReportIntakeFormDataerr)
-		}
-
-		//Decrypt Report Intake Form Table
-		for i, data := range ReportIntakeFormData {
-			ReportIntakeFormData[i].Answer = hashdb.Decrypt(data.Answer)
-		}
-
-		//Report Text Content Table
-		var ReportTextContentData []model.GetReportTextContent
-		ReportTextContentDataerr := db.Raw(query.GetReporttextContent, reqVal.AppointmentId).Scan(&ReportTextContentData).Error
-		if ReportTextContentDataerr != nil {
-			log.Fatal(ReportTextContentDataerr)
-		}
-
-		//Decrypt Report Text Content Table
-		for i, data := range ReportTextContentData {
-			ReportTextContentData[i].TextContent = hashdb.Decrypt(data.TextContent)
-		}
-
-		//Report History Table
-		var ReportHistoryData []model.GetReportHistory
-		ReportHistoryDataerr := db.Raw(query.GetReportHistorySQL, reqVal.AppointmentId).Scan(&ReportHistoryData).Error
-		if ReportHistoryDataerr != nil {
-			log.Fatal(ReportHistoryDataerr)
-		}
-
-		//Decrypt Report History Table
-		for i, data := range ReportHistoryData {
-			ReportHistoryData[i].HandleUserName = hashdb.Decrypt(data.HandleUserName)
-			ReportHistoryData[i].HandleContentText = hashdb.Decrypt(data.HandleContentText)
-		}
-
-		// Report Comment Table
-		var ReportCommentsData []model.GetReportComments
-		ReportCommentsDataerr := db.Raw(query.GetReportCommentsSQL, reqVal.AppointmentId).Scan(&ReportCommentsData).Error
-		if ReportCommentsDataerr != nil {
-			log.Fatal(ReportCommentsDataerr)
-		}
-
-		// Decrypt Report Comment Table
-		for i, data := range ReportCommentsData {
-			ReportCommentsData[i].Status = hashdb.Decrypt(data.Status)
-			ReportCommentsData[i].Comments = hashdb.Decrypt(data.Comments)
-		}
-
-		//Get the Template all listed
-		var ReportFormateList []model.ReportFormateModel
-		ReportFormateListErr := db.Raw(query.GetReportFormateListSQL).Scan(&ReportFormateList).Error
-		if ReportFormateListErr != nil {
-			log.Fatal(ReportFormateListErr)
-		}
-
-		// Decrypt Report Formate List
-		for i, data := range ReportFormateList {
-			ReportFormateList[i].RFName = hashdb.Decrypt(data.RFName)
 		}
 
 		return true, "Successfully Fetched", IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, OneUserAppointment, ReportFormateList, UserDetails, PatientUserDetails
@@ -923,7 +963,7 @@ func CompleteReportService(db *gorm.DB, reqVal model.CompleteReportReq, idValue 
 	return true, "Successfully Changes Saved"
 }
 
-func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int) (bool, string) {
+func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int, roleIdValue int) (bool, string) {
 	log := logger.InitLogger()
 
 	tx := db.Begin()
@@ -997,6 +1037,8 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int)
 	UpdateAppointementErr := tx.Exec(
 		query.CompleteReportAppointmentSQL,
 		reqVal.MovedStatus,
+		reqVal.Impression,
+		reqVal.Recommendation,
 		reqVal.AppointmentId,
 		reqVal.PatientId,
 	).Error
@@ -1022,7 +1064,6 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int)
 	}
 
 	//Inserting the Audit for the Report Accessing
-
 	oldDataCat := map[string]interface{}{
 		"Report Access ID": idValue,
 	}
@@ -1065,6 +1106,78 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int)
 		log.Printf("ERROR: Failed to Update Report History: %v\n", ReportHistoryErr)
 		tx.Rollback()
 		return false, "Something went wrong, Try Again"
+	}
+
+	//totalCorrectEdit
+	switch roleIdValue {
+	case 1:
+		var ListUserData []model.ListUserModel
+
+		ListUserDataErr := db.Raw(query.ListUserDataSQL, reqVal.PatientId, reqVal.AppointmentId, 6).Scan(&ListUserData).Error
+		if ListUserDataErr != nil {
+			log.Fatal(ListUserDataErr.Error())
+			return false, "Something went wrong, Try Again"
+		}
+
+		var correct = 0
+		var edit = 0
+
+		if reqVal.EditStatus {
+			edit = 1
+		} else {
+			correct = 1
+		}
+
+		if len(ListUserData) > 0 {
+			// for _, data := range ListUserData {
+			UpdateChangesErr := tx.Exec(
+				query.UpdateCorrectEditSQL,
+				correct,
+				edit,
+				ListUserData[0].RHId,
+			).Error
+			if UpdateChangesErr != nil {
+				log.Printf("ERROR: Failed to Update Report History: %v\n", UpdateChangesErr)
+				tx.Rollback()
+				return false, "Something went wrong, Try Again"
+			}
+			// }
+		}
+	case 8:
+		var ListUserData []model.ListUserModel
+
+		ListUserDataErr := db.Raw(query.ListUserDataSQL, reqVal.PatientId, reqVal.AppointmentId, 1).Scan(&ListUserData).Error
+		if ListUserDataErr != nil {
+			log.Fatal(ListUserDataErr.Error())
+			return false, "Something went wrong, Try Again"
+		}
+
+		var correct = 0
+		var edit = 0
+
+		if reqVal.EditStatus {
+			edit = 1
+		} else {
+			correct = 1
+		}
+
+		if len(ListUserData) > 0 {
+			// for _, data := range ListUserData {
+			UpdateChangesErr := tx.Exec(
+				query.UpdateCorrectEditSQL,
+				correct,
+				edit,
+				ListUserData[0].RHId,
+			).Error
+			if UpdateChangesErr != nil {
+				log.Printf("ERROR: Failed to Update Report History: %v\n", UpdateChangesErr)
+				tx.Rollback()
+				return false, "Something went wrong, Try Again"
+			}
+			// }
+
+		}
+
 	}
 
 	if err := tx.Commit().Error; err != nil {

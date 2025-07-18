@@ -349,7 +349,7 @@ func SubmitReportController() gin.HandlerFunc {
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
 
-		status, message := service.SubmitReportService(dbConn, data, int(idValue.(float64)))
+		status, message := service.SubmitReportService(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
 
 		payload := map[string]interface{}{
 			"status":  status,
