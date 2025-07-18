@@ -88,6 +88,17 @@ WHERE
   AND "refDFSide" = ?
 `
 
+var GetAllDicomSQL = `
+SELECT
+  *
+FROM
+  dicom."refDicomFiles"
+WHERE
+  "refAppointmentId" IN ?
+ORDER BY
+  "refAppointmentId" ASC
+`
+
 var ListTechnicianSQL = `
 SELECT
   *
