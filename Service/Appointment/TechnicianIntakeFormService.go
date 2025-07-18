@@ -109,7 +109,7 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 
 		ChangesData := helper.GetChanges(updatedData, oldData)
 
-		if len(ChangesData) > 0 {
+		if len(ChangesData) > 0 || answer.TechinicianStatus {
 			var ChangesDataJSON []byte
 			var errChange error
 			ChangesDataJSON, errChange = json.Marshal(ChangesData)
@@ -144,21 +144,23 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 				return false, "Something went wrong, Try Again"
 			}
 
-			//Updating Answers
-			updatedIntakeErr := tx.Exec(
-				query.UpdateIntakeDataSQL,
-				answer.Answer,
-				idValue,
-				answer.TechinicianStatus,
-				answer.ITFId,
-			).Error
+			fmt.Println(answer.ITFId, answer.TechinicianStatus)
 
-			if updatedIntakeErr != nil {
-				log.Printf("ERROR: Failed to UpdatedIntake: %v\n", updatedIntakeErr)
-				tx.Rollback()
-				return false, "Something went wrong, Try Again"
-			}
+		}
 
+		//Updating Answers
+		updatedIntakeErr := tx.Exec(
+			query.UpdateIntakeDataSQL,
+			answer.Answer,
+			idValue,
+			answer.TechinicianStatus,
+			answer.ITFId,
+		).Error
+
+		if updatedIntakeErr != nil {
+			log.Printf("ERROR: Failed to UpdatedIntake: %v\n", updatedIntakeErr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again"
 		}
 
 	}
@@ -294,21 +296,6 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 		return false, "Something went wrong, Try Again"
 	}
 
-	//Updating the End Time For the Report History
-	ReportHistoryErr := tx.Exec(
-		query.CompleteReportHistorySQL,
-		"technologistformfill",
-		"",
-		reqVal.AppointmentId,
-		idValue,
-		reqVal.PatientId,
-	).Error
-	if ReportHistoryErr != nil {
-		log.Printf("ERROR: Failed to Update Report History: %v\n", ReportHistoryErr)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again"
-	}
-
 	if err := tx.Commit().Error; err != nil {
 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
 		tx.Rollback()
@@ -422,7 +409,7 @@ func AssignTechnicianService(db *gorm.DB, reqVal model.ViewTechnicianIntakeFormR
 
 	//Insert the History
 	ReportHistoryErr := tx.Exec(
-		query.InsertReportHistorySQL,
+		query.TechInsertReportHistorySQL,
 		reqVal.PatientId,
 		reqVal.AppointmentId,
 		idValue,
@@ -562,6 +549,21 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 			return false, "Something went wrong, Try Again"
 		}
 
+	}
+
+	//Updating the End Time For the Report History
+	ReportHistoryErr := tx.Exec(
+		query.CompleteReportHistorySQL,
+		"technologistformfill",
+		"",
+		reqVal.AppointmentId,
+		idValue,
+		reqVal.PatientId,
+	).Error
+	if ReportHistoryErr != nil {
+		log.Printf("ERROR: Failed to Update Report History: %v\n", ReportHistoryErr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
 	}
 
 	if err := tx.Commit().Error; err != nil {

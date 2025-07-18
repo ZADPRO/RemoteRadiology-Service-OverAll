@@ -6,7 +6,7 @@ type UpdateAnswersReqModel struct {
 	ITFId             int    `json:"refITFId" binding:"required" mapstructure:"refITFId"`
 	QuestionId        int    `json:"questionId" binding:"required" mapstructure:"questionId"`
 	Answer            string `json:"answer" binding:"required" mapstructure:"answer"`
-	TechinicianStatus bool   `json:"verifyTechnician" binding:"required" mapstructure:"verifyTechnician"`
+	TechinicianStatus bool   `json:"verifyTechnician" mapstructure:"verifyTechnician"`
 }
 
 type Change struct {
@@ -73,4 +73,8 @@ type TechIntakeModel struct {
 	TITFId     int    `json:"refTITFId" gorm:"column:refTITFId"`
 	TITFQId    int    `json:"questionId" gorm:"column:refTITFQId"`
 	TITFAnswer string `json:"answer" gorm:"column:refTITFAnswer"`
+}
+
+type OverAllDicomModel struct {
+	AppointmentId []int `json:"refAppointmentId" mapstructure:"refAppointmentId"`
 }
