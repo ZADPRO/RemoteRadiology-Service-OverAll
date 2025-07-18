@@ -65,12 +65,12 @@ func LoginOTPContent(otp int) string {
       <h1>Login Passcode Verification</h1>
     </div>
     <div class="content">
-      <p>Use the following Passcode to log in. This Passcode is valid for 5 minutes:</p>
+      <p>Use the following Passcode to log in. This Passcode is valid for 10 minutes:</p>
       <div class="otp">` + html.EscapeString(strconv.Itoa(otp)) + `</div>
       <p>If you did not request this Passcode, please ignore this email.</p>
     </div>
     <div class="footer">
-      &copy; ` + html.EscapeString(strconv.Itoa(time.Now().Year())) + ` Wellthgreen HealthCare Pvt Ltd. All rights reserved.
+      &copy; ` + html.EscapeString(strconv.Itoa(time.Now().Year())) + ` Wellthgreen Theranostics. All rights reserved.
     </div>
   </div>
 </body>
@@ -137,12 +137,12 @@ func ForgetPasswordOTPContent(otp int) string {
       <h1>Forget Password Passcode Verification</h1>
     </div>
     <div class="content">
-      <p>Use the following Passcode to Forget Password. This Passcode is valid for 5 minutes:</p>
+      <p>Use the following Passcode to Forget Password. This Passcode is valid for 10 minutes:</p>
       <div class="otp">` + html.EscapeString(strconv.Itoa(otp)) + `</div>
       <p>If you did not request this Passcode, please ignore this email.</p>
     </div>
     <div class="footer">
-      &copy; ` + html.EscapeString(strconv.Itoa(time.Now().Year())) + ` Wellthgreen HealthCare Pvt Ltd. All rights reserved.
+      &copy; ` + html.EscapeString(strconv.Itoa(time.Now().Year())) + ` Wellthgreen Theranostics. All rights reserved.
     </div>
   </div>
 </body>
@@ -212,7 +212,7 @@ func RegisterationMailContent(userName string) string {
       </div>
       <div class="content">
         <p>
-          Thank you for registering with <strong>Wellthgreen HealthCare Pvt Ltd</strong>.
+          Thank you for registering with <strong>Wellthgreen Theranostics</strong>.
         </p>
         <p>
           We’re excited to have you on board. You can now log in using your
@@ -223,7 +223,7 @@ func RegisterationMailContent(userName string) string {
       </div>
       <div class="footer">
         &copy; ` + html.EscapeString(strconv.Itoa(time.Now().Year())) + `
-        Wellthgreen HealthCare Pvt Ltd. All rights reserved.
+        Wellthgreen Theranostics. All rights reserved.
       </div>
     </div>
   </body>
@@ -306,7 +306,7 @@ func GetOTPMailContent(userName string, otp int) string {
       <div class="content">
         <p>
           Thank you for registering with
-          <strong>Wellthgreen HealthCare Pvt Ltd</strong>.
+          <strong>Wellthgreen Theranostics</strong>.
         </p>
         <p>
           Please use the Passcode below to verify your email address and complete
@@ -318,7 +318,7 @@ func GetOTPMailContent(userName string, otp int) string {
       </div>
       <div class="footer">
         &copy; ` + html.EscapeString(strconv.Itoa(time.Now().Year())) + `
-        Wellthgreen HealthCare Pvt Ltd. All rights reserved.
+        Wellthgreen Theranostics. All rights reserved.
       </div>
     </div>
   </body>
@@ -398,7 +398,7 @@ func RegistrationMailContent(userName, patientID, gmail, password string, role s
       </div>
       <div class="content">
         <p>
-          You have successfully been onboarded as a ` + html.EscapeString(role) + ` at <strong>Wellthgreen HealthCare Pvt Ltd</strong>.
+          You have successfully been onboarded as a ` + html.EscapeString(role) + ` at <strong>Wellthgreen Theranostics</strong>.
         </p>
         <p>Your login credentials are as follows:</p>
         <div class="credentials">
@@ -411,7 +411,7 @@ func RegistrationMailContent(userName, patientID, gmail, password string, role s
           </p>
           <p><strong>Password:</strong> ` + html.EscapeString(password) + `</p>
         </div>
-        <a href="https://zadroit.com/login" class="button"
+        <a href="https://easeqt.brightoncloudtech.com/" class="button"
           >Login to Dashboard</a
         >
         <p style="margin-top: 20px">
@@ -420,7 +420,7 @@ func RegistrationMailContent(userName, patientID, gmail, password string, role s
       </div>
       <div class="footer">
         &copy; ` + html.EscapeString(strconv.Itoa(time.Now().Year())) + `
-        Wellthgreen HealthCare Pvt Ltd. All rights reserved.
+        Wellthgreen Theranostics. All rights reserved.
       </div>
     </div>
   </body>

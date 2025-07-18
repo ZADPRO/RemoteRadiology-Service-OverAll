@@ -209,6 +209,18 @@ func main() {
 	routesAnalaytics.InitAnalayticsRoutes(r)
 
 	fmt.Println()
+	fmt.Println("=================Training Material=================")
+	fmt.Println()
+
+	routesAnalaytics.InitTrainingMaterialRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================Invoice=================")
+	fmt.Println()
+
+	routesAnalaytics.InitInvoiceRoutes(r)
+
+	fmt.Println()
 	fmt.Println()
 
 	//Ping 🎯API
