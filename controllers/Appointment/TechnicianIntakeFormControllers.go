@@ -124,6 +124,45 @@ func ViewTechnicianIntakeFormController() gin.HandlerFunc {
 	}
 }
 
+func AssignTechnicianController() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idValue, idExists := c.Get("id")
+		roleIdValue, roleIdExists := c.Get("roleId")
+
+		if !idExists || !roleIdExists {
+			// Handle error: ID is missing from context (e.g., middleware didn't set it)
+			c.JSON(http.StatusUnauthorized, gin.H{ // Or StatusInternalServerError depending on why it's missing
+				"status":  false,
+				"message": "User ID, RoleID, Branch ID not found in request context.",
+			})
+			return
+		}
+
+		//Request Should Be Encrypt
+		data, ok := helper.GetRequestBody[model.ViewTechnicianIntakeFormReq](c, true)
+		if !ok {
+			return
+		}
+
+		dbConn, sqlDB := db.InitDB()
+		defer sqlDB.Close()
+
+		Status, Message := service.AssignTechnicianService(dbConn, data, int(idValue.(float64)))
+
+		payload := map[string]interface{}{
+			"status":  Status,
+			"message": Message,
+		}
+
+		token := accesstoken.CreateToken(idValue, roleIdValue)
+
+		c.JSON(http.StatusOK, gin.H{
+			"data":  hashapi.Encrypt(payload, true, token),
+			"token": token,
+		})
+	}
+}
+
 func PostUploadDicomFileController() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
@@ -506,5 +545,206 @@ func AllDownloadDicomFileController() gin.HandlerFunc {
 		// Stream the file to response
 		c.File(filePath)
 
+	}
+}
+
+// func OverallDownloadDicomFileController() gin.HandlerFunc {
+// 	return func(c *gin.Context) {
+
+// 		idValue, idExists := c.Get("id")
+// 		roleIdValue, roleIdExists := c.Get("roleId")
+
+// 		if !idExists || !roleIdExists {
+// 			// Handle error: ID is missing from context (e.g., middleware didn't set it)
+// 			c.JSON(http.StatusUnauthorized, gin.H{ // Or StatusInternalServerError depending on why it's missing
+// 				"status":  false,
+// 				"message": "User ID, RoleID, Branch ID not found in request context.",
+// 			})
+// 			return // Stop processing
+// 		}
+
+// 		data, ok := helper.GetRequestBody[model.OverAllDicomModel](c, true)
+// 		if !ok {
+// 			return
+// 		}
+
+// 		dbConn, sqlDB := db.InitDB()
+// 		defer sqlDB.Close()
+
+// 		var files model.DicomFileModel
+
+// 		FileErr := dbConn.Raw(query.GetAllDicomSQL, data.AppointmentId).Scan(&files).Error
+// 		if FileErr != nil {
+// 			log.Printf("ERROR: Failed to fetch Staff Available: %v", FileErr)
+// 			payload := map[string]interface{}{
+// 				"status":  false,
+// 				"message": "Invalid Dicom File ID",
+// 			}
+
+// 			token := accesstoken.CreateToken(idValue, roleIdValue)
+
+// 			c.JSON(http.StatusOK, gin.H{
+// 				"data":  hashapi.Encrypt(payload, true, token),
+// 				"token": token,
+// 			})
+// 		}
+
+// 		zipFilename := "DicomFiles" + time.Now().Format("02-01-2006") + ".zip"
+// 		// Set headers before writing data
+// 		c.Writer.Header().Set("Content-Disposition", "attachment; filename="+zipFilename)
+// 		c.Writer.Header().Set("Content-Type", "application/zip")
+// 		c.Writer.Header().Set("Content-Transfer-Encoding", "binary")
+// 		c.Writer.Header().Set("Cache-Control", "no-cache")
+
+// 		// Create zip writer directly on response writer
+// 		zipWriter := zip.NewWriter(c.Writer)
+
+// 		for _, file := range files.FileName {
+// 		}
+
+// 	}
+// }
+
+func OverallDownloadDicomFileController() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idValue, idExists := c.Get("id")
+		roleIdValue, roleIdExists := c.Get("roleId")
+
+		if !idExists || !roleIdExists {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"status":  false,
+				"message": "User ID, RoleID, Branch ID not found in request context.",
+			})
+			return
+		}
+
+		data, ok := helper.GetRequestBody[model.OverAllDicomModel](c, true)
+		if !ok {
+			return
+		}
+
+		dbConn, sqlDB := db.InitDB()
+		defer sqlDB.Close()
+
+		// Fix: Use slice instead of single model
+		var files []model.DicomFileModel
+
+		FileErr := dbConn.Raw(query.GetAllDicomSQL, data.AppointmentId).Scan(&files).Error
+		if FileErr != nil {
+			log.Printf("ERROR: Failed to fetch DICOM Files: %v", FileErr)
+			payload := map[string]interface{}{
+				"status":  false,
+				"message": "Invalid Dicom File ID",
+			}
+
+			token := accesstoken.CreateToken(idValue, roleIdValue)
+
+			c.JSON(http.StatusOK, gin.H{
+				"data":  hashapi.Encrypt(payload, true, token),
+				"token": token,
+			})
+			return
+		}
+
+		// Check if files exist
+		if len(files) == 0 {
+			payload := map[string]interface{}{
+				"status":  false,
+				"message": "No DICOM files found",
+			}
+
+			token := accesstoken.CreateToken(idValue, roleIdValue)
+
+			c.JSON(http.StatusOK, gin.H{
+				"data":  hashapi.Encrypt(payload, true, token),
+				"token": token,
+			})
+			return
+		}
+
+		// Create zip filename
+		zipFilename := "DicomFiles_" + time.Now().Format("02-01-2006") + ".zip"
+
+		// Set headers before writing data
+		c.Writer.Header().Set("Content-Disposition", "attachment; filename="+zipFilename)
+		c.Writer.Header().Set("Content-Type", "application/zip")
+		c.Writer.Header().Set("Content-Transfer-Encoding", "binary")
+		c.Writer.Header().Set("Cache-Control", "no-cache")
+
+		// Create zip writer directly on response writer
+		zipWriter := zip.NewWriter(c.Writer)
+		defer zipWriter.Close()
+
+		// Process files by side (Right/Left)
+		for _, file := range files {
+			fmt.Println(file)
+
+			// Determine folder name based on side
+			var sideName string
+			switch strings.ToLower(file.Side) {
+			case "right", "r":
+				sideName = "Right"
+			case "left", "l":
+				sideName = "Left"
+			default:
+				sideName = "Other" // For files without specific side
+			}
+
+			// Extract the base pattern from filename and replace L/R with full side name
+			fileName := file.FileName
+
+			// Remove the file extension
+			nameWithoutExt := strings.TrimSuffix(fileName, filepath.Ext(fileName))
+
+			// Split by underscore and remove the last part (sequence number)
+			parts := strings.Split(nameWithoutExt, "_")
+			if len(parts) > 1 {
+				// Remove the last part (sequence number like "1", "2", etc.)
+				parts = parts[:len(parts)-1]
+			}
+
+			// Join back to create base pattern
+			basePattern := strings.Join(parts, "_")
+
+			// Replace L/R with full side name in the base pattern
+			if strings.HasSuffix(basePattern, "_L") {
+				basePattern = strings.TrimSuffix(basePattern, "_L")
+			} else if strings.HasSuffix(basePattern, "_R") {
+				basePattern = strings.TrimSuffix(basePattern, "_R")
+			}
+
+			// Create folder name: "BasePattern_Side"
+			folderName := fmt.Sprintf("%s_%s", basePattern, sideName)
+
+			// Create file path in zip: "BasePattern_Side/FileName"
+			zipPath := fmt.Sprintf("%s/%s", folderName, file.FileName)
+
+			// Read the actual file from disk
+			filePath := filepath.Join("./Assets/Dicom/", file.FileName)
+			fileData, err := os.ReadFile(filePath)
+			if err != nil {
+				log.Printf("ERROR: Failed to read file %s: %v", file.FileName, err)
+				continue // Skip this file and continue with others
+			}
+
+			// Create file in zip
+			zipFile, err := zipWriter.Create(zipPath)
+			if err != nil {
+				log.Printf("ERROR: Failed to create zip entry for %s: %v", file.FileName, err)
+				continue
+			}
+
+			// Write file content to zip
+			_, err = zipFile.Write(fileData)
+			if err != nil {
+				log.Printf("ERROR: Failed to write file %s to zip: %v", file.FileName, err)
+				continue
+			}
+
+			log.Printf("Added file %s to %s folder in zip", file.FileName, folderName)
+		}
+
+		// Zip writer will be closed by defer, and response will be sent
+		log.Printf("Zip file %s created successfully with %d files", zipFilename, len(files))
 	}
 }

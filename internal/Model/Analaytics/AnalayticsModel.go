@@ -42,6 +42,7 @@ type AdminOverallAnalyticsResponse struct {
 	AdminOverallScanIndicatesAnalayticsModel []AdminOverallScanIndicatesAnalayticsModel
 	GetAllScaCenter                          []GetAllScaCenter
 	UserListIdsData                          []UserListIdsData
+	ImpressionModel                          []ImpressionModel
 }
 
 type ListScanAppointmentCountModel struct {
@@ -52,7 +53,7 @@ type ListScanAppointmentCountModel struct {
 
 type AdminOverallOneAnalyticsReq struct {
 	SCId      int    `json:"SCId" mapstructure:"SCId"`
-	Monthyear string `json:"monthnyear" binding:"required" mapstructure:"monthnyear"`
+	Monthyear string `json:"monthnyear" mapstructure:"monthnyear"`
 }
 
 type OneUserReq struct {
@@ -62,13 +63,21 @@ type OneUserReq struct {
 }
 
 type TotalCorrectEditModel struct {
-	TotalCorrect string `json:"totalCorrect" gorm:"column:totalCorrect"`
-	TotalEdit    string `json:"totalEdit" gorm:"column:totalEdit"`
+	TotalCorrect int `json:"totalCorrect" gorm:"column:totalCorrect"`
+	TotalEdit    int `json:"totalEdit" gorm:"column:totalEdit"`
 }
 
 type ImpressionModel struct {
 	Impression string `json:"impression" gorm:"column:impression"`
 	Count      int    `json:"count" gorm:"column:count"`
+}
+
+type DurationBucketModel struct {
+	Le1Day   int `json:"le_1_day" gorm:"column:le_1_day"`
+	Le3Days  int `json:"le_3_days" gorm:"column:le_3_days"`
+	Le7Days  int `json:"le_7_days" gorm:"column:le_7_days"`
+	Le10Days int `json:"le_10_days" gorm:"column:le_10_days"`
+	Gt10Days int `json:"gt_10_days" gorm:"column:gt_10_days"`
 }
 
 type OneUserReponse struct {
@@ -78,4 +87,5 @@ type OneUserReponse struct {
 	ListScanAppointmentCountModel            []ListScanAppointmentCountModel
 	TotalCorrectEdit                         []TotalCorrectEditModel
 	ImpressionModel                          []ImpressionModel
+	DurationBucketModel                      []DurationBucketModel
 }

@@ -63,10 +63,17 @@ func AdminOverallOneAnalayticsService(db *gorm.DB, reqVal model.AdminOverallOneA
 		return model.AdminOverallAnalyticsResponse{}
 	}
 
+	//Impression and Recommentation
+	ImpressionNRecommentationErr := db.Raw(query.ImpressionNRecommentationScanCenterSQL, reqVal.Monthyear, reqVal.SCId, reqVal.SCId).Scan(&response.ImpressionModel).Error
+	if ImpressionNRecommentationErr != nil {
+		log.Fatal(ImpressionNRecommentationErr.Error())
+		return model.AdminOverallAnalyticsResponse{}
+	}
+
 	return response
 }
 
-func UserAnalaytics(db *gorm.DB, reqVal model.OneUserReq, UserId int) model.OneUserReponse {
+func UserAnalaytics(db *gorm.DB, reqVal model.OneUserReq, UserId int, roleIdValue int) model.OneUserReponse {
 	log := logger.InitLogger()
 
 	var response model.OneUserReponse
@@ -120,16 +127,23 @@ func UserAnalaytics(db *gorm.DB, reqVal model.OneUserReq, UserId int) model.OneU
 		return model.OneUserReponse{}
 	}
 
+	//Total TAT Timing
+	TotalTATErr := db.Raw(query.TotalTATSQL, reqVal.Monthyear, UserId).Scan(&response.DurationBucketModel).Error
+	if TotalTATErr != nil {
+		log.Fatal(TotalTATErr.Error())
+		return model.OneUserReponse{}
+	}
+
 	return response
 
 }
 
 func OneUserService(db *gorm.DB, reqVal model.OneUserReq, idValue int, roleIdValue int) model.OneUserReponse {
 	if roleIdValue == 1 || roleIdValue == 9 {
-		response := UserAnalaytics(db, reqVal, reqVal.UserId)
+		response := UserAnalaytics(db, reqVal, reqVal.UserId, roleIdValue)
 		return response
 	} else {
-		response := UserAnalaytics(db, reqVal, idValue)
+		response := UserAnalaytics(db, reqVal, idValue, roleIdValue)
 		return response
 	}
 }
