@@ -10,4 +10,5 @@ import (
 func InitUserRoutes(router *gin.Engine) {
 	route := router.Group("/api/v1/profile/user")
 	route.GET("/", accesstoken.JWTMiddleware(), controllers.GetUserController())
+	route.GET("/dashboard", accesstoken.JWTMiddleware(), controllers.DashboardController())
 }
