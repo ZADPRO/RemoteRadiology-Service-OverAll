@@ -72,8 +72,9 @@ FROM
   JOIN public."Users" f ON f."refUserId" = rrh."refRHHandledUserId"
 WHERE
   rrh."refAppointmentId" = ?
+  AND (rrh."refRHHandleStatus" != 'technologistformfill' OR rrh."refRHHandleStatus" IS NULL)
 ORDER BY
-  rrh."refRHId" ASC
+  rrh."refRHId" ASC;
 `
 
 var GetReportCommentsSQL = `
@@ -248,7 +249,19 @@ WHERE
   AND "refUserId" = ?
 `
 
-var InsertReportHistorySQL = `
+var CheckLatestReportSQL = `
+SELECT
+  *
+FROM
+  notes."refReportsHistory"
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+ORDER BY
+  "refRHId" DESC
+`
+
+var TechInsertReportHistorySQL = `
 INSERT INTO
   notes."refReportsHistory" (
     "refUserId",
@@ -260,13 +273,27 @@ VALUES
   (?, ?, ?, NOW());
 `
 
+var InsertReportHistorySQL = `
+INSERT INTO
+  notes."refReportsHistory" (
+    "refUserId",
+    "refAppointmentId",
+    "refRHHandledUserId",
+    "refRHHandleStartTime"
+  )
+VALUES
+  (?, ?, ?, ?);
+`
+
 var CompleteReportAppointmentSQL = `
 UPDATE
   appointment."refAppointments"
 SET
   "refAppointmentComplete" = ?,
   "refAppointmentAccessStatus" = false,
-  "refAppointmentAccessId" = NULL
+  "refAppointmentAccessId" = NULL,
+  "refAppointmentImpression" = ?,
+  "refAppointmentRecommendation" = ?
 WHERE
   "refAppointmentId" = ?
   AND "refUserId" = ?
@@ -362,4 +389,28 @@ FROM
   public."Users"
 WHERE
   "refUserId" = ?
+`
+
+var ListUserDataSQL = `
+SELECT
+  *
+FROM
+  notes."refReportsHistory" rrh
+  JOIN public."Users" u ON u."refUserId" = rrh."refRHHandledUserId"
+WHERE
+  rrh."refUserId" = ?
+  AND rrh."refAppointmentId" = ?
+  AND u."refRTId" = ?
+ORDER BY
+  rrh."refRHId" DESC
+`
+
+var UpdateCorrectEditSQL = `
+UPDATE
+  notes."refReportsHistory"
+SET
+  "refRHHandleCorrect" = ?,
+  "refRHHandleEdit" = ?
+WHERE
+  "refRHId" = ?
 `

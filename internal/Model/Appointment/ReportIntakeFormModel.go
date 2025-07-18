@@ -120,6 +120,9 @@ type SubmitReportReq struct {
 	MovedStatus          string           `json:"movedStatus" binding:"required" mapstructure:"movedStatus"`
 	CurrentStatus        string           `json:"currentStatus" binding:"required" mapstructure:"currentStatus"`
 	SyncStatus           bool             `json:"syncStatus" binding:"required" mapstructure:"syncStatus"`
+	EditStatus           bool             `json:"editStatus" mapstructure:"editStatus"`
+	Impression           string           `json:"impression" mapstructure:"impression"`
+	Recommendation       string           `json:"recommendation" mapstructure:"recommendation"`
 }
 
 type UpdateRemarkReq struct {
@@ -174,8 +177,14 @@ type GetOneUserAppointmentModel struct {
 	AppointmentAccessStatus   bool   `json:"refAppointmentAccessStatus" gorm:"column:refAppointmentAccessStatus"`
 	AppointmentAssignedUserId int    `json:"refAppointmentAssignedUserId" gorm:"column:refAppointmentAssignedUserId"`
 	AppointmentRemarks        string `json:"refAppointmentRemarks" gorm:"column:refAppointmentRemarks"`
+	AppointmentImpression     string `json:"refAppointmentImpression" gorm:"column:refAppointmentImpression"`
+	AppointmentRecommendation string `json:"refAppointmentRecommendation" gorm:"column:refAppointmentRecommendation"`
 }
 
 type PatientCustId struct {
 	CustId string `json:"refUserCustId" gorm:"column:refUserCustId"`
+}
+
+type ListUserModel struct {
+	RHId int `json:"refRHId" gorm:"column:refRHId"`
 }
