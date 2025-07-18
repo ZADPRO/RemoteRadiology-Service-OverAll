@@ -29,7 +29,7 @@ func AdminOverallOneAnalayticsController() gin.HandlerFunc {
 		}
 
 		//Request Should Be Encrypt
-		data, ok := helper.GetRequestBody[model.AdminOverallOneAnalyticsReq](c, false)
+		data, ok := helper.GetRequestBody[model.AdminOverallOneAnalyticsReq](c, true)
 		if !ok {
 			return
 		}
@@ -48,6 +48,7 @@ func AdminOverallOneAnalayticsController() gin.HandlerFunc {
 			"AdminOverallScanIndicatesAnalaytics": Value.AdminOverallScanIndicatesAnalayticsModel,
 			"AllScaCenter":                        Value.GetAllScaCenter,
 			"UserListIds":                         Value.UserListIdsData,
+			"ImpressionModel":                     Value.ImpressionModel,
 		}
 
 		//Create a tokens
@@ -55,7 +56,7 @@ func AdminOverallOneAnalayticsController() gin.HandlerFunc {
 
 		//Send a Reponse
 		c.JSON(http.StatusOK, gin.H{
-			"data":  hashapi.Encrypt(payload, false, token),
+			"data":  hashapi.Encrypt(payload, true, token),
 			"token": token,
 		})
 	}
@@ -99,6 +100,7 @@ func OneUserController() gin.HandlerFunc {
 			"ListScanAppointmentCount":            Value.ListScanAppointmentCountModel,
 			"TotalCorrectEdit":                    Value.TotalCorrectEdit,
 			"ImpressionModel":                     Value.ImpressionModel,
+			"DurationBucketModel":                 Value.DurationBucketModel,
 		}
 
 		//Create a tokens
