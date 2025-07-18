@@ -42,7 +42,7 @@ func AddAppointmentService(db *gorm.DB, reqVal model.AddAppointmentReq, idValue 
 	var TotalCount []model.TotalCountModel
 
 	// err := db.Raw(query.VerifyAppointment, reqVal.SCId, reqVal.AppointmentDate, reqVal.AppointmentStartTime, reqVal.AppointmentEndTime).Scan(&TotalCount).Error
-	err := db.Raw(query.VerifyAppointment, FindScancenter[0].SCId, reqVal.AppointmentDate).Scan(&TotalCount).Error
+	err := db.Raw(query.VerifyAppointment, FindScancenter[0].SCId, reqVal.AppointmentDate, idValue).Scan(&TotalCount).Error
 	if err != nil {
 		log.Printf("ERROR: Failed to fetch User Total Count: %v", err)
 		return false, "Something went wrong, Try Again"
