@@ -59,7 +59,7 @@ func PostCoDoctorService(db *gorm.DB, reqVal model.DoctorRegisterReq, idValue in
 		return false, "Something went wrong, Try Again"
 	}
 
-	CustId := TotalCount[0].SCCustId + "R" + strconv.Itoa(TotalCount[0].TotalCount+1)
+	CustId := TotalCount[0].SCCustId + "P" + strconv.Itoa(TotalCount[0].TotalCount+1)
 
 	UserData := model.CreateDoctorModel{
 		UserCustId:     CustId,
@@ -102,7 +102,7 @@ func PostCoDoctorService(db *gorm.DB, reqVal model.DoctorRegisterReq, idValue in
 	}
 
 	AuthData := model.CreateDoctorAuthModel{
-		UserId:         int(UserData.UserId),
+		UserId: int(UserData.UserId),
 		// Password:       hashdb.Encrypt(reqVal.DOB),
 		Password:       hashdb.Encrypt("test@123"),
 		HashPassword:   hashPassword,

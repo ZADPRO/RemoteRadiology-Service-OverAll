@@ -7,7 +7,8 @@ FROM
   appointment."refAppointments"
 WHERE
   "refSCId" = ?
-  AND "refAppointmentDate" = ?;
+  AND "refAppointmentDate" = ?
+  AND "refUserId" = ?
 `
 
 var FindScanCenterSQL = `
