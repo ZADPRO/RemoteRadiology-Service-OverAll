@@ -36,7 +36,7 @@ INSERT INTO tempotp."usersOTP" (
   "TOTPexpiresAt",
   "TOTPtype"
 )
-VALUES (?, ?, NOW() + INTERVAL '5 minutes', ?);
+VALUES (?, ?, NOW() + INTERVAL '10 minutes', ?);
 `
 
 var VerifyOTPSQL = `
