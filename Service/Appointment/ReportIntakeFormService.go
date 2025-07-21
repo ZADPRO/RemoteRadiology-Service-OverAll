@@ -4,6 +4,7 @@ import (
 	helper "AuthenticationService/internal/Helper/GetChanges"
 	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
+	mailservice "AuthenticationService/internal/Helper/MailService"
 	model "AuthenticationService/internal/Model/Appointment"
 	query "AuthenticationService/query/Appointment"
 	"encoding/json"
@@ -1176,6 +1177,62 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 			}
 			// }
 
+		}
+
+	}
+
+	//Send Mail for the Patient
+	if reqVal.PatientMailStatus {
+
+		var PatientdataModel []model.Patientdata
+
+		err := db.Raw(query.GetPatientData, reqVal.PatientId, reqVal.AppointmentId).Scan(&PatientdataModel).Error
+		if err != nil {
+			log.Printf("ERROR: Failed to fetch scan centers: %v", err)
+			return false, "Something went wrong, Try Again"
+		}
+
+		htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, PatientdataModel[0].SCCustId)
+
+		subject := "Your Report Status"
+
+		emailStatus := mailservice.MailService(PatientdataModel[0].Email, htmlContent, subject)
+
+		if !emailStatus {
+			log.Error("Sending Mail Meets Error")
+			return false, "Something went wrong, Try Again"
+		}
+	}
+
+	//Send Mail for the Scan Center Manager
+	if reqVal.ManagerMailStatus {
+		var PatientdataModel []model.Patientdata
+
+		err := db.Raw(query.GetPatientData, reqVal.PatientId, reqVal.AppointmentId).Scan(&PatientdataModel).Error
+		if err != nil {
+			log.Printf("ERROR: Failed to fetch scan centers: %v", err)
+			return false, "Something went wrong, Try Again"
+		}
+
+		var ManagerModel []model.ManagerData
+
+		Managererr := db.Raw(query.GetManagerData, 3, reqVal.AppointmentId).Scan(&ManagerModel).Error
+		if Managererr != nil {
+			log.Printf("ERROR: Failed to fetch scan centers: %v", Managererr)
+			return false, "Something went wrong, Try Again"
+		}
+
+		for _, data := range ManagerModel {
+			htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, data.SCCustId)
+
+			subject := "Your Report Status"
+
+			emailStatus := mailservice.MailService(data.Email, htmlContent, subject)
+
+			if !emailStatus {
+				log.Error("Sending Mail Meets Error")
+				return false, "Something went wrong, Try Again"
+			}
 		}
 
 	}

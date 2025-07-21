@@ -414,3 +414,29 @@ SET
 WHERE
   "refRHId" = ?
 `
+
+var GetPatientData = `
+SELECT
+  *
+FROM
+  public."Users" u
+  JOIN userdomain."refCommunicationDomain" rc ON rc."refUserId" = u."refUserId"
+  JOIN appointment."refAppointments" ra ON ra."refUserId" = u."refUserId"
+WHERE
+  u."refUserId" = ?
+  AND ra."refAppointmentId" = ?
+`
+
+var GetManagerData = `
+SELECT
+  *
+FROM
+  public."Users" u
+  JOIN userdomain."refCommunicationDomain" rc ON rc."refUserId" = u."refUserId"
+  RIGHT JOIN map."refScanCenterMap" rscmp ON rscmp."refUserId" = u."refUserId"
+  RIGHT JOIN appointment."refAppointments" ra ON ra."refSCId" = rscmp."refSCId"
+  JOIN public."ScanCenter" sc ON sc."refSCId" = ra."refSCId"
+WHERE
+  u."refRTId" = ?
+  AND ra."refAppointmentId" = ?
+`

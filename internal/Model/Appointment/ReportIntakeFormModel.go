@@ -123,6 +123,8 @@ type SubmitReportReq struct {
 	EditStatus           bool             `json:"editStatus" mapstructure:"editStatus"`
 	Impression           string           `json:"impression" mapstructure:"impression"`
 	Recommendation       string           `json:"recommendation" mapstructure:"recommendation"`
+	PatientMailStatus    bool             `json:"patientMailStatus" mapstructure:"patientMailStatus"`
+	ManagerMailStatus    bool             `json:"managerMailStatus" mapstructure:"managerMailStatus"`
 }
 
 type UpdateRemarkReq struct {
@@ -187,4 +189,17 @@ type PatientCustId struct {
 
 type ListUserModel struct {
 	RHId int `json:"refRHId" gorm:"column:refRHId"`
+}
+
+type Patientdata struct {
+	UserFirstName   string `json:"refUserFirstName" gorm:"column:refUserFirstName"`
+	CustId          string `json:"refUserCustId" gorm:"column:refUserCustId"`
+	AppointmentDate string `json:"refAppointmentDate" gorm:"column:refAppointmentDate"`
+	SCCustId        string `json:"refSCCustId" gorm:"column:refSCCustId"`
+	Email           string `json:"refCODOEmail" gorm:"column:refCODOEmail"`
+}
+
+type ManagerData struct {
+	SCCustId string `json:"refSCCustId" gorm:"column:refSCCustId"`
+	Email    string `json:"refCODOEmail" gorm:"column:refCODOEmail"`
 }
