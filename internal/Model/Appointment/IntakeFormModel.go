@@ -76,3 +76,12 @@ type AduitModel struct {
 	UserId      int    `json:"refUserId" gorm:"column:refUserId"`
 	THActionBy  int    `json:"refTHActionBy" gorm:"column:refTHActionBy"`
 }
+
+type PatientReq struct {
+	Id            int `json:"id" binding:"id"  mapstructure:"id"`
+	AppointmentId int `json:"appintmentId" binding:"appintmentId"  mapstructure:"appintmentId"`
+}
+
+type PatientResponse struct {
+	RTCText string `json:"refRTCText" gorm:"column:refRTCText"`
+}

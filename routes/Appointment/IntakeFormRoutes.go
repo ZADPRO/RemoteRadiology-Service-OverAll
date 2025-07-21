@@ -13,4 +13,5 @@ func InitIntakeFormRoutes(router *gin.Engine) {
 	route.POST("/view", accesstoken.JWTMiddleware(), controllers.ViewIntakeFormController())
 	route.POST("/verify", accesstoken.JWTMiddleware(), controllers.VerifyIntakeFormController())
 	route.POST("/update", accesstoken.JWTMiddleware(), controllers.UpdateIntakeFormController())
+	route.POST("/getReportData", accesstoken.JWTMiddleware(), controllers.GetReportDataController())
 }
