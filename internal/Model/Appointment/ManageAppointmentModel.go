@@ -60,17 +60,18 @@ type GetDicomFile struct {
 }
 
 type ViewTechnicianPatientQueueModel struct {
-	AppointmentId       int            `json:"refAppointmentId" gorm:"column:refAppointmentId"`
-	Remarks             string         `json:"refAppointmentRemarks" gorm:"column:refAppointmentRemarks"`
-	AppointmentDate     string         `json:"refAppointmentDate" gorm:"column:refAppointmentDate"`
-	Username            string         `json:"refUserFirstName" gorm:"column:refUserFirstName"`
-	UserCustId          string         `json:"refUserCustId" gorm:"column:refUserCustId"`
-	CategoryId          int            `json:"refCategoryId" gorm:"column:refCategoryId"`
-	UserId              int            `json:"refUserId" gorm:"column:refUserId"`
-	AssignedUserId      int            `json:"refAppointmentAssignedUserId" gorm:"column:refAppointmentAssignedUserId"`
-	AppointmentComplete string         `json:"refAppointmentComplete" gorm:"column:refAppointmentComplete"`
-	ScanCenterCustId    string         `json:"refSCCustId" gorm:"column:refSCCustId"`
-	DicomFiles          []GetDicomFile `json:"dicomFiles" gorm:"-"`
+	AppointmentId       int                 `json:"refAppointmentId" gorm:"column:refAppointmentId"`
+	Remarks             string              `json:"refAppointmentRemarks" gorm:"column:refAppointmentRemarks"`
+	AppointmentDate     string              `json:"refAppointmentDate" gorm:"column:refAppointmentDate"`
+	Username            string              `json:"refUserFirstName" gorm:"column:refUserFirstName"`
+	UserCustId          string              `json:"refUserCustId" gorm:"column:refUserCustId"`
+	CategoryId          int                 `json:"refCategoryId" gorm:"column:refCategoryId"`
+	UserId              int                 `json:"refUserId" gorm:"column:refUserId"`
+	AssignedUserId      int                 `json:"refAppointmentAssignedUserId" gorm:"column:refAppointmentAssignedUserId"`
+	AppointmentComplete string              `json:"refAppointmentComplete" gorm:"column:refAppointmentComplete"`
+	ScanCenterCustId    string              `json:"refSCCustId" gorm:"column:refSCCustId"`
+	DicomFiles          []GetDicomFile      `json:"dicomFiles" gorm:"-"`
+	GetCorrectEditModel GetCorrectEditModel `json:"GetCorrectEditModel" gorm:"-"`
 }
 
 type StaffAvailableModel struct {
@@ -110,4 +111,14 @@ type AssignUserReq struct {
 	AssingUserCustId string `json:"assingUsercustId" binding:"required" mapstructure:"assingUsercustId"`
 	AppointmentId    int    `json:"refAppointmentId" binding:"required" mapstructure:"refAppointmentId"`
 	PatientId        int    `json:"patientId" binding:"required" mapstructure:"patientId"`
+}
+
+type CorrectEditResponse struct {
+	CorrectStatus bool `json:"correctStatus" gorm:"column:correctStatus"`
+	EditStatus    bool `json:"editStatus" gorm:"column:editStatus"`
+}
+
+type GetCorrectEditModel struct {
+	RHHandleCorrect bool `json:"isHandleCorrect" gorm:"column:isHandleCorrect"`
+	RHHandleEdit    bool `json:"isHandleEdited" gorm:"column:isHandleEdited"`
 }

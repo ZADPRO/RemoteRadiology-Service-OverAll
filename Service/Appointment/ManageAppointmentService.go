@@ -203,6 +203,34 @@ func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int, roleIdValue int
 			}
 
 			patientQueue[i].DicomFiles = dicom
+
+			//Get the Correct and Edit
+			if roleIdValue == 1 || roleIdValue == 6 {
+
+				var CorrectEditModel []model.GetCorrectEditModel
+
+				CorrectEditModelErr := db.Raw(query.CorrectEditStatusSQL, data.UserId, data.AppointmentId, idValue).Scan(&CorrectEditModel).Error
+				if CorrectEditModelErr != nil {
+					log.Printf("ERROR: Failed to Identify Scan Center: %v", CorrectEditModelErr)
+					return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
+				}
+
+				fmt.Println("##################", data.UserId, data.AppointmentId, idValue)
+				fmt.Println("******************", CorrectEditModel)
+
+				if len(CorrectEditModel) > 0 {
+					patientQueue[i].GetCorrectEditModel.RHHandleCorrect = CorrectEditModel[0].RHHandleCorrect
+					patientQueue[i].GetCorrectEditModel.RHHandleEdit = CorrectEditModel[0].RHHandleEdit
+				} else {
+					patientQueue[i].GetCorrectEditModel.RHHandleCorrect = false
+					patientQueue[i].GetCorrectEditModel.RHHandleEdit = false
+				}
+
+			} else {
+				patientQueue[i].GetCorrectEditModel.RHHandleCorrect = false
+				patientQueue[i].GetCorrectEditModel.RHHandleEdit = false
+			}
+
 		}
 
 		var suggestId []int

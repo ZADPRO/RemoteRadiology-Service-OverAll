@@ -428,3 +428,245 @@ func RegistrationMailContent(userName, patientID, gmail, password string, role s
 
 `
 }
+
+func PatientReportSignOff(userName string, patientID string, AppintmentDate string, scancenterCode string) string {
+	return `
+  <!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Your Report is Ready - Wellthgreen HealthCare Pvt Ltd</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f6f8fa;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 600px;
+        background-color: #edd1ce;
+        margin: 40px auto;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+      }
+      .header {
+        text-align: center;
+        padding-bottom: 20px;
+      }
+      .header h1 {
+        margin: 0;
+        color: #525252;
+      }
+      .content {
+        font-size: 16px;
+        color: #525252;
+        text-align: center;
+        margin-bottom: 30px;
+      }
+      .report-info {
+        background-color: #fff;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 20px auto;
+        width: fit-content;
+        text-align: left;
+        font-family: monospace;
+        border: 1px solid #ccc;
+      }
+      .button {
+        display: inline-block;
+        padding: 12px 25px;
+        background-color: #c6d4c0;
+        color: #ffffff;
+        border-radius: 5px;
+        text-decoration: none;
+        font-weight: bold;
+        margin-top: 20px;
+      }
+      .highlight {
+        background-color: #e8f5e8;
+        padding: 15px;
+        border-radius: 5px;
+        border-left: 4px solid #28a745;
+        margin: 20px 0;
+        font-weight: bold;
+        color: #155724;
+      }
+      .footer {
+        font-size: 12px;
+        text-align: center;
+        color: #525252;
+        border-top: 1px solid #dddddd;
+        padding-top: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Report Ready - ` + html.EscapeString(userName) + `!</h1>
+      </div>
+      <div class="content">
+        <div class="highlight">
+          📋 Your scan report has been completed!
+        </div>
+        <p>
+          Dear ` + html.EscapeString(userName) + `,
+        </p>
+        <p>
+          Your report has been processed and is now available for download.
+        </p>
+        
+        <div class="report-info">
+          <p><strong>Patient ID:</strong> ` + html.EscapeString(patientID) + `</p>
+          <p><strong>Appointment Date:</strong> ` + html.EscapeString(AppintmentDate) + `</p>
+          <p><strong>Scan Center Code:</strong> ` + html.EscapeString(scancenterCode) + `</p>
+        </div>
+
+        <p>To access your report, please log in with your credentials:</p>
+        
+        <a href="https://easeqt.brightoncloudtech.com/" class="button">
+          Login to View Report
+        </a>
+        
+        <p style="margin-top: 15px; font-size: 14px;">
+          If you have any questions about your report or need assistance accessing it, 
+          please contact your scan center.
+        </p>
+      </div>
+      <div class="footer">
+        &copy; ` + html.EscapeString(strconv.Itoa(time.Now().Year())) + `
+        Wellthgreen Theranostics. All rights reserved.<br>
+      </div>
+    </div>
+  </body>
+</html>
+  `
+}
+
+func ManagerReportSignOff(patientName string, patientID string, appointmentDate string, scanCenterCode string) string {
+	return `
+  <!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Report Ready for Admin Review - Wellthgreen HealthCare Pvt Ltd</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f6f8fa;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        max-width: 600px;
+        background-color: #edd1ce;
+        margin: 40px auto;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+      }
+      .header {
+        text-align: center;
+        padding-bottom: 20px;
+      }
+      .header h1 {
+        margin: 0;
+        color: #525252;
+      }
+      .content {
+        font-size: 16px;
+        color: #525252;
+        margin-bottom: 30px;
+      }
+      .report-info {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 5px;
+        margin: 20px 0;
+        border: 1px solid #ccc;
+        font-family: monospace;
+        text-align: left;
+      }
+      .button {
+        display: inline-block;
+        padding: 12px 25px;
+        background-color: #c6d4c0;
+        color: #ffffff;
+        border-radius: 5px;
+        text-decoration: none;
+        font-weight: bold;
+        margin: 10px 5px;
+      }
+      .highlight {
+        background-color: #e8f5e8;
+        padding: 15px;
+        border-radius: 5px;
+        border-left: 4px solid #28a745;
+        margin: 20px 0;
+        font-weight: bold;
+        color: #155724;
+      }
+      .action-required {
+        background-color: #f8d7da;
+        padding: 15px;
+        border-radius: 5px;
+        border-left: 4px solid #dc3545;
+        margin: 20px 0;
+        font-weight: bold;
+        color: #721c24;
+      }
+      .footer {
+        font-size: 12px;
+        text-align: center;
+        color: #525252;
+        border-top: 1px solid #dddddd;
+        padding-top: 15px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>📋 Admin Notification - Report Ready</h1>
+      </div>
+      <div class="content">
+        <div class="highlight">
+          ✅ Medical report has been processed    </div>
+        
+        <p>Dear Scan Center Administrator,</p>
+        
+        <p>A medical report has been completed.</p>
+        
+        <div class="report-info">
+          <h3 style="margin-top: 0; color: #525252;">Report Details</h3>
+          <p><strong>Patient Name:</strong> ` + html.EscapeString(patientName) + `</p>
+          <p><strong>Patient ID:</strong> ` + html.EscapeString(patientID) + `</p>
+          <p><strong>Appointment Date:</strong> ` + html.EscapeString(appointmentDate) + `</p>
+          <p><strong>Scan Center Code:</strong> ` + html.EscapeString(scanCenterCode) + `</p>
+          <p><strong>Processing Status:</strong> <span style="color: #28a745;">Completed</span></p>
+        </div>
+
+        <div style="text-align: center; margin: 25px 0;">
+          <a href="https://easeqt.brightoncloudtech.com/" class="button">
+            Login
+          </a>
+        </div>
+        
+        <p style="font-size: 14px;">
+          If you need assistance or have questions about this report, please contact 
+          wellthgreen theranostics.
+        </p>
+      </div>
+      <div class="footer">
+        &copy; ` + html.EscapeString(strconv.Itoa(time.Now().Year())) + `
+        Wellthgreen Theranostics. All rights reserved.<br>
+        <small>This is an automated notification. Please do not reply to this email.</small>
+      </div>
+    </div>
+  </body>
+</html>
+ `
+}

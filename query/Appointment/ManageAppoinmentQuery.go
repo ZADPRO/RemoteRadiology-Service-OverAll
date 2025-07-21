@@ -137,3 +137,15 @@ SET
 WHERE
   "refAppointmentId" = ?
 `
+
+var CorrectEditStatusSQL = `
+SELECT
+  (rrh."refRHHandleCorrect" = 1) AS "isHandleCorrect",
+  (rrh."refRHHandleEdit" = 1) AS "isHandleEdited"
+FROM
+  notes."refReportsHistory" rrh
+WHERE
+  rrh."refUserId" = ?
+  AND rrh."refAppointmentId" = ?
+  AND rrh."refRHHandledUserId" = ?
+`
