@@ -219,7 +219,7 @@ func ViewIntakeService(db *gorm.DB, reqVal model.ViewIntakeReq) ([]model.GetView
 
 	for i, data := range ViewIntakeData {
 		ViewIntakeData[i].Answer = hashdb.Decrypt(data.Answer)
-		if data.QuestionId == 128 || data.QuestionId == 133 || data.QuestionId == 138 || data.QuestionId == 143 || data.QuestionId == 148 || data.QuestionId == 153 || data.QuestionId == 158 {
+		if data.QuestionId == 128 || data.QuestionId == 133 || data.QuestionId == 138 || data.QuestionId == 143 || data.QuestionId == 148 || data.QuestionId == 153 || data.QuestionId == 158 || data.QuestionId == 165 {
 			if len(hashdb.Decrypt(data.Answer)) > 0 {
 				FilesData, viewErr := helperfile.ViewFile("./Assets/Files/" + hashdb.Decrypt(data.Answer))
 				if viewErr != nil {
@@ -406,4 +406,45 @@ func UpdateIntakeFormService(db *gorm.DB, reqVal model.UpdateIntakeFormReq, idVa
 
 	return true, "Intakeform Updated from Technician"
 
+}
+
+func GetReportDataService(db *gorm.DB, reqVal model.PatientReq) model.PatientResponse {
+	log := logger.InitLogger()
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
+		return model.PatientResponse{}
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("ERROR: Recovered from panic, rolling back transaction:", r)
+			tx.Rollback()
+		}
+	}()
+
+	fmt.Println(reqVal)
+
+	var TextContentModel []model.PatientResponse
+
+	err := db.Raw(query.GetTextContent, reqVal.Id, reqVal.AppointmentId).Scan(&TextContentModel).Error
+	if err != nil {
+		log.Printf("ERROR: Failed to fetch scan centers: %v", err)
+		return model.PatientResponse{}
+	}
+
+	for i, data := range TextContentModel {
+		TextContentModel[i].RTCText = hashdb.Decrypt(data.RTCText)
+	}
+
+	fmt.Println(TextContentModel)
+
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+		tx.Rollback()
+		return model.PatientResponse{}
+	}
+
+	return TextContentModel[0]
 }

@@ -41,8 +41,6 @@ WHERE
   AND "refAppointmentId" = ?
 `
 
-
-
 var GetVerifyIntakeFormQuery = `
 SELECT
   *
@@ -126,4 +124,14 @@ FROM
   aduit."refTransHistory"
 WHERE
   "transTypeId" IN (23, 24);
+`
+
+var GetTextContent = `
+SELECT
+  *
+FROM
+  notes."refReportsTextContent"
+WHERE
+  "refUserId" = ?
+  AND "refAppointmentId" = ?
 `
