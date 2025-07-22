@@ -4,6 +4,7 @@ import (
 	helper "AuthenticationService/internal/Helper/GetChanges"
 	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
+	timeZone "AuthenticationService/internal/Helper/TimeZone"
 	model "AuthenticationService/internal/Model/Appointment"
 	query "AuthenticationService/query/Appointment"
 	"encoding/json"
@@ -183,6 +184,7 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 		reqVal.PatientId,
 		reqVal.AppointmentId,
 		idValue,
+		timeZone.GetPacificTime(),
 		string(jsonAnswers),
 	).Error
 	if InsertAnswer != nil {
@@ -413,6 +415,7 @@ func AssignTechnicianService(db *gorm.DB, reqVal model.ViewTechnicianIntakeFormR
 		reqVal.PatientId,
 		reqVal.AppointmentId,
 		idValue,
+		timeZone.GetPacificTime(),
 	).Error
 	if ReportHistoryErr != nil {
 		log.Printf("ERROR: Failed to Insert Report History: %v\n", ReportHistoryErr)
@@ -493,7 +496,7 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 	}
 
 	//Handle Dicom File Store Process
-	currentDate := time.Now().Format("02-01-2006")
+	currentDate := timeZone.GetTimeWithFormate("02-01-2006")
 	for i, file := range reqVal.DicomFiles {
 		// Get the file extension
 		ext := filepath.Ext(file.FilesName)
@@ -538,7 +541,7 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 			UserId:        reqVal.PatientId,
 			AppointmentId: reqVal.AppointmentId,
 			FileName:      newFilename,
-			CreatedAt:     time.Now(),
+			CreatedAt:     time.Now().In(timeZone.MustGetPacificLocation()),
 			CreatedBy:     idValue,
 			Side:          file.Side,
 		}

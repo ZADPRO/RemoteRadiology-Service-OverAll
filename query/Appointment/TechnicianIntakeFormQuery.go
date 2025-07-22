@@ -26,6 +26,7 @@ WITH
       ?::int AS refUserId,
       ?::int AS refAppointmentId,
       ?::int AS refCreatedAt,
+      ? AS reftimeZone,
       jsonb_array_elements(?::jsonb) AS item
   )
 INSERT INTO
@@ -42,7 +43,7 @@ SELECT
   refAppointmentId,
   (item ->> 'questionId')::int,
   item ->> 'answer',
-  NOW(),
+  reftimeZone,
   refCreatedAt
 FROM
   input_data;

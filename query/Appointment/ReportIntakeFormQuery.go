@@ -150,7 +150,7 @@ INSERT INTO
     "refRITFCreatedBy"
   )
 VALUES
-  (?, ?, ?, ?, NOW(), ?);
+  (?, ?, ?, ?, ?, ?);
 `
 
 var UpdateReportIntakeSQL = `
@@ -158,7 +158,7 @@ UPDATE
   notes."refReportIntakeForm"
 SET
   "refRITFAnswer" = ?,
-  "refRITFUpdatedAt" = NOW(),
+  "refRITFUpdatedAt" = ?,
   "refRITFUpdatedBy" = ?
 WHERE
   "refRITFQId" = ?
@@ -170,7 +170,7 @@ UPDATE
   notes."refTechnicianIntakeForm"
 SET
   "refTITFAnswer" = ?,
-  "refTITFUpdatedAt" = NOW(),
+  "refTITFUpdatedAt" = ?,
   "refTITFUpdatedBy" = ?
 WHERE
   "refTITFQId" = ?
@@ -182,7 +182,7 @@ UPDATE
   notes."refIntakeForm"
 SET
   "refITFAnswer" = ?,
-  "refITFUpdatedAt" = NOW(),
+  "refITFUpdatedAt" = ?,
   "refITFUpdatedBy" = ?
 WHERE
   "refITFQId" = ?
@@ -209,7 +209,7 @@ INSERT INTO
     "refRTSyncStatus"
   )
 VALUES
-  (?, ?, ?, NOW(), ?, ?);
+  (?, ?, ?, ?, ?, ?);
 `
 
 var UpdateTextContentSQL = `
@@ -217,7 +217,7 @@ UPDATE
   notes."refReportsTextContent"
 SET
   "refRTCText" = ?,
-  "refRTUpdatedAt" = NOW(),
+  "refRTUpdatedAt" = ?,
   "refRTUpdatedBy" = ?,
   "refRTSyncStatus" = ?
 WHERE
@@ -236,7 +236,7 @@ INSERT INTO
     "refRCCreatedAt"
   )
 VALUES
-  (?, ?, ?, ?, ?, ?, NOW());
+  (?, ?, ?, ?, ?, ?, ?);
 `
 
 var UpdateReportRemarksSQL = `
@@ -270,7 +270,7 @@ INSERT INTO
     "refRHHandleStartTime"
   )
 VALUES
-  (?, ?, ?, NOW());
+  (?, ?, ?, ?);
 `
 
 var InsertReportHistorySQL = `
@@ -293,7 +293,10 @@ SET
   "refAppointmentAccessStatus" = false,
   "refAppointmentAccessId" = NULL,
   "refAppointmentImpression" = ?,
-  "refAppointmentRecommendation" = ?
+  "refAppointmentRecommendation" = ?,
+  "refAppointmentImpressionAdditional" = ?,
+  "refAppointmentRecommendationAdditional" = ?,
+  "refAppointmentCommonImpressionRecommendation" = ?
 WHERE
   "refAppointmentId" = ?
   AND "refUserId" = ?
@@ -302,7 +305,7 @@ WHERE
 var CompleteReportHistorySQL = `
 UPDATE notes."refReportsHistory"
 SET
-  "refRHHandleEndTime" = NOW(),
+  "refRHHandleEndTime" = ?,
   "refRHHandleStatus" = ?,
   "refRHHandleContentText" = ?
 WHERE "refRHId" = (
@@ -325,7 +328,7 @@ INSERT INTO
     "refRFStatus"
   )
 VALUES
-  (?, ?, NOW(), ?, true)
+  (?, ?, ?, ?, true)
   RETURNING "refRFId"
 `
 

@@ -3,6 +3,7 @@ package service
 import (
 	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
+	timeZone "AuthenticationService/internal/Helper/TimeZone"
 	model "AuthenticationService/internal/Model/Analaytics"
 	query "AuthenticationService/query/Analaytics"
 
@@ -211,6 +212,7 @@ func GenerateInvoiceDataService(db *gorm.DB, reqVal model.GenerateInvoiceReq, id
 		reqVal.Quantity,
 		reqVal.Amount,
 		reqVal.Total,
+		timeZone.GetPacificTime(),
 		idValue,
 		reqVal.ToAddress,
 	).Error

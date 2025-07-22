@@ -7,6 +7,7 @@ import (
 	hashapi "AuthenticationService/internal/Helper/HashAPI"
 	logger "AuthenticationService/internal/Helper/Logger"
 	helper "AuthenticationService/internal/Helper/RequestHandler"
+	timeZone "AuthenticationService/internal/Helper/TimeZone"
 	model "AuthenticationService/internal/Model/Appointment"
 	query "AuthenticationService/query/Appointment"
 	"archive/zip"
@@ -17,7 +18,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -210,9 +210,9 @@ func PostUploadDicomFileController() gin.HandlerFunc {
 		// }
 
 		uniqueFilename := fmt.Sprintf("%s_%s%s",
-			uuid.New().String(),                 // Generate a random UUID
-			time.Now().Format("20060102150405"), // Add timestamp (YYYYMMDDHHMMSS)
-			ext)                                 // Keep original file extension
+			uuid.New().String(),                           // Generate a random UUID
+			timeZone.GetTimeWithFormate("20060102150405"), // Add timestamp (YYYYMMDDHHMMSS)
+			ext) // Keep original file extension
 		destinationPath := filepath.Join(uploadPath, uniqueFilename)
 
 		if err := os.MkdirAll(uploadPath, os.ModePerm); err != nil {
@@ -663,7 +663,7 @@ func OverallDownloadDicomFileController() gin.HandlerFunc {
 		}
 
 		// Create zip filename
-		zipFilename := "DicomFiles_" + time.Now().Format("02-01-2006") + ".zip"
+		zipFilename := "DicomFiles_" + timeZone.GetTimeWithFormate("02-01-2006") + ".zip"
 
 		// Set headers before writing data
 		c.Writer.Header().Set("Content-Disposition", "attachment; filename="+zipFilename)

@@ -7,6 +7,7 @@ WITH
       ?::int AS refUserId,
       ?::int AS refAppointmentId,
       ?::int AS refCreatedAt,
+      ? AS refTimezone,
       jsonb_array_elements(?::jsonb) AS item
   )
 INSERT INTO
@@ -24,7 +25,7 @@ SELECT
   refAppointmentId,
   (item ->> 'questionId')::int,
   item ->> 'answer',
-  NOW(),
+  refTimezone,
   refCreatedAt,
   refCreatedAt
 FROM
@@ -111,7 +112,7 @@ UPDATE
 SET
   "refITFAnswer" = ?,
   "refITFUpdatedBy" = ?,                
-  "refITFUpdatedAt" = NOW(),           
+  "refITFUpdatedAt" = ?,           
   "refITFVerifiedTechnician" = ?      
 WHERE
   "refITFId" = ?                     

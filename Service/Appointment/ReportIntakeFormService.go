@@ -5,6 +5,7 @@ import (
 	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
 	mailservice "AuthenticationService/internal/Helper/MailService"
+	timeZone "AuthenticationService/internal/Helper/TimeZone"
 	model "AuthenticationService/internal/Model/Appointment"
 	query "AuthenticationService/query/Appointment"
 	"encoding/json"
@@ -460,6 +461,7 @@ func AnswerReportIntakeService(db *gorm.DB, reqVal model.AnswerReportIntakeReq, 
 			UpdateTechnicianInputErr := tx.Exec(
 				query.UpdateReportIntakeSQL,
 				hashdb.Encrypt(reqVal.Answer),
+				timeZone.GetPacificTime(),
 				idValue,
 				reqVal.QuestionId,
 				reqVal.AppointmentId,
@@ -481,6 +483,7 @@ func AnswerReportIntakeService(db *gorm.DB, reqVal model.AnswerReportIntakeReq, 
 			reqVal.AppointmentId,
 			reqVal.QuestionId,
 			hashdb.Encrypt(reqVal.Answer),
+			timeZone.GetPacificTime(),
 			idValue,
 		).Error
 		if InsertTechnicianInputErr != nil {
@@ -606,6 +609,7 @@ func AnswerTechnicianIntakeService(db *gorm.DB, reqVal model.AnswerReportIntakeR
 			UpdateTechnicianInputErr := tx.Exec(
 				query.UpdateTechnicianIntakeSQL,
 				hashdb.Encrypt(reqVal.Answer),
+				timeZone.GetPacificTime(),
 				idValue,
 				reqVal.QuestionId,
 				reqVal.AppointmentId,
@@ -701,6 +705,7 @@ func AnswerPatientIntakeService(db *gorm.DB, reqVal model.AnswerReportIntakeReq,
 			UpdatePatientInputErr := tx.Exec(
 				query.UpdatePatientIntakeSQL,
 				hashdb.Encrypt(reqVal.Answer),
+				timeZone.GetPacificTime(),
 				idValue,
 				reqVal.QuestionId,
 				reqVal.AppointmentId,
@@ -758,6 +763,7 @@ func AnswerTextContentService(db *gorm.DB, reqVal model.AnswerTextContentReq, id
 		UpdateTextContentErr := tx.Exec(
 			query.UpdateTextContentSQL,
 			hashdb.Encrypt(reqVal.TextContent),
+			timeZone.GetPacificTime(),
 			idValue,
 			reqVal.SyncStatus,
 			reqVal.AppointmentId,
@@ -790,6 +796,7 @@ func AnswerTextContentService(db *gorm.DB, reqVal model.AnswerTextContentReq, id
 			reqVal.PatientId,
 			reqVal.AppointmentId,
 			hashdb.Encrypt(reqVal.TextContent),
+			timeZone.GetPacificTime(),
 			idValue,
 			reqVal.SyncStatus,
 		).Error
@@ -849,6 +856,7 @@ func AddCommentsService(db *gorm.DB, reqVal model.AddCommentReq, idValue int) (b
 		reqVal.AssignId,
 		hashdb.Encrypt(reqVal.Status),
 		hashdb.Encrypt(reqVal.Comments),
+		timeZone.GetPacificTime(),
 	).Error
 	if InsertCommentsErr != nil {
 		log.Printf("ERROR: Failed to Insert Comments: %v\n", InsertCommentsErr)
@@ -942,18 +950,19 @@ func CompleteReportService(db *gorm.DB, reqVal model.CompleteReportReq, idValue 
 		return false, "Something went wrong, Try Again"
 	}
 
-	//Updating the End Time For the Report History
-	ReportHistoryErr := tx.Exec(
-		query.CompleteReportHistorySQL,
-		reqVal.AppointmentId,
-		idValue,
-		reqVal.PatientId,
-	).Error
-	if ReportHistoryErr != nil {
-		log.Printf("ERROR: Failed to Update Report History: %v\n", ReportHistoryErr)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again"
-	}
+	// //Updating the End Time For the Report History
+	// ReportHistoryErr := tx.Exec(
+	// 	query.CompleteReportHistorySQL,
+	// 	timeZone.GetPacificTime(),
+	// 	reqVal.AppointmentId,
+	// 	idValue,
+	// 	reqVal.PatientId,
+	// ).Error
+	// if ReportHistoryErr != nil {
+	// 	log.Printf("ERROR: Failed to Update Report History: %v\n", ReportHistoryErr)
+	// 	tx.Rollback()
+	// 	return false, "Something went wrong, Try Again"
+	// }
 
 	if err := tx.Commit().Error; err != nil {
 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
@@ -1040,6 +1049,9 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 		reqVal.MovedStatus,
 		reqVal.Impression,
 		reqVal.Recommendation,
+		reqVal.ImpressionAddtional,
+		reqVal.RecommendationAddtional,
+		reqVal.CommonImpressionRecommendation,
 		reqVal.AppointmentId,
 		reqVal.PatientId,
 	).Error
@@ -1097,6 +1109,7 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 	//Updating the End Time For the Report History
 	ReportHistoryErr := tx.Exec(
 		query.CompleteReportHistorySQL,
+		timeZone.GetPacificTime(),
 		reqVal.MovedStatus,
 		hashdb.Encrypt(reqVal.ReportTextContent),
 		reqVal.AppointmentId,
@@ -1322,6 +1335,7 @@ func UploadReportFormateService(db *gorm.DB, reqVal model.UploadReportFormateReq
 		query.InsertReportTemplate,
 		hashdb.Encrypt(reqVal.Name),
 		hashdb.Encrypt(reqVal.FormateTemplate),
+		timeZone.GetPacificTime(),
 		idValue,
 	).Scan(&insertedID).Error
 	if InsertReportTemplateErr != nil {
