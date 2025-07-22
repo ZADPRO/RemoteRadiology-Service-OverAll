@@ -2,6 +2,7 @@ package accesstoken
 
 import (
 	logger "AuthenticationService/internal/Helper/Logger"
+	timeZone "AuthenticationService/internal/Helper/TimeZone"
 	"fmt"
 	"os"
 	"strings"
@@ -18,7 +19,7 @@ func CreateToken(id any, roleId any) string {
 		"id":     id,
 		"roleId": roleId,
 		// "branchId": branchid,
-		"exp": time.Now().Add(20 * time.Minute).Unix(), // expires after 'exp' duration
+		"exp": time.Now().Add(20 * time.Minute).In(timeZone.MustGetPacificLocation()).Unix(), // expires after 'exp' duration
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -50,8 +51,8 @@ func ValidateJWT(tokenString string) (*jwt.Token, error) {
 			return nil, fmt.Errorf("invalid exp type")
 		}
 
-		expTime := time.Unix(int64(expFloat), 0)
-		if time.Now().After(expTime) {
+		expTime := time.Unix(int64(expFloat), 0).In(timeZone.MustGetPacificLocation())
+		if timeZone.GetPacificTimeToken().After(expTime) {
 			return nil, fmt.Errorf("token expired at %s", expTime.Format(time.RFC3339))
 		}
 

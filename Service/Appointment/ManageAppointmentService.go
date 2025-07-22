@@ -3,6 +3,7 @@ package service
 import (
 	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
+	timeZone "AuthenticationService/internal/Helper/TimeZone"
 	helper "AuthenticationService/internal/Helper/ViewFile"
 	model "AuthenticationService/internal/Model/Appointment"
 	query "AuthenticationService/query/Appointment"
@@ -301,7 +302,7 @@ func AddAddtionalFilesService(db *gorm.DB, reqVal model.AddAddtionalFilesReq, id
 		return false, "Invalid file data"
 	}
 
-	errExec := tx.Exec(query.InsertAdditionalFiles, idValue, reqVal.AppointmentId, true, string(filesJSON)).Error
+	errExec := tx.Exec(query.InsertAdditionalFiles, idValue, reqVal.AppointmentId, true, timeZone.GetPacificTime(), string(filesJSON)).Error
 	if errExec != nil {
 		log.Printf("ERROR: Failed to insert additional files: %v\n", errExec)
 		tx.Rollback()

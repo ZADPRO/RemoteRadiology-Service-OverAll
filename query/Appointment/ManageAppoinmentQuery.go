@@ -66,7 +66,7 @@ WITH input_data AS (
     ?::int AS refUserId,
     ?::int AS refAppointmentId,
     ?::boolean AS refADStatus,
-    NOW() AS refADCreatedAt,
+    ? AS refADCreatedAt,
     jsonb_array_elements(?::jsonb) AS file
 )
 INSERT INTO notes."refAddtionalDoc" (

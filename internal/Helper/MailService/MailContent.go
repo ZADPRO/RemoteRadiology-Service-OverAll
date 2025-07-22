@@ -1,6 +1,7 @@
 package mailservice
 
 import (
+	timeZone "AuthenticationService/internal/Helper/TimeZone"
 	"html"
 	"strconv"
 	"time"
@@ -70,7 +71,7 @@ func LoginOTPContent(otp int) string {
       <p>If you did not request this Passcode, please ignore this email.</p>
     </div>
     <div class="footer">
-      &copy; ` + html.EscapeString(strconv.Itoa(time.Now().Year())) + ` Wellthgreen Theranostics. All rights reserved.
+      &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + ` Wellthgreen Theranostics. All rights reserved.
     </div>
   </div>
 </body>
@@ -142,7 +143,7 @@ func ForgetPasswordOTPContent(otp int) string {
       <p>If you did not request this Passcode, please ignore this email.</p>
     </div>
     <div class="footer">
-      &copy; ` + html.EscapeString(strconv.Itoa(time.Now().Year())) + ` Wellthgreen Theranostics. All rights reserved.
+      &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + ` Wellthgreen Theranostics. All rights reserved.
     </div>
   </div>
 </body>
@@ -222,7 +223,7 @@ func RegisterationMailContent(userName string) string {
         <p>If you didn’t register with us, please ignore this email.</p>
       </div>
       <div class="footer">
-        &copy; ` + html.EscapeString(strconv.Itoa(time.Now().Year())) + `
+        &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + `
         Wellthgreen Theranostics. All rights reserved.
       </div>
     </div>
@@ -317,7 +318,7 @@ func GetOTPMailContent(userName string, otp int) string {
         <p>If you didn’t register with us, please ignore this email.</p>
       </div>
       <div class="footer">
-        &copy; ` + html.EscapeString(strconv.Itoa(time.Now().Year())) + `
+        &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + `
         Wellthgreen Theranostics. All rights reserved.
       </div>
     </div>
@@ -419,7 +420,7 @@ func RegistrationMailContent(userName, patientID, gmail, password string, role s
         </p>
       </div>
       <div class="footer">
-        &copy; ` + html.EscapeString(strconv.Itoa(time.Now().Year())) + `
+        &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + `
         Wellthgreen Theranostics. All rights reserved.
       </div>
     </div>
@@ -537,7 +538,7 @@ func PatientReportSignOff(userName string, patientID string, AppintmentDate stri
         </p>
       </div>
       <div class="footer">
-        &copy; ` + html.EscapeString(strconv.Itoa(time.Now().Year())) + `
+        &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + `
         Wellthgreen Theranostics. All rights reserved.<br>
       </div>
     </div>
@@ -661,7 +662,7 @@ func ManagerReportSignOff(patientName string, patientID string, appointmentDate 
         </p>
       </div>
       <div class="footer">
-        &copy; ` + html.EscapeString(strconv.Itoa(time.Now().Year())) + `
+        &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + `
         Wellthgreen Theranostics. All rights reserved.<br>
         <small>This is an automated notification. Please do not reply to this email.</small>
       </div>

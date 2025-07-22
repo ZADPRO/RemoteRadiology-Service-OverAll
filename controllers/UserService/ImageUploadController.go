@@ -4,11 +4,11 @@ import (
 	accesstoken "AuthenticationService/internal/Helper/AccessToken"
 	hashapi "AuthenticationService/internal/Helper/HashAPI"
 	logger "AuthenticationService/internal/Helper/Logger"
+	timeZone "AuthenticationService/internal/Helper/TimeZone"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -61,9 +61,9 @@ func PostUploadProfileImage() gin.HandlerFunc {
 		}
 
 		uniqueFilename := fmt.Sprintf("%s_%s%s",
-			uuid.New().String(),                 // Generate a random UUID
-			time.Now().Format("20060102150405"), // Add timestamp (YYYYMMDDHHMMSS)
-			ext)                                 // Keep original file extension
+			uuid.New().String(),                           // Generate a random UUID
+			timeZone.GetTimeWithFormate("20060102150405"), // Add timestamp (YYYYMMDDHHMMSS)
+			ext) // Keep original file extension
 		destinationPath := filepath.Join(uploadPath, uniqueFilename)
 
 		if err := os.MkdirAll(uploadPath, os.ModePerm); err != nil {

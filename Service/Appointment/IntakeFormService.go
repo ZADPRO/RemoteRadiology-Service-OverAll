@@ -4,6 +4,7 @@ import (
 	helper "AuthenticationService/internal/Helper/GetChanges"
 	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
+	timeZone "AuthenticationService/internal/Helper/TimeZone"
 	helperfile "AuthenticationService/internal/Helper/ViewFile"
 	model "AuthenticationService/internal/Model/Appointment"
 	query "AuthenticationService/query/Appointment"
@@ -89,6 +90,7 @@ func AddIntakeFormService(db *gorm.DB, reqVal model.AddIntakeFormReq, idValue in
 		idValue,
 		reqVal.AppointmentId,
 		idValue,
+		timeZone.GetPacificTime(),
 		string(jsonAnswers),
 	).Error
 	if InsertAnswer != nil {
@@ -377,6 +379,7 @@ func UpdateIntakeFormService(db *gorm.DB, reqVal model.UpdateIntakeFormReq, idVa
 				query.UpdateIntakeDataSQL,
 				answer.Answer,
 				idValue,
+				timeZone.GetPacificTime(),
 				answer.VerifiedTechnician,
 				answer.ITFId,
 			).Error

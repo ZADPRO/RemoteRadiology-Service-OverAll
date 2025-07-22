@@ -36,7 +36,7 @@ INSERT INTO tempotp."usersOTP" (
   "TOTPexpiresAt",
   "TOTPtype"
 )
-VALUES (?, ?, NOW() + INTERVAL '10 minutes', ?);
+VALUES (?, ?, NOW() AT TIME ZONE 'America/Los_Angeles' + INTERVAL '10 minutes', ?);
 `
 
 var VerifyOTPSQL = `
@@ -50,6 +50,6 @@ FROM
 WHERE
   uotp."refUserId" = ?
   AND uotp."TOTPnumber" = ?
-  AND uotp."TOTPexpiresAt" > NOW()
+  AND uotp."TOTPexpiresAt" > NOW() AT TIME ZONE 'America/Los_Angeles'
   AND uotp."TOTPtype" = ?;
 `

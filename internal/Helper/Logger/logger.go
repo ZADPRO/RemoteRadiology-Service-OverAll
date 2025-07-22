@@ -1,6 +1,7 @@
 package logger
 
 import (
+	timeZone "AuthenticationService/internal/Helper/TimeZone"
 	"fmt"
 	"io"
 	"os"
@@ -14,7 +15,7 @@ import (
 type CustomFormatter struct{}
 
 func (f *CustomFormatter) Format(entry *logrus.Entry) ([]byte, error) {
-	timestamp := time.Now()
+	timestamp := time.Now().In(timeZone.MustGetPacificLocation())
 	hour := timestamp.Hour() % 12
 	if hour == 0 {
 		hour = 12
@@ -42,7 +43,7 @@ func InitLogger() *logrus.Logger {
 	// Log output to console
 	log.SetOutput(os.Stdout)
 
-	now := time.Now()
+	now := time.Now().In(timeZone.MustGetPacificLocation())
 	filename := fmt.Sprintf("Logs/Log_%02d_%02d_%d.log", now.Day(), now.Month(), now.Year())
 
 	// File rotation setup
