@@ -52,14 +52,18 @@ type ListScanAppointmentCountModel struct {
 }
 
 type AdminOverallOneAnalyticsReq struct {
-	SCId      int    `json:"SCId" mapstructure:"SCId"`
-	Monthyear string `json:"monthnyear" mapstructure:"monthnyear"`
+	SCId int `json:"SCId" mapstructure:"SCId"`
+	// Monthyear string `json:"monthnyear" mapstructure:"monthnyear"`
+	StartDate string `json:"startDate" mapstructure:"startDate"`
+	EndDate   string `json:"endDate" mapstructure:"endDate"`
 }
 
 type OneUserReq struct {
-	UserId    int    `json:"userId" binding:"required" mapstructure:"userId"`
-	RoleId    int    `json:"roleId" binding:"required" mapstructure:"roleId"`
-	Monthyear string `json:"monthnyear" binding:"required" mapstructure:"monthnyear"`
+	UserId int `json:"userId" binding:"required" mapstructure:"userId"`
+	RoleId int `json:"roleId" binding:"required" mapstructure:"roleId"`
+	// Monthyear string `json:"monthnyear" binding:"required" mapstructure:"monthnyear"`
+	StartDate string `json:"startDate" mapstructure:"startDate"`
+	EndDate   string `json:"endDate" mapstructure:"endDate"`
 }
 
 type TotalCorrectEditModel struct {

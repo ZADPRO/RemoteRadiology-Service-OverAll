@@ -23,7 +23,7 @@ func AdminOverallOneAnalayticsService(db *gorm.DB, reqVal model.AdminOverallOneA
 	}
 
 	//Particualr Month Scan Indications
-	AdminOverallScanIndicatesAnalayticsErr := db.Raw(query.AdminOverallScanIndicatesAnalayticsSQL, reqVal.Monthyear, reqVal.SCId, reqVal.SCId).Scan(&response.AdminOverallScanIndicatesAnalayticsModel).Error
+	AdminOverallScanIndicatesAnalayticsErr := db.Raw(query.AdminOverallScanIndicatesAnalayticsSQL, reqVal.StartDate, reqVal.EndDate, reqVal.SCId, reqVal.SCId).Scan(&response.AdminOverallScanIndicatesAnalayticsModel).Error
 	if AdminOverallScanIndicatesAnalayticsErr != nil {
 		log.Fatal(AdminOverallScanIndicatesAnalayticsErr.Error())
 		return model.AdminOverallAnalyticsResponse{}
@@ -51,7 +51,7 @@ func AdminOverallOneAnalayticsService(db *gorm.DB, reqVal model.AdminOverallOneA
 	case 3:
 		userListIds = []int{2, 5, 8}
 	case 1, 9:
-		userListIds = []int{1, 2, 5, 6, 7, 8}
+		userListIds = []int{1, 2, 5, 6, 7, 8, 10}
 	default:
 		userListIds = []int{} // or keep as is since it's initialized empty
 	}
@@ -64,7 +64,7 @@ func AdminOverallOneAnalayticsService(db *gorm.DB, reqVal model.AdminOverallOneA
 	}
 
 	//Impression and Recommentation
-	ImpressionNRecommentationErr := db.Raw(query.ImpressionNRecommentationScanCenterSQL, reqVal.Monthyear, reqVal.SCId, reqVal.SCId).Scan(&response.ImpressionModel).Error
+	ImpressionNRecommentationErr := db.Raw(query.ImpressionNRecommentationScanCenterSQL, reqVal.StartDate, reqVal.EndDate, reqVal.SCId, reqVal.SCId).Scan(&response.ImpressionModel).Error
 	if ImpressionNRecommentationErr != nil {
 		log.Fatal(ImpressionNRecommentationErr.Error())
 		return model.AdminOverallAnalyticsResponse{}
@@ -86,7 +86,7 @@ func UserAnalaytics(db *gorm.DB, reqVal model.OneUserReq, UserId int, roleIdValu
 	}
 
 	//Particualr Month Scan Indications
-	AdminOverallScanIndicatesAnalayticsErr := db.Raw(query.WellGreenUserIndicatesAnalayticsSQL, UserId, reqVal.Monthyear).Scan(&response.AdminOverallScanIndicatesAnalayticsModel).Error
+	AdminOverallScanIndicatesAnalayticsErr := db.Raw(query.WellGreenUserIndicatesAnalayticsSQL, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.AdminOverallScanIndicatesAnalayticsModel).Error
 	if AdminOverallScanIndicatesAnalayticsErr != nil {
 		log.Fatal(AdminOverallScanIndicatesAnalayticsErr.Error())
 		return model.OneUserReponse{}
@@ -101,7 +101,7 @@ func UserAnalaytics(db *gorm.DB, reqVal model.OneUserReq, UserId int, roleIdValu
 
 	//For Each Scan Center How many Count
 	if reqVal.RoleId == 6 || reqVal.RoleId == 7 {
-		ListScanAppointmentCountErr := db.Raw(query.ListScanAppointmentCountSQL, UserId, reqVal.Monthyear).Scan(&response.ListScanAppointmentCountModel).Error
+		ListScanAppointmentCountErr := db.Raw(query.ListScanAppointmentCountSQL, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.ListScanAppointmentCountModel).Error
 		if ListScanAppointmentCountErr != nil {
 			log.Fatal(ListScanAppointmentCountErr.Error())
 			return model.OneUserReponse{}
@@ -114,21 +114,21 @@ func UserAnalaytics(db *gorm.DB, reqVal model.OneUserReq, UserId int, roleIdValu
 	}
 
 	//Total Correct and Edit
-	TotalCorrectEditErr := db.Raw(query.TotalCorrectEditSQL, UserId, reqVal.Monthyear).Scan(&response.TotalCorrectEdit).Error
+	TotalCorrectEditErr := db.Raw(query.TotalCorrectEditSQL, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.TotalCorrectEdit).Error
 	if TotalCorrectEditErr != nil {
 		log.Fatal(TotalCorrectEditErr.Error())
 		return model.OneUserReponse{}
 	}
 
 	//Impression and Recommentation
-	ImpressionNRecommentationErr := db.Raw(query.ImpressionNRecommentationSQL, UserId, reqVal.Monthyear).Scan(&response.ImpressionModel).Error
+	ImpressionNRecommentationErr := db.Raw(query.ImpressionNRecommentationSQL, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.ImpressionModel).Error
 	if ImpressionNRecommentationErr != nil {
 		log.Fatal(ImpressionNRecommentationErr.Error())
 		return model.OneUserReponse{}
 	}
 
 	//Total TAT Timing
-	TotalTATErr := db.Raw(query.TotalTATSQL, reqVal.Monthyear, UserId).Scan(&response.DurationBucketModel).Error
+	TotalTATErr := db.Raw(query.TotalTATSQL, reqVal.StartDate, reqVal.EndDate, UserId).Scan(&response.DurationBucketModel).Error
 	if TotalTATErr != nil {
 		log.Fatal(TotalTATErr.Error())
 		return model.OneUserReponse{}
