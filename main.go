@@ -121,6 +121,11 @@ func main() {
 	routesUser.InitCoDoctorRoutes(r)
 
 	fmt.Println()
+	fmt.Println("=================Create WellthgreenPerformingProvider=================")
+	fmt.Println()
+	routesUser.InitWellthgreenPerformingProviderRoutes(r)
+
+	fmt.Println()
 	fmt.Println("*****************ProfileService*****************")
 	fmt.Println()
 
@@ -143,6 +148,11 @@ func main() {
 	fmt.Println("=================View Receptionist=================")
 	fmt.Println()
 	routesProfile.InitReceptionistRoutes(r)
+
+	fmt.Println()
+	fmt.Println("=================Create WellthgreenPerformingProvider=================")
+	fmt.Println()
+	routesProfile.InitWellthgreenPerformingProviderRoutes(r)
 
 	fmt.Println()
 	fmt.Println("=================View Scribe=================")

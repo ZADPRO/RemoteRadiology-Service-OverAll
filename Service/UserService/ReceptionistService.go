@@ -66,7 +66,7 @@ func PostReceptionistService(db *gorm.DB, reqVal model.ReceptionistRegisterReq, 
 	fmt.Println(TotalCount[0])
 	fmt.Println(strconv.Itoa(TotalCount[0].TotalCount + 1))
 
-	CustId := TotalCount[0].SCCustId + "M" + strconv.Itoa(TotalCount[0].TotalCount+1)
+	CustId := "C" + TotalCount[0].SCCustId + "M" + strconv.Itoa(TotalCount[0].TotalCount+1)
 	fmt.Println("Step 2")
 
 	UserData := model.CreateRadiologyModel{

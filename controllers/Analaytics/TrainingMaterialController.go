@@ -168,6 +168,7 @@ func DownloadTrainingMaterialController() gin.HandlerFunc {
 		for i, f := range FileData {
 			FileData[i].TMFileName = hashdb.Decrypt(f.TMFileName)
 			FileData[i].TMFilePath = hashdb.Decrypt(f.TMFilePath)
+			fmt.Println(FileData[i])
 		}
 
 		fmt.Println("&&&&&&&&&&&&&&&&&&&&", FileData[0].TMFilePath)
@@ -184,8 +185,10 @@ func DownloadTrainingMaterialController() gin.HandlerFunc {
 		// Set headers
 		c.Header("Content-Description", "File Transfer")
 		c.Header("Content-Transfer-Encoding", "binary")
-		c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, url.QueryEscape(fileName)))
-		c.Header("Content-Type", "application/octet-stream")
+
+		// This will show the PDF in an <iframe> or browser tab:
+		c.Header("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, url.QueryEscape(fileName)))
+		c.Header("Content-Type", "application/pdf")
 
 		// Stream file
 		c.File(filePath)

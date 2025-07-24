@@ -24,7 +24,7 @@ SELECT
 FROM
   public."Users"
 WHERE
-  "refRTId" IN (6, 7)
+  "refRTId" IN (6, 7, 10)
 ORDER BY
   "refRTId" DESC
 `

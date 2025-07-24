@@ -149,3 +149,14 @@ WHERE
   AND rrh."refAppointmentId" = ?
   AND rrh."refRHHandledUserId" = ?
 `
+
+var GetAllUserSQL = `
+SELECT
+  *
+FROM
+  public."Users"
+WHERE
+  "refUserId" != ?
+ORDER BY
+  "refRTId"
+`
