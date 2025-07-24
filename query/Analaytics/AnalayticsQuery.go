@@ -38,6 +38,31 @@ ORDER BY
   m.month;
 `
 
+// var AdminOverallScanIndicatesAnalayticsSQL = `
+// SELECT
+//   COALESCE(SUM(total_appointments), 0) AS total_appointments,
+//   COALESCE(SUM("SForm"), 0) AS "SForm",
+//   COALESCE(SUM("DaForm"), 0) AS "DaForm",
+//   COALESCE(SUM("DbForm"), 0) AS "DbForm",
+//   COALESCE(SUM("DcForm"), 0) AS "DcForm"
+// FROM (
+//   SELECT
+//     COUNT(*) AS total_appointments,
+//     COUNT(CASE WHEN "refCategoryId" = 1 THEN 1 END) AS "SForm",
+//     COUNT(CASE WHEN "refCategoryId" = 2 THEN 1 END) AS "DaForm",
+//     COUNT(CASE WHEN "refCategoryId" = 3 THEN 1 END) AS "DbForm",
+//     COUNT(CASE WHEN "refCategoryId" = 4 THEN 1 END) AS "DcForm"
+//   FROM
+//     appointment."refAppointments"
+//   WHERE
+//     TO_CHAR(TO_DATE("refAppointmentDate", 'YYYY-MM-DD'), 'YYYY-MM') = ?
+//     AND (
+//       ? = 0
+//       OR "refSCId" = ?
+//     )
+// ) AS stats;
+// `
+
 var AdminOverallScanIndicatesAnalayticsSQL = `
 SELECT
   COALESCE(SUM(total_appointments), 0) AS total_appointments,
@@ -55,7 +80,7 @@ FROM (
   FROM
     appointment."refAppointments"
   WHERE
-    TO_CHAR(TO_DATE("refAppointmentDate", 'YYYY-MM-DD'), 'YYYY-MM') = ?
+    TO_DATE("refAppointmentDate", 'YYYY-MM-DD') BETWEEN TO_DATE(?, 'YYYY-MM-DD') AND TO_DATE(?, 'YYYY-MM-DD')
     AND (
       ? = 0
       OR "refSCId" = ?
@@ -116,41 +141,66 @@ ORDER BY
   m.month;
 `
 
+// var WellGreenUserIndicatesAnalayticsSQL = `
+// SELECT
+//   COUNT(DISTINCT rrh."refAppointmentId") AS total_appointments,
+//   COUNT(
+//     CASE
+//       WHEN ra."refCategoryId" = 1 THEN 1
+//     END
+//   ) AS "SForm",
+//   COUNT(
+//     CASE
+//       WHEN ra."refCategoryId" = 2 THEN 1
+//     END
+//   ) AS "DaForm",
+//   COUNT(
+//     CASE
+//       WHEN ra."refCategoryId" = 3 THEN 1
+//     END
+//   ) AS "DbForm",
+//   COUNT(
+//     CASE
+//       WHEN ra."refCategoryId" = 4 THEN 1
+//     END
+//   ) AS "DcForm"
+// FROM
+//   notes."refReportsHistory" rrh
+//   JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+// WHERE
+//   rrh."refRHHandledUserId" = ?
+//   AND TO_CHAR(
+//     TO_DATE(
+//       rrh."refRHHandleStartTime",
+//       'YYYY-MM-DD HH24:MI:SS'
+//     ),
+//     'YYYY-MM'
+//   ) = ?;
+// `
+
 var WellGreenUserIndicatesAnalayticsSQL = `
 SELECT
-  COUNT(DISTINCT rrh."refAppointmentId") AS total_appointments,
-  COUNT(
-    CASE
-      WHEN ra."refCategoryId" = 1 THEN 1
-    END
+  COUNT(DISTINCT (rrh."refAppointmentId", rrh."refRHHandledUserId")) AS total_appointments,
+  COUNT(DISTINCT (rrh."refAppointmentId", rrh."refRHHandledUserId")) FILTER (
+    WHERE ra."refCategoryId" = 1
   ) AS "SForm",
-  COUNT(
-    CASE
-      WHEN ra."refCategoryId" = 2 THEN 1
-    END
+  COUNT(DISTINCT (rrh."refAppointmentId", rrh."refRHHandledUserId")) FILTER (
+    WHERE ra."refCategoryId" = 2
   ) AS "DaForm",
-  COUNT(
-    CASE
-      WHEN ra."refCategoryId" = 3 THEN 1
-    END
+  COUNT(DISTINCT (rrh."refAppointmentId", rrh."refRHHandledUserId")) FILTER (
+    WHERE ra."refCategoryId" = 3
   ) AS "DbForm",
-  COUNT(
-    CASE
-      WHEN ra."refCategoryId" = 4 THEN 1
-    END
+  COUNT(DISTINCT (rrh."refAppointmentId", rrh."refRHHandledUserId")) FILTER (
+    WHERE ra."refCategoryId" = 4
   ) AS "DcForm"
 FROM
   notes."refReportsHistory" rrh
   JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
 WHERE
   rrh."refRHHandledUserId" = ?
-  AND TO_CHAR(
-    TO_DATE(
-      rrh."refRHHandleStartTime",
-      'YYYY-MM-DD HH24:MI:SS'
-    ),
-    'YYYY-MM'
-  ) = ?;
+  AND TO_DATE(rrh."refRHHandleStartTime", 'YYYY-MM-DD HH24:MI:SS') >= ?
+  AND TO_DATE(rrh."refRHHandleStartTime", 'YYYY-MM-DD HH24:MI:SS') <= ?
+;
 `
 
 var UserWorkedTimingSQL = `
@@ -192,6 +242,25 @@ GROUP BY
   rrh."refRHHandledUserId";
 `
 
+// var ListScanAppointmentCountSQL = `
+// SELECT
+//   sc."refSCId",
+//   sc."refSCName",
+//   COUNT(DISTINCT rrh."refAppointmentId") AS total_appointments
+// FROM
+//   public."ScanCenter" sc
+// LEFT JOIN
+//   appointment."refAppointments" a ON sc."refSCId" = a."refSCId"
+// LEFT JOIN
+//   notes."refReportsHistory" rrh ON rrh."refAppointmentId" = a."refAppointmentId"
+//   AND rrh."refRHHandledUserId" = ?
+//   AND TO_CHAR(TO_TIMESTAMP(rrh."refRHHandleStartTime", 'YYYY-MM-DD HH24:MI:SS'), 'YYYY-MM') = ?
+// GROUP BY
+//   sc."refSCId", sc."refSCName"
+// ORDER BY
+//   sc."refSCName";
+// `
+
 var ListScanAppointmentCountSQL = `
 SELECT
   sc."refSCId",
@@ -204,12 +273,24 @@ LEFT JOIN
 LEFT JOIN
   notes."refReportsHistory" rrh ON rrh."refAppointmentId" = a."refAppointmentId"
   AND rrh."refRHHandledUserId" = ?
-  AND TO_CHAR(TO_TIMESTAMP(rrh."refRHHandleStartTime", 'YYYY-MM-DD HH24:MI:SS'), 'YYYY-MM') = ?
+  AND TO_TIMESTAMP(rrh."refRHHandleStartTime", 'YYYY-MM-DD HH24:MI:SS') >= ?  -- start_date param
+  AND TO_TIMESTAMP(rrh."refRHHandleStartTime", 'YYYY-MM-DD HH24:MI:SS') <= ?  -- end_date param
 GROUP BY
   sc."refSCId", sc."refSCName"
 ORDER BY
   sc."refSCName";
 `
+
+// var TotalCorrectEditSQL = `
+// SELECT
+//   SUM(COALESCE("refRHHandleCorrect", 0)) AS "totalCorrect",
+//   SUM(COALESCE("refRHHandleEdit", 0)) AS "totalEdit"
+// FROM
+//   notes."refReportsHistory"
+// WHERE
+//   "refRHHandledUserId" = ?
+//   AND TO_CHAR("refRHHandleStartTime"::timestamp, 'YYYY-MM') = ?;
+// `
 
 var TotalCorrectEditSQL = `
 SELECT
@@ -219,7 +300,9 @@ FROM
   notes."refReportsHistory"
 WHERE
   "refRHHandledUserId" = ?
-  AND TO_CHAR("refRHHandleStartTime"::timestamp, 'YYYY-MM') = ?;
+  AND "refRHHandleStartTime"::timestamp >= ?  -- start_date parameter
+  AND "refRHHandleStartTime"::timestamp <= ?  -- end_date parameter
+;
 `
 
 // WITH impressions AS (
@@ -279,6 +362,54 @@ WHERE
 // ORDER BY
 //   i.impression;
 
+// var ImpressionNRecommentationScanCenterSQL = `
+// WITH
+//   latest_report_history AS (
+//     SELECT *
+//     FROM (
+//       SELECT *,
+//         ROW_NUMBER() OVER (
+//           PARTITION BY "refAppointmentId"
+//           ORDER BY "refRHId" DESC
+//         ) AS rn
+//       FROM notes."refReportsHistory"
+//     ) sub
+//     WHERE rn = 1
+//   ),
+//   actual_counts AS (
+//     SELECT
+//       ra."refAppointmentImpression" AS impression,
+//       COUNT(*) AS count
+//     FROM
+//       latest_report_history rrh
+//       JOIN appointment."refAppointments" ra
+//         ON ra."refAppointmentId" = rrh."refAppointmentId"
+//     WHERE
+//       TO_CHAR(ra."refAppointmentDate"::timestamp, 'YYYY-MM') = ?
+//       AND (
+//         ? = 0 OR ra."refSCId" = ?
+//       )
+//     GROUP BY
+//       ra."refAppointmentImpression"
+//   ),
+//   expected_impressions AS (
+//     SELECT unnest(ARRAY[
+//       '1','1a','2','3','3a','3b','3c','3d','3e','3f','3g',
+//       '4','4a','4b','4c','4d','4e','4f','4g',
+//       '5','6','6a','6b','6c','6d','6e','6f',
+//       '7a','7b','7c','7d','7e'
+//     ]) AS impression
+//   )
+// SELECT
+//   ei.impression,
+//   COALESCE(ac.count, 0) AS count
+// FROM
+//   expected_impressions ei
+//   LEFT JOIN actual_counts ac ON ei.impression = ac.impression
+// ORDER BY
+//   ei.impression;
+// `
+
 var ImpressionNRecommentationScanCenterSQL = `
 WITH
   latest_report_history AS (
@@ -302,7 +433,8 @@ WITH
       JOIN appointment."refAppointments" ra
         ON ra."refAppointmentId" = rrh."refAppointmentId"
     WHERE
-      TO_CHAR(ra."refAppointmentDate"::timestamp, 'YYYY-MM') = ?
+      ra."refAppointmentDate" >= ?
+      AND ra."refAppointmentDate" <= ? 
       AND (
         ? = 0 OR ra."refSCId" = ?
       )
@@ -314,7 +446,7 @@ WITH
       '1','1a','2','3','3a','3b','3c','3d','3e','3f','3g',
       '4','4a','4b','4c','4d','4e','4f','4g',
       '5','6','6a','6b','6c','6d','6e','6f',
-      '7a','7b','7c','7d','7e'
+      '7a','7b','7c','7d','7e','10'
     ]) AS impression
   )
 SELECT
@@ -326,6 +458,88 @@ FROM
 ORDER BY
   ei.impression;
 `
+
+// var ImpressionNRecommentationSQL = `
+// WITH
+//   latest_report_history AS (
+//     SELECT
+//       *
+//     FROM
+//       (
+//         SELECT
+//           *,
+//           ROW_NUMBER() OVER (
+//             PARTITION BY
+//               "refAppointmentId"
+//             ORDER BY
+//               "refRHId" DESC
+//           ) AS rn
+//         FROM
+//           notes."refReportsHistory"
+//         WHERE
+//           "refRHHandledUserId" = ?
+//       ) sub
+//     WHERE
+//       rn = 1
+//   ),
+//   actual_counts AS (
+//     SELECT
+//       ra."refAppointmentImpression" AS impression,
+//       COUNT(*) AS count
+//     FROM
+//       latest_report_history rrh
+//       JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+//     WHERE
+//       TO_CHAR(ra."refAppointmentDate"::timestamp, 'YYYY-MM') = ?
+//     GROUP BY
+//       ra."refAppointmentImpression"
+//   ),
+//   expected_impressions AS (
+//     SELECT
+//       unnest(
+//         array[
+//           '1',
+//           '1a',
+//           '2',
+//           '3',
+//           '3a',
+//           '3b',
+//           '3c',
+//           '3d',
+//           '3e',
+//           '3f',
+//           '3g',
+//           '4',
+//           '4a',
+//           '4b',
+//           '4c',
+//           '4d',
+//           '4e',
+//           '4f',
+//           '4g',
+//           '5',
+//           '6',
+//           '6a',
+//           '6b',
+//           '6c',
+//           '6d',
+//           '6e',
+//           '6f',
+//           '7a',
+//           '7b',
+//           '7c',
+//           '7d',
+//           '7e'
+//         ]
+//       ) AS impression
+//   )
+// SELECT
+//   ei.impression,
+//   COALESCE(ac.count, 0) AS count
+// FROM
+//   expected_impressions ei
+//   LEFT JOIN actual_counts ac ON ei.impression = ac.impression;
+// `
 
 var ImpressionNRecommentationSQL = `
 WITH
@@ -358,7 +572,8 @@ WITH
       latest_report_history rrh
       JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
     WHERE
-      TO_CHAR(ra."refAppointmentDate"::timestamp, 'YYYY-MM') = ?
+      ra."refAppointmentDate" >= ?  -- start_date parameter
+      AND ra."refAppointmentDate" <= ?  -- end_date parameter
     GROUP BY
       ra."refAppointmentImpression"
   ),
@@ -397,7 +612,8 @@ WITH
           '7b',
           '7c',
           '7d',
-          '7e'
+          '7e',
+          '10'
         ]
       ) AS impression
   )
@@ -406,8 +622,58 @@ SELECT
   COALESCE(ac.count, 0) AS count
 FROM
   expected_impressions ei
-  LEFT JOIN actual_counts ac ON ei.impression = ac.impression;
+  LEFT JOIN actual_counts ac ON ei.impression = ac.impression
+ORDER BY
+  ei.impression;
 `
+
+// var TotalTATSQL = `
+// SELECT
+//   COUNT(*) FILTER (
+//     WHERE
+//       duration_days <= 1
+//   ) AS le_1_day,
+//   COUNT(*) FILTER (
+//     WHERE
+//       duration_days > 1
+//       AND duration_days <= 3
+//   ) AS le_3_days,
+//   COUNT(*) FILTER (
+//     WHERE
+//       duration_days > 3
+//       AND duration_days <= 7
+//   ) AS le_7_days,
+//   COUNT(*) FILTER (
+//     WHERE
+//       duration_days > 7
+//       AND duration_days <= 10
+//   ) AS le_10_days,
+//   COUNT(*) FILTER (
+//     WHERE
+//       duration_days > 10
+//   ) AS gt_10_days
+// FROM
+//   (
+//     SELECT
+//       rrh."refAppointmentId",
+//       (
+//         EXTRACT(
+//           EPOCH
+//           FROM
+//             (
+//               rrh."refRHHandleEndTime"::timestamp - rrh."refRHHandleStartTime"::timestamp
+//             )
+//         ) / 86400.0
+//       ) AS duration_days
+//     FROM
+//       notes."refReportsHistory" rrh
+//     WHERE
+//       TO_CHAR(rrh."refRHHandleStartTime"::timestamp, 'YYYY-MM') = ?
+//       AND rrh."refRHHandledUserId" = ?
+//       AND rrh."refRHHandleStartTime" IS NOT NULL
+//       AND rrh."refRHHandleEndTime" IS NOT NULL
+//   ) AS subquery;
+// `
 
 var TotalTATSQL = `
 SELECT
@@ -450,7 +716,8 @@ FROM
     FROM
       notes."refReportsHistory" rrh
     WHERE
-      TO_CHAR(rrh."refRHHandleStartTime"::timestamp, 'YYYY-MM') = ?
+      rrh."refRHHandleStartTime" >= ?  -- start_date parameter
+      AND rrh."refRHHandleStartTime" <= ?  -- end_date parameter
       AND rrh."refRHHandledUserId" = ?
       AND rrh."refRHHandleStartTime" IS NOT NULL
       AND rrh."refRHHandleEndTime" IS NOT NULL
