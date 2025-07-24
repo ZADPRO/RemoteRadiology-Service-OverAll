@@ -29,10 +29,10 @@ func GetAllCoDoctorDataService(db *gorm.DB, reqVal model.GetReceptionistReq) []m
 	return RadiologistData
 }
 
-func GetDoctorCoDataService(db *gorm.DB, reqVal model.GetOneReceptionistReq, idValue int) []model.GetDoctorOne {
+func GetDoctorCoDataService(db *gorm.DB, reqVal model.GetOneReceptionistReq, idValue int) []model.GetCoDoctorOne {
 	log := logger.InitLogger()
 
-	var RadiologistData []model.GetDoctorOne
+	var RadiologistData []model.GetCoDoctorOne
 
 	UserId := reqVal.UserId
 	ScanCenterId := reqVal.ScanID
@@ -43,7 +43,7 @@ func GetDoctorCoDataService(db *gorm.DB, reqVal model.GetOneReceptionistReq, idV
 		err := db.Raw(query.IdentifyScanCenterMapping, idValue).Scan(&MappingData).Error
 		if err != nil {
 			log.Printf("ERROR: Failed to fetch scan centers: %v", err)
-			return []model.GetDoctorOne{}
+			return []model.GetCoDoctorOne{}
 		}
 		if len(MappingData) > 0 {
 			ScanCenterId = MappingData[0].SCId
@@ -55,7 +55,7 @@ func GetDoctorCoDataService(db *gorm.DB, reqVal model.GetOneReceptionistReq, idV
 	err := db.Raw(query.GetListofCoDoctorOneSQL, UserId, ScanCenterId).Scan(&RadiologistData).Error
 	if err != nil {
 		log.Printf("ERROR: Failed to fetch scan centers: %v", err)
-		return []model.GetDoctorOne{}
+		return []model.GetCoDoctorOne{}
 	}
 
 	for i, tech := range RadiologistData {
@@ -122,7 +122,7 @@ func GetDoctorCoDataService(db *gorm.DB, reqVal model.GetOneReceptionistReq, idV
 		MedicalLicenseSecurityerr := db.Raw(query.GetMedicalLicenseSecuritySQL, reqVal.UserId).Scan(&MedicalLicenseSecurity).Error
 		if MedicalLicenseSecurityerr != nil {
 			log.Printf("ERROR: Failed to fetch scan centers: %v", MedicalLicenseSecurityerr)
-			return []model.GetDoctorOne{}
+			return []model.GetCoDoctorOne{}
 		}
 
 		RadiologistData[i].MedicalLicenseSecurity = make([]model.GetMedicalLicenseSecurityModel, 0, len(MedicalLicenseSecurity))
@@ -139,7 +139,7 @@ func GetDoctorCoDataService(db *gorm.DB, reqVal model.GetOneReceptionistReq, idV
 		LicenseErr := db.Raw(query.GetLicenseFilesSQL, reqVal.UserId).Scan(&databaseLicenseFiles).Error
 		if LicenseErr != nil {
 			log.Printf("ERROR: Failed to fetch License files for user ID %d: %v", reqVal.UserId, LicenseErr)
-			return []model.GetDoctorOne{}
+			return []model.GetCoDoctorOne{}
 		}
 
 		if len(databaseLicenseFiles) > 0 {
@@ -170,7 +170,7 @@ func GetDoctorCoDataService(db *gorm.DB, reqVal model.GetOneReceptionistReq, idV
 		MalpracticeErr := db.Raw(query.GetMalpracticeFilesSQL, reqVal.UserId).Scan(&databaseMalpracticeFiles).Error
 		if MalpracticeErr != nil {
 			log.Printf("ERROR: Failed to fetch License files for user ID %d: %v", reqVal.UserId, MalpracticeErr)
-			return []model.GetDoctorOne{}
+			return []model.GetCoDoctorOne{}
 		}
 
 		if len(databaseMalpracticeFiles) > 0 {

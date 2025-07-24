@@ -14,7 +14,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func CheckAccessService(db *gorm.DB, reqVal model.CheckAccessReq, idValue int) (bool, string, int) {
+func CheckAccessService(db *gorm.DB, reqVal model.CheckAccessReq, idValue int) (bool, string, int, string) {
 	log := logger.InitLogger()
 
 	var result []model.AccessStatus
@@ -31,7 +31,7 @@ func CheckAccessService(db *gorm.DB, reqVal model.CheckAccessReq, idValue int) (
 		message = "Report are Available for Edit"
 	}
 
-	return result[0].Status, message, result[0].RefAppointmentAccessId
+	return result[0].Status, message, result[0].RefAppointmentAccessId, result[0].CustID
 }
 
 func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValue int) (bool, string, []model.GetViewIntakeData, []model.GetTechnicianIntakeData, []model.GetReportIntakeData, []model.GetReportTextContent, []model.GetReportHistory, []model.GetReportComments, []model.GetOneUserAppointmentModel, []model.ReportFormateModel, []model.GetUserDetails, []model.PatientCustId) {
@@ -94,7 +94,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 	}
 
 	fmt.Println("Check5---------------------------")
-	status, message, _ := CheckAccessService(db, checkAccessReq, idValue)
+	status, message, _, _ := CheckAccessService(db, checkAccessReq, idValue)
 
 	fmt.Println(status, message)
 
@@ -1385,3 +1385,5 @@ func GetReportFormateService(db *gorm.DB, reqVal model.GetReportFormateReq, idVa
 
 	return TemplateFormate
 }
+
+// func LeaveReport

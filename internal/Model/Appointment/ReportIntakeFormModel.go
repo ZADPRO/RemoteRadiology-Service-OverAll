@@ -17,8 +17,9 @@ type AssignGetReportReq struct {
 }
 
 type AccessStatus struct {
-	Status                 bool `gorm:"column:status"`
-	RefAppointmentAccessId int  `gorm:"column:refAppointmentAccessId"`
+	Status                 bool   `gorm:"column:status"`
+	RefAppointmentAccessId int    `gorm:"column:refAppointmentAccessId"`
+	CustID                 string `gorm:"column:userCustId"`
 }
 
 type GetTechnicianIntakeData struct {

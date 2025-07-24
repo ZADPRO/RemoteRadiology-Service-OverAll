@@ -141,42 +141,42 @@ ORDER BY
   m.month;
 `
 
-// var WellGreenUserIndicatesAnalayticsSQL = `
-// SELECT
-//   COUNT(DISTINCT rrh."refAppointmentId") AS total_appointments,
-//   COUNT(
-//     CASE
-//       WHEN ra."refCategoryId" = 1 THEN 1
-//     END
-//   ) AS "SForm",
-//   COUNT(
-//     CASE
-//       WHEN ra."refCategoryId" = 2 THEN 1
-//     END
-//   ) AS "DaForm",
-//   COUNT(
-//     CASE
-//       WHEN ra."refCategoryId" = 3 THEN 1
-//     END
-//   ) AS "DbForm",
-//   COUNT(
-//     CASE
-//       WHEN ra."refCategoryId" = 4 THEN 1
-//     END
-//   ) AS "DcForm"
-// FROM
-//   notes."refReportsHistory" rrh
-//   JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
-// WHERE
-//   rrh."refRHHandledUserId" = ?
-//   AND TO_CHAR(
-//     TO_DATE(
-//       rrh."refRHHandleStartTime",
-//       'YYYY-MM-DD HH24:MI:SS'
-//     ),
-//     'YYYY-MM'
-//   ) = ?;
-// `
+var WellGreenUserIndicatesAnalayticsInvoiceSQL = `
+SELECT
+  COUNT(DISTINCT rrh."refAppointmentId") AS total_appointments,
+  COUNT(
+    CASE
+      WHEN ra."refCategoryId" = 1 THEN 1
+    END
+  ) AS "SForm",
+  COUNT(
+    CASE
+      WHEN ra."refCategoryId" = 2 THEN 1
+    END
+  ) AS "DaForm",
+  COUNT(
+    CASE
+      WHEN ra."refCategoryId" = 3 THEN 1
+    END
+  ) AS "DbForm",
+  COUNT(
+    CASE
+      WHEN ra."refCategoryId" = 4 THEN 1
+    END
+  ) AS "DcForm"
+FROM
+  notes."refReportsHistory" rrh
+  JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+WHERE
+  rrh."refRHHandledUserId" = ?
+  AND TO_CHAR(
+    TO_DATE(
+      rrh."refRHHandleStartTime",
+      'YYYY-MM-DD HH24:MI:SS'
+    ),
+    'YYYY-MM'
+  ) = ?;
+`
 
 var WellGreenUserIndicatesAnalayticsSQL = `
 SELECT
@@ -300,6 +300,8 @@ FROM
   notes."refReportsHistory"
 WHERE
   "refRHHandledUserId" = ?
+  AND "refRHHandleStartTime" != ''
+  AND "refRHHandleStartTime" IS NOT NULL
   AND "refRHHandleStartTime"::timestamp >= ?  -- start_date parameter
   AND "refRHHandleStartTime"::timestamp <= ?  -- end_date parameter
 ;

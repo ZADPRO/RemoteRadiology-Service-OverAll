@@ -2,12 +2,20 @@ package query
 
 var CheckAccessSQL = `
 SELECT
-  CASE 
-    WHEN "refAppointmentAccessStatus" = true 
-         AND "refAppointmentAccessId" != ? THEN false
+  CASE
+    WHEN "refAppointmentAccessStatus" = true
+    AND "refAppointmentAccessId" != ? THEN false
     ELSE true
   END AS "status",
-  "refAppointmentAccessId"
+  "refAppointmentAccessId",
+  (
+    SELECT
+      "refUserCustId"
+    FROM
+      public."Users"
+    WHERE
+      "refUserId" = "refAppointmentAccessId"
+    ) AS "userCustId"
 FROM
   appointment."refAppointments"
 WHERE
