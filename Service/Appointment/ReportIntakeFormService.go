@@ -19,7 +19,7 @@ func CheckAccessService(db *gorm.DB, reqVal model.CheckAccessReq, idValue int) (
 
 	var result []model.AccessStatus
 
-	err := db.Raw(query.CheckAccessSQL, idValue, idValue, reqVal.AppointmentId).Scan(&result).Error
+	err := db.Raw(query.CheckAccessSQL, idValue, reqVal.AppointmentId).Scan(&result).Error
 
 	if err != nil {
 		log.Fatal(err)

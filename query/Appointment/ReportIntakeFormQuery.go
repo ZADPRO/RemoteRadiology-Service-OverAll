@@ -14,12 +14,12 @@ SELECT
     FROM
       public."Users"
     WHERE
-      "refUserId" = ?
-  ) AS "userCustId"
+      "refUserId" = "refAppointmentAccessId"
+    ) AS "userCustId"
 FROM
   appointment."refAppointments"
 WHERE
-  "refAppointmentId" = ?;
+  "refAppointmentId" = ?
 `
 
 var GetOneUserAppointment = `
