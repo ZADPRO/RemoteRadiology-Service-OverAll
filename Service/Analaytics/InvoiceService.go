@@ -151,7 +151,7 @@ func GetInvoiceDataService(db *gorm.DB, reqVal model.GetInvoiceDataReq) model.Ge
 		}
 
 		// Total Count for User
-		UserCountDataErr := tx.Raw(query.WellGreenUserIndicatesAnalayticsSQL, reqVal.UserId, reqVal.Monthyear).Scan(&response.AdminOverallScanIndicatesAnalayticsModel).Error
+		UserCountDataErr := tx.Raw(query.WellGreenUserIndicatesAnalayticsInvoiceSQL, reqVal.UserId, reqVal.Monthyear).Scan(&response.AdminOverallScanIndicatesAnalayticsModel).Error
 		if UserCountDataErr != nil {
 			log.Fatal(UserCountDataErr.Error())
 			return model.GetInvoiceDataReponse{}

@@ -34,12 +34,13 @@ func CheckAccessController() gin.HandlerFunc {
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
 
-		status, message, accessId := service.CheckAccessService(dbConn, data, int(idValue.(float64)))
+		status, message, accessId, custId := service.CheckAccessService(dbConn, data, int(idValue.(float64)))
 
 		payload := map[string]interface{}{
 			"status":   status,
 			"message":  message,
 			"accessId": accessId,
+			"custId":   custId,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)
