@@ -62,7 +62,7 @@ func PostDoctorService(db *gorm.DB, reqVal model.DoctorRegisterReq, idValue int)
 		return false, "Something went wrong, Try Again"
 	}
 
-	CustId := TotalCount[0].SCCustId + "D" + strconv.Itoa(TotalCount[0].TotalCount+1)
+	CustId := "C" + TotalCount[0].SCCustId + "PP" + strconv.Itoa(TotalCount[0].TotalCount+1)
 
 	UserData := model.CreateDoctorModel{
 		UserCustId:     CustId,

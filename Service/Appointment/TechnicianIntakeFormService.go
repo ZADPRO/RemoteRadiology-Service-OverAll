@@ -154,6 +154,7 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 			query.UpdateIntakeDataSQL,
 			answer.Answer,
 			idValue,
+			timeZone.GetPacificTime(),
 			answer.TechinicianStatus,
 			answer.ITFId,
 		).Error
@@ -557,6 +558,7 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 	//Updating the End Time For the Report History
 	ReportHistoryErr := tx.Exec(
 		query.CompleteReportHistorySQL,
+		timeZone.GetPacificTime(),
 		"technologistformfill",
 		"",
 		reqVal.AppointmentId,

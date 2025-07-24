@@ -60,7 +60,7 @@ func PostRadiologistService(db *gorm.DB, reqVal model.RadiologistRegisterReq, id
 		return false, "Something went wrong, Try Again"
 	}
 
-	CustId := "WGR" + strconv.Itoa(TotalCount[0].TotalCount+1)
+	CustId := "WGD" + strconv.Itoa(TotalCount[0].TotalCount+1)
 
 	UserData := model.CreateRadiologyModel{
 		UserCustId:     CustId,

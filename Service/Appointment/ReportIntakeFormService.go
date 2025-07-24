@@ -239,6 +239,22 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 
 		}
 
+		if err := tx.Commit().Error; err != nil {
+			log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again",
+				[]model.GetViewIntakeData{},
+				[]model.GetTechnicianIntakeData{},
+				[]model.GetReportIntakeData{},
+				[]model.GetReportTextContent{},
+				[]model.GetReportHistory{},
+				[]model.GetReportComments{},
+				[]model.GetOneUserAppointmentModel{},
+				[]model.ReportFormateModel{},
+				[]model.GetUserDetails{},
+				[]model.PatientCustId{}
+		}
+
 		var IntakeFormData []model.GetViewIntakeData
 		var OneUserAppointment []model.GetOneUserAppointmentModel
 		fmt.Println("Check15---------------------------")
@@ -337,22 +353,6 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 		// Decrypt Report Formate List
 		for i, data := range ReportFormateList {
 			ReportFormateList[i].RFName = hashdb.Decrypt(data.RFName)
-		}
-
-		if err := tx.Commit().Error; err != nil {
-			log.Printf("ERROR: Failed to commit transaction: %v\n", err)
-			tx.Rollback()
-			return false, "Something went wrong, Try Again",
-				[]model.GetViewIntakeData{},
-				[]model.GetTechnicianIntakeData{},
-				[]model.GetReportIntakeData{},
-				[]model.GetReportTextContent{},
-				[]model.GetReportHistory{},
-				[]model.GetReportComments{},
-				[]model.GetOneUserAppointmentModel{},
-				[]model.ReportFormateModel{},
-				[]model.GetUserDetails{},
-				[]model.PatientCustId{}
 		}
 
 		return true, "Successfully Fetched", IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, OneUserAppointment, ReportFormateList, UserDetails, PatientUserDetails

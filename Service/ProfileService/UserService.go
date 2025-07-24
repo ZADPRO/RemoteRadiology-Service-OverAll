@@ -129,14 +129,16 @@ func DashboardService(db *gorm.DB, idValue int) model.GetUserResModel {
 		}
 	} else {
 		return model.GetUserResModel{
-			Id:             UserData[0].Id,
-			CustId:         UserData[0].CustId,
-			RoleId:         UserData[0].RoleId,
-			Email:          UserData[0].Email,
-			FirstName:      UserData[0].FirstName,
-			LastName:       UserData[0].LastName,
-			ScanCenterId:   0,
-			ProfileImgFile: UserData[0].ProfileImgFile,
+			Id:                      UserData[0].Id,
+			CustId:                  UserData[0].CustId,
+			RoleId:                  UserData[0].RoleId,
+			Email:                   UserData[0].Email,
+			FirstName:               UserData[0].FirstName,
+			LastName:                UserData[0].LastName,
+			CODOPhoneNo1CountryCode: UserData[0].CODOPhoneNo1CountryCode,
+			CODOPhoneNo1:            UserData[0].CODOPhoneNo1,
+			ScanCenterId:            0,
+			ProfileImgFile:          UserData[0].ProfileImgFile,
 		}
 	}
 }

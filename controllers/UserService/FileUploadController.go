@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -52,7 +53,17 @@ func PostUploadFileController() gin.HandlerFunc {
 		}
 
 		ext := filepath.Ext(file.Filename)
-		if ext != ".pdf" {
+		allowedExts := []string{".jpg", ".jpeg", ".png", ".pdf"}
+		isAllowed := false
+
+		for _, allowedExt := range allowedExts {
+			if strings.ToLower(ext) == allowedExt {
+				isAllowed = true
+				break
+			}
+		}
+
+		if !isAllowed {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"status":  false,
 				"message": "Invalid profile image file type. Only JPG, JPEG, PNG are allowed.",
