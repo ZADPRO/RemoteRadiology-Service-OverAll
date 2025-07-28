@@ -137,6 +137,18 @@ type UpdateRemarkReq struct {
 	Remark        string `json:"remark" binding:"required" mapstructure:"remark"`
 }
 
+type ListRemarkReq struct {
+	AppointmentId int `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
+}
+
+type ListRemarkModel struct {
+	RId            int `json:"refRId" gorm:"column:refRId"`
+	AppointmentId  int    `json:"refAppointmentId" gorm:"column:refAppointmentId"`
+	UserId         int    `json:"refUserId" gorm:"column:refUserId"`
+	RemarksMessage string `json:"refRemarksMessage" gorm:"column:refRemarksMessage"`
+	RCreatedAt     string `json:"refRCreatedAt" gorm:"column:refRCreatedAt"`
+}
+
 type UploadReportFormateReq struct {
 	Name            string `json:"name" binding:"required" mapstructure:"name"`
 	FormateTemplate string `json:"formateTemplate" binding:"required" mapstructure:"formateTemplate"`
