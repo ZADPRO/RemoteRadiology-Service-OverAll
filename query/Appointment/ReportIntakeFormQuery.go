@@ -451,3 +451,25 @@ WHERE
   u."refRTId" = ?
   AND ra."refAppointmentId" = ?
 `
+
+var InsertRemark = `
+INSERT INTO notes."Remarks" (
+  "refAppointmentId",
+  "refUserId",
+  "refRemarksMessage",
+  "refRCreatedAt"
+) VALUES (
+  $1,
+  $2,
+  $3,
+  $4
+);
+`
+var ListRemarkSQL = `
+SELECT
+  *
+FROM
+  notes."Remarks"
+WHERE
+  "refAppointmentId" = $1
+`

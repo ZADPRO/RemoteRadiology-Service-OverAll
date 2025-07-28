@@ -1288,6 +1288,20 @@ func UpdateRemarksService(db *gorm.DB, reqVal model.UpdateRemarkReq, idValue int
 		return false, "Something went wrong, Try Again"
 	}
 
+	//adding Remarks
+	AddingRemarksErr := tx.Exec(
+		query.InsertRemark,
+		reqVal.AppointmentId,
+		idValue,
+		hashdb.Encrypt(reqVal.Remark),
+		timeZone.GetPacificTime(),
+	).Error
+	if AddingRemarksErr != nil {
+		log.Printf("ERROR: Failed to Insert Comments: %v\n", AddingRemarksErr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
 	//Updating Audits
 	transData := 34
 	errTrans := model.RefTransHistory{
@@ -1386,4 +1400,39 @@ func GetReportFormateService(db *gorm.DB, reqVal model.GetReportFormateReq, idVa
 	return TemplateFormate
 }
 
-// func LeaveReport
+func ListRemarkService(db *gorm.DB, reqVal model.ListRemarkReq) []model.ListRemarkModel {
+	log := logger.InitLogger()
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
+		return []model.ListRemarkModel{}
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("ERROR: Recovered from panic, rolling back transaction:", r)
+			tx.Rollback()
+		}
+	}()
+
+	var ListRewardModel []model.ListRemarkModel
+
+	ListRewardErr := db.Raw(query.ListRemarkSQL, reqVal.AppointmentId).Scan(&ListRewardModel).Error
+	if ListRewardErr != nil {
+		log.Printf("ERROR: Failed to fetch scan centers: %v", ListRewardErr)
+		return []model.ListRemarkModel{}
+	}
+
+	for i, list := range ListRewardModel {
+		ListRewardModel[i].RemarksMessage = hashdb.Decrypt(list.RemarksMessage)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+		tx.Rollback()
+		return []model.ListRemarkModel{}
+	}
+
+	return ListRewardModel
+}
