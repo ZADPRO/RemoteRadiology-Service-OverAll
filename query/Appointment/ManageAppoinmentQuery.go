@@ -97,27 +97,41 @@ WHERE
   AND "refAppointmentId" = ?
 `
 
+// var GetUserWithScanDetails = `
+// SELECT
+//   *
+// FROM
+//   public."Users" u
+//   JOIN map."refScanCenterMap" rscm ON rscm."refUserId" = u."refUserId"
+// WHERE
+//   u."refRTId" = ?
+//   AND rscm."refSCId" = ?
+//   AND (
+//     u."refRTId" = 2
+//   )
+// `
+
 var GetUserWithScanDetails = `
 SELECT
   *
 FROM
   public."Users" u
-  JOIN map."refScanCenterMap" rscm ON rscm."refUserId" = u."refUserId"
+  FULL JOIN map."refScanCenterMap" rscm ON rscm."refUserId" = u."refUserId"
 WHERE
-  u."refRTId" = ?
-  AND rscm."refSCId" = ?
-  AND (
-    u."refRTId" = 2
-  )
+  u."refRTId" IN (1, 2, 3, 5, 8, 10)
+ORDER BY
+  u."refRTId"
 `
 
 var GetUserDetails = `
 SELECT
   *
 FROM
-  public."Users"
-WHERE
-  "refRTId" IN (?)
+  public."Users" u
+  FULL JOIN map."refScanCenterMap" rscm ON rscm."refUserId" = u."refUserId"
+  WHERE u."refRTId" != 4
+ORDER BY
+  u."refRTId"
 `
 
 var IdentifyScanCenterWithUser = `

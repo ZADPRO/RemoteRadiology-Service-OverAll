@@ -472,10 +472,9 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 	var scanCenterCustId ScanCenterResult
 
 	// Perform the join query
-	errSC := tx.Table("map.\"refScanCenterMap\" AS scm").
-		Joins("JOIN public.\"ScanCenter\" AS sc ON sc.\"refSCId\" = scm.\"refSCId\"").
-		Select("sc.\"refSCCustId\"").
-		Where("scm.\"refUserId\" = ? AND scm.\"refSCMStatus\" = ?", idValue, true).
+	errSC := tx.Table("appointment.\"refAppointments\" AS ra").
+		Joins("JOIN public.\"ScanCenter\" AS sc ON sc.\"refSCId\" = ra.\"refSCId\"").
+		Where("ra.\"refAppointmentId\" = ?", reqVal.AppointmentId).
 		Scan(&scanCenterCustId).Error
 
 	// Error handling

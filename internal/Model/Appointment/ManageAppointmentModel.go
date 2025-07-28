@@ -70,6 +70,7 @@ type ViewTechnicianPatientQueueModel struct {
 	AssignedUserId      int                 `json:"refAppointmentAssignedUserId" gorm:"column:refAppointmentAssignedUserId"`
 	AppointmentComplete string              `json:"refAppointmentComplete" gorm:"column:refAppointmentComplete"`
 	ScanCenterCustId    string              `json:"refSCCustId" gorm:"column:refSCCustId"`
+	ScanCenterId        string              `json:"refSCId" gorm:"column:refSCId"`
 	DicomFiles          []GetDicomFile      `json:"dicomFiles" gorm:"-"`
 	GetCorrectEditModel GetCorrectEditModel `json:"GetCorrectEditModel" gorm:"-"`
 }
@@ -78,6 +79,7 @@ type StaffAvailableModel struct {
 	UserId     int    `json:"refUserId" gorm:"column:refUserId"`
 	UserCustId string `json:"refUserCustId" gorm:"column:refUserCustId"`
 	Username   string `json:"refUserFirstName" gorm:"column:refUserFirstName"`
+	SCId       int    `json:"refSCId" gorm:"column:refSCId"`
 }
 
 type AdditionalFileModel struct {

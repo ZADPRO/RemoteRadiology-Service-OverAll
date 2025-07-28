@@ -121,16 +121,6 @@ func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int, roleIdValue int
 		log.Printf("ERROR: Failed to Identify Scan Center: %v", IdentifyScancentererr)
 		return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
 	}
-	SuggestUserErr := db.Raw(query.GetAllUserSQL, idValue).Scan(&StaffAvailable).Error
-	if SuggestUserErr != nil {
-		log.Printf("ERROR: Failed to fetch Staff Available: %v", SuggestUserErr)
-		return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
-	}
-	for i, data := range StaffAvailable {
-		StaffAvailable[i].Username = hashdb.Decrypt(data.Username)
-	}
-
-	fmt.Println(StaffAvailable)
 
 	if roleIdValue == 2 || roleIdValue == 3 || roleIdValue == 5 || roleIdValue == 8 {
 
@@ -155,45 +145,15 @@ func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int, roleIdValue int
 			patientQueue[i].DicomFiles = dicom
 		}
 
-		var suggestId []int
-		switch roleIdValue {
-		case 5:
-			suggestId = []int{8}
-		case 8:
-			suggestId = []int{1, 5}
+		SuggestUserErr := db.Raw(query.GetUserWithScanDetails).Scan(&StaffAvailable).Error
+		if SuggestUserErr != nil {
+			log.Printf("ERROR: Failed to fetch Staff Available: %v", SuggestUserErr)
+			return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
 		}
-
-		if len(suggestId) != 0 {
-
-			if roleIdValue == 5 {
-				// // SuggestUserErr := db.Raw(query.GetUserWithScanDetails, suggestId[0], Scancenter[0].SCId).Scan(&StaffAvailable).Error
-				// SuggestUserErr := db.Raw(query.GetAllUserSQL, idValue).Scan(&StaffAvailable).Error
-				// if SuggestUserErr != nil {
-				// 	log.Printf("ERROR: Failed to fetch Staff Available: %v", SuggestUserErr)
-				// 	return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
-				// }
-				// for i, data := range StaffAvailable {
-				// 	StaffAvailable[i].Username = hashdb.Decrypt(data.Username)
-				// }
-				return patientQueue, StaffAvailable
-			} else {
-				// SuggestUserErr := db.Raw(query.GetUserDetails, suggestId).Scan(&StaffAvailable).Error
-				// SuggestUserErr := db.Raw(query.GetAllUserSQL, idValue).Scan(&StaffAvailable).Error
-				// if SuggestUserErr != nil {
-				// 	log.Printf("ERROR: Failed to fetch Staff Available: %v", SuggestUserErr)
-				// 	return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
-				// }
-				// for i, data := range StaffAvailable {
-				// 	StaffAvailable[i].Username = hashdb.Decrypt(data.Username)
-				// }
-				return patientQueue, StaffAvailable
-
-			}
-
-		} else {
-
-			return patientQueue, StaffAvailable
+		for i, data := range StaffAvailable {
+			StaffAvailable[i].Username = hashdb.Decrypt(data.Username)
 		}
+		return patientQueue, StaffAvailable
 
 	} else {
 
@@ -228,9 +188,6 @@ func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int, roleIdValue int
 					return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
 				}
 
-				fmt.Println("##################", data.UserId, data.AppointmentId, idValue)
-				fmt.Println("******************", CorrectEditModel)
-
 				if len(CorrectEditModel) > 0 {
 					patientQueue[i].GetCorrectEditModel.RHHandleCorrect = CorrectEditModel[0].RHHandleCorrect
 					patientQueue[i].GetCorrectEditModel.RHHandleEdit = CorrectEditModel[0].RHHandleEdit
@@ -246,47 +203,15 @@ func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int, roleIdValue int
 
 		}
 
-		var suggestId []int
-		switch roleIdValue {
-		case 7:
-			suggestId = []int{6}
-		case 6:
-			suggestId = []int{7, 6}
+		SuggestUserErr := db.Raw(query.GetUserDetails).Scan(&StaffAvailable).Error
+		if SuggestUserErr != nil {
+			log.Printf("ERROR: Failed to fetch Staff Available: %v", SuggestUserErr)
+			return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
 		}
-
-		if len(suggestId) != 0 {
-
-			// if roleIdValue == 7 {
-			// 	SuggestUserErr := db.Raw(query.GetUserWithScanDetails, suggestId[0], Scancenter[0].SCId).Scan(&StaffAvailable).Error
-			// 	if SuggestUserErr != nil {
-			// 		log.Printf("ERROR: Failed to fetch Staff Available: %v", SuggestUserErr)
-			// 		return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
-			// 	}
-			// 	for i, data := range StaffAvailable {
-			// 		StaffAvailable[i].Username = hashdb.Decrypt(data.Username)
-			// 	}
-			// 	return patientQueue, StaffAvailable
-			// } else {
-
-			fmt.Println(suggestId)
-
-			// SuggestUserErr := db.Raw(query.GetUserDetails, suggestId).Scan(&StaffAvailable).Error
-			// SuggestUserErr := db.Raw(query.GetAllUserSQL, idValue).Scan(&StaffAvailable).Error
-			// if SuggestUserErr != nil {
-			// 	log.Printf("ERROR: Failed to fetch Staff Available: %v", SuggestUserErr)
-			// 	return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
-			// }
-			// for i, data := range StaffAvailable {
-			// 	StaffAvailable[i].Username = hashdb.Decrypt(data.Username)
-			// }
-			return patientQueue, StaffAvailable
-
-			// }
-
-		} else {
-
-			return patientQueue, StaffAvailable
+		for i, data := range StaffAvailable {
+			StaffAvailable[i].Username = hashdb.Decrypt(data.Username)
 		}
+		return patientQueue, StaffAvailable
 	}
 
 }
