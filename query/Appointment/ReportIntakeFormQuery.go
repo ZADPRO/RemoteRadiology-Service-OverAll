@@ -467,9 +467,11 @@ INSERT INTO notes."Remarks" (
 `
 var ListRemarkSQL = `
 SELECT
-  *
+  r.*,
+  u."refUserCustId"
 FROM
-  notes."Remarks"
+  notes."Remarks" r
+  JOIN public."Users" u ON u."refUserId" = r."refUserId"
 WHERE
   "refAppointmentId" = $1
 `

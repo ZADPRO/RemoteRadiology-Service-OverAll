@@ -142,9 +142,10 @@ type ListRemarkReq struct {
 }
 
 type ListRemarkModel struct {
-	RId            int `json:"refRId" gorm:"column:refRId"`
+	RId            int    `json:"refRId" gorm:"column:refRId"`
 	AppointmentId  int    `json:"refAppointmentId" gorm:"column:refAppointmentId"`
 	UserId         int    `json:"refUserId" gorm:"column:refUserId"`
+	CustId         string `json:"refUserCustId" gorm:"column:refUserCustId"`
 	RemarksMessage string `json:"refRemarksMessage" gorm:"column:refRemarksMessage"`
 	RCreatedAt     string `json:"refRCreatedAt" gorm:"column:refRCreatedAt"`
 }
