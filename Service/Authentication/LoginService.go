@@ -154,6 +154,17 @@ func VerifyOTPService(db *gorm.DB, reqVal model.VerifyReq) model.LoginResponse {
 	// 	}
 	// }
 
+	//Scan Center Id
+	var RefSCId []model.ScanCenterStruct
+	scanCenterErr := db.Raw(query.ScanCenterIdSQL, user.UserId).Scan(&RefSCId).Error
+	if scanCenterErr != nil {
+		log.Error("LoginService DB Error: " + scanCenterErr.Error())
+		return model.LoginResponse{
+			Status:  false,
+			Message: "Internal server error",
+		}
+	}
+
 	history := model.RefTransHistory{
 		TransTypeId: 1,
 		THData:      "Logged In Successfully",
@@ -170,12 +181,19 @@ func VerifyOTPService(db *gorm.DB, reqVal model.VerifyReq) model.LoginResponse {
 		}
 	}
 
+	var RefSCIdVal = 0
+
+	if len(RefSCId) > 0 {
+		RefSCIdVal = RefSCId[0].RefSCId
+	}
+
 	return model.LoginResponse{
 		Status:         true,
 		Message:        "Logedin Successfully",
 		RoleType:       user.RId,
 		PasswordStatus: user.AHPassChangeStatus,
 		Token:          accesstoken.CreateToken(user.UserId, user.RId),
+		ScanCenterId:   RefSCIdVal,
 	}
 
 }
@@ -211,7 +229,7 @@ func UserChangePasswordService(db *gorm.DB, reqVal model.UserChnagePasswordReq, 
 		}
 	}
 
-	changePassword := db.Exec(query.UpdateUserDataSQL, true, userId).Error
+	changePassword := db.Exec(query.UpdateUserDataSQL, true, reqVal.Consent, userId).Error
 	if changePassword != nil {
 		log.Error("UserChangePasswordService DB Error: " + changePassword.Error())
 		return model.LoginResponse{

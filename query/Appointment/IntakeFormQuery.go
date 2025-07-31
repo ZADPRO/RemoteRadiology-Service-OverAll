@@ -55,7 +55,8 @@ var UpdateAppointment = `
 UPDATE
   appointment."refAppointments"
 SET
-  "refCategoryId" = ?
+  "refCategoryId" = ?,
+  "refAppointmentConsent" = ?
 WHERE
   "refAppointmentId" = ?
 `
@@ -125,6 +126,15 @@ FROM
   aduit."refTransHistory"
 WHERE
   "transTypeId" IN (23, 24);
+`
+
+var TechnicianUserSQL = `
+SELECT
+  *
+FROM
+  public."Users"
+WHERE
+  "refUserId" = $1
 `
 
 var GetTextContent = `

@@ -102,6 +102,7 @@ func AddIntakeFormService(db *gorm.DB, reqVal model.AddIntakeFormReq, idValue in
 	UpdateAppointmenterr := tx.Exec(
 		query.UpdateAppointment,
 		reqVal.CategoryId,
+		reqVal.Consent,
 		reqVal.AppointmentId,
 	).Error
 	if UpdateAppointmenterr != nil {

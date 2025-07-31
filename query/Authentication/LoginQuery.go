@@ -29,6 +29,15 @@ var DeleteOTPSQL = `
 DELETE FROM tempotp."usersOTP" WHERE "refUserId" = ? AND "TOTPtype" = ?;
 `
 
+var ScanCenterIdSQL = `
+SELECT
+  *
+FROM
+  map."refScanCenterMap"
+WHERE
+  "refUserId" = ?
+`
+
 var CreateOTPSQL = `
 INSERT INTO tempotp."usersOTP" (
   "refUserId",

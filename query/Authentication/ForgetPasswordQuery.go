@@ -14,7 +14,8 @@ var UpdateUserDataSQL = `
 UPDATE
   public."Users"
 SET
-  "refUserAgreementStatus" = ?
+  "refUserAgreementStatus" = ?,
+  "refUserConsent" = ?
 WHERE
   "refUserId" = ?
 `
