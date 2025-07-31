@@ -308,7 +308,7 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 	return true, "Successfully Technician Intake Form Created"
 }
 
-func ViewTechnicianIntakeFormService(db *gorm.DB, reqVal model.ViewTechnicianIntakeFormReq, idValue int) ([]model.GetViewIntakeData, []model.AduitModel, []model.TechIntakeModel) {
+func ViewTechnicianIntakeFormService(db *gorm.DB, reqVal model.ViewTechnicianIntakeFormReq, idValue int) ([]model.GetViewIntakeData, []model.AduitModel, []model.TechIntakeModel, string, string) {
 	log := logger.InitLogger()
 
 	var ViewIntakeData []model.GetViewIntakeData
@@ -316,7 +316,7 @@ func ViewTechnicianIntakeFormService(db *gorm.DB, reqVal model.ViewTechnicianInt
 	err := db.Raw(query.ViewIntakeFormQuery, reqVal.PatientId, reqVal.AppointmentId).Scan(&ViewIntakeData).Error
 	if err != nil {
 		log.Printf("ERROR: Failed to fetch scan centers: %v", err)
-		return []model.GetViewIntakeData{}, []model.AduitModel{}, []model.TechIntakeModel{}
+		return []model.GetViewIntakeData{}, []model.AduitModel{}, []model.TechIntakeModel{}, "", ""
 	}
 
 	// for i, data := range Aduit {
@@ -328,7 +328,7 @@ func ViewTechnicianIntakeFormService(db *gorm.DB, reqVal model.ViewTechnicianInt
 	Aduiterr := db.Raw(query.GetAuditforIntakeForm).Scan(&Aduit).Error
 	if Aduiterr != nil {
 		log.Printf("ERROR: Failed to fetch Aduit: %v", Aduiterr)
-		return []model.GetViewIntakeData{}, []model.AduitModel{}, []model.TechIntakeModel{}
+		return []model.GetViewIntakeData{}, []model.AduitModel{}, []model.TechIntakeModel{}, "", ""
 	}
 
 	for i, data := range Aduit {
@@ -340,14 +340,34 @@ func ViewTechnicianIntakeFormService(db *gorm.DB, reqVal model.ViewTechnicianInt
 	TechDataerr := db.Raw(query.GetTechIntakeForm, reqVal.AppointmentId, reqVal.PatientId).Scan(&TechIntakeData).Error
 	if TechDataerr != nil {
 		log.Printf("ERROR: Failed to fetch Tech Aduit: %v", TechDataerr)
-		return []model.GetViewIntakeData{}, []model.AduitModel{}, []model.TechIntakeModel{}
+		return []model.GetViewIntakeData{}, []model.AduitModel{}, []model.TechIntakeModel{}, "", ""
 	}
 
 	for i, data := range TechIntakeData {
 		TechIntakeData[i].TITFAnswer = hashdb.Decrypt(data.TITFAnswer)
 	}
 
-	return ViewIntakeData, Aduit, TechIntakeData
+	name := ""
+	custId := ""
+
+	if len(Aduit) > 0 {
+
+		var UserData []model.TechnicianModel
+
+		UserDataerr := db.Raw(query.TechnicianUserSQL, Aduit[0].THActionBy).Scan(&UserData).Error
+		if UserDataerr != nil {
+			log.Printf("ERROR: Failed to fetch Aduit: %v", UserDataerr)
+			return []model.GetViewIntakeData{}, []model.AduitModel{}, []model.TechIntakeModel{}, "", ""
+		}
+
+		name = hashdb.Decrypt(UserData[0].FirstName)
+		custId = UserData[0].CustId
+
+	}
+
+	fmt.Println("$$$$$$$$$$$$$$$$$$$$", name, custId)
+
+	return ViewIntakeData, Aduit, TechIntakeData, name, custId
 }
 
 func AssignTechnicianService(db *gorm.DB, reqVal model.ViewTechnicianIntakeFormReq, idValue int) (bool, string) {

@@ -107,12 +107,14 @@ func ViewTechnicianIntakeFormController() gin.HandlerFunc {
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
 
-		ViewIntakeData, Aduit, TechIntakeData := service.ViewTechnicianIntakeFormService(dbConn, *data, int(idValue.(float64)))
+		ViewIntakeData, Aduit, TechIntakeData, TechnicianName, TechnicianCustId := service.ViewTechnicianIntakeFormService(dbConn, *data, int(idValue.(float64)))
 
 		payload := map[string]interface{}{
-			"IntakeData":      ViewIntakeData,
-			"IntakeDataAduit": Aduit,
-			"TechIntakeData":  TechIntakeData,
+			"IntakeData":       ViewIntakeData,
+			"IntakeDataAduit":  Aduit,
+			"TechIntakeData":   TechIntakeData,
+			"technicianName":   TechnicianName,
+			"technicianCustId": TechnicianCustId,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)

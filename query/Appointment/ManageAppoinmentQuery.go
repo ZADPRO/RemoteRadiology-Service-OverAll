@@ -32,32 +32,54 @@ WHERE
 
 var ViewTechnicianPatientQueueSQL = `
 SELECT
-  u."refUserCustId" AS "refUserCustId",
-  u."refUserFirstName" AS "refUserFirstName",
-  u."refUserId" AS "refUserId",
+  u."refUserCustId",
+  u."refUserFirstName",
+  u."refUserId",
   ra.*,
-  sc.*
+  sc.*,
+  COALESCE(d.dicomFiles, '[]') AS "dicomFiles"
 FROM
   appointment."refAppointments" ra
   JOIN public."ScanCenter" sc ON sc."refSCId" = ra."refSCId"
   JOIN public."Users" u ON u."refUserId" = ra."refUserId"
   JOIN map."refScanCenterMap" rscm ON rscm."refSCId" = ra."refSCId"
+  LEFT JOIN (
+    SELECT
+      rdf."refAppointmentId",
+      json_agg(rdf.*) AS dicomFiles
+    FROM dicom."refDicomFiles" rdf
+    WHERE rdf."refDFId" IS NOT NULL
+    GROUP BY rdf."refAppointmentId"
+  ) d ON d."refAppointmentId" = ra."refAppointmentId"
 WHERE
   rscm."refUserId" = ?
-  AND rscm."refSCId" = ?
+  AND rscm."refSCId" = ?;
 `
 
 var ViewAllPatientQueueSQL = `
 SELECT
-  u."refUserCustId" AS "refUserCustId",
-  u."refUserFirstName" AS "refUserFirstName",
-  u."refUserId" AS "refUserId",
+  u."refUserCustId",
+  u."refUserFirstName",
+  u."refUserId",
   ra.*,
-  sc.*
+  sc.*,
+  COALESCE(dicom_data."dicomFiles", '[]') AS "dicomFiles"
 FROM
   appointment."refAppointments" ra
   JOIN public."ScanCenter" sc ON sc."refSCId" = ra."refSCId"
   JOIN public."Users" u ON u."refUserId" = ra."refUserId"
+  LEFT JOIN (
+    SELECT
+      "refAppointmentId",
+      json_agg(rdf.*) FILTER (
+        WHERE
+          rdf."refDFId" IS NOT NULL
+      ) AS "dicomFiles"
+    FROM
+      dicom."refDicomFiles" rdf
+    GROUP BY
+      rdf."refAppointmentId"
+  ) dicom_data ON dicom_data."refAppointmentId" = ra."refAppointmentId";
 `
 
 var InsertAdditionalFiles = `

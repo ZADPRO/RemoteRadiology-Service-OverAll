@@ -139,7 +139,7 @@ func UserAnalaytics(db *gorm.DB, reqVal model.OneUserReq, UserId int, roleIdValu
 }
 
 func OneUserService(db *gorm.DB, reqVal model.OneUserReq, idValue int, roleIdValue int) model.OneUserReponse {
-	if roleIdValue == 1 || roleIdValue == 9 {
+	if roleIdValue == 1 || roleIdValue == 9 || roleIdValue == 3 {
 		response := UserAnalaytics(db, reqVal, reqVal.UserId, roleIdValue)
 		return response
 	} else {
