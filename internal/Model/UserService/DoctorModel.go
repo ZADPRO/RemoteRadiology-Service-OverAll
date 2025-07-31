@@ -33,7 +33,7 @@ type DoctorRegisterReq struct {
 	PhoneNo                     string                   `json:"phone" binding:"required" mapstructure:"phone"`
 	Email                       string                   `json:"email" binding:"required" mapstructure:"email"`
 	SocialSecurityNo            string                   `json:"social_security_no" binding:"required" mapstructure:"social_security_no"`
-	DriversLicenseNo            string                   `json:"drivers_license" binding:"required" mapstructure:"drivers_license"`
+	DriversLicenseNo            string                   `json:"drivers_license" mapstructure:"drivers_license"`
 	Specialization              string                   `json:"Specialization" binding:"required" mapstructure:"Specialization"`
 	NPI                         string                   `json:"npi" binding:"required" mapstructure:"npi"`
 	MedicalLicenseSecurity      []MedicalLicenseSecurity `json:"medical_license_security" binding:"required" mapstructure:"medical_license_security"`
@@ -127,7 +127,7 @@ type UpdateDoctorReq struct {
 	PhoneNo                     string                              `json:"phone" binding:"required" mapstructure:"phone"`
 	Email                       string                              `json:"email" binding:"required" mapstructure:"email"`
 	SocialSecurityNo            string                              `json:"social_security_no" binding:"required" mapstructure:"social_security_no"`
-	DriversLicenseNo            string                              `json:"drivers_license" binding:"required" mapstructure:"drivers_license"`
+	DriversLicenseNo            string                              `json:"drivers_license" mapstructure:"drivers_license"`
 	Specialization              string                              `json:"Specialization" binding:"required" mapstructure:"Specialization"`
 	NPI                         string                              `json:"npi" binding:"required" mapstructure:"npi"`
 	MedicalLicenseSecurity      []UpdateMedicalLicenseSecurityModel `json:"medical_license_security" binding:"required" mapstructure:"medical_license_security"`

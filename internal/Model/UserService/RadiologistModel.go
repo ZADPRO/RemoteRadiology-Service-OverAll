@@ -33,7 +33,7 @@ type RadiologistRegisterReq struct {
 	Specialization         string                   `json:"specialization" binding:"required" mapstructure:"specialization"`
 	Pan                    string                   `json:"pan" binding:"required" mapstructure:"pan"`
 	Aadhar                 string                   `json:"aadhar" binding:"required" mapstructure:"aadhar"`
-	DriversLicense         string                   `json:"drivers_license" binding:"required" mapstructure:"drivers_license"`
+	DriversLicense         string                   `json:"drivers_license" mapstructure:"drivers_license"`
 	MedicalLicenseSecurity []MedicalLicenseSecurity `json:"medical_license_security" binding:"required" mapstructure:"medical_license_security"`
 	MalPracticeInsureance  []MalPracticeInsureance  `json:"malpracticeinsureance_files" binding:"required" mapstructure:"malpracticeinsureance_files"`
 	CVFiles                []CVFiles                `json:"cv_files" binding:"required" mapstructure:"cv_files"`
