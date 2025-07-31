@@ -24,6 +24,11 @@ type LoginResponse struct {
 	Token          string `json:"token"`
 	Email          string `json:"email"`
 	PasswordStatus bool   `json:"passwordStatus"`
+	ScanCenterId   int    `json:"scanCenterId"`
+}
+
+type ScanCenterStruct struct {
+	RefSCId int `json:"refSCId" gorm:"column:refSCId"`
 }
 
 type AdminLoginModel struct {
@@ -63,4 +68,5 @@ type VerifyOTP struct {
 
 type UserChnagePasswordReq struct {
 	Password string `json:"password" binding:"required" mapstructure:"password"`
+	Consent  string `json:"consent" mapstructure:"consent"`
 }

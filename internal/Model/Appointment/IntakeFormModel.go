@@ -14,6 +14,7 @@ type AddIntakeFormReq struct {
 	CategoryId      int               `json:"categoryId" mapstructure:"categoryId"`
 	AppointmentId   int               `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
 	Answers         []AnswersReqModel `json:"answers" binding:"required" mapstructure:"answers"`
+	Consent         string            `json:"consent" binding:"required" mapstructure:"consent"`
 	OverrideRequest bool              `json:"overriderequest" mapstructure:"overriderequest"`
 }
 
@@ -75,6 +76,11 @@ type AduitModel struct {
 	CreatedAt   string `json:"refTHTime" gorm:"column:refTHTime"`
 	UserId      int    `json:"refUserId" gorm:"column:refUserId"`
 	THActionBy  int    `json:"refTHActionBy" gorm:"column:refTHActionBy"`
+}
+
+type TechnicianModel struct {
+	FirstName string `json:"refUserFirstName" gorm:"column:refUserFirstName"`
+	CustId    string `json:"refUserCustId" gorm:"column:refUserCustId"`
 }
 
 type PatientReq struct {

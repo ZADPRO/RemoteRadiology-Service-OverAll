@@ -126,6 +126,11 @@ func main() {
 	routesUser.InitWellthgreenPerformingProviderRoutes(r)
 
 	fmt.Println()
+	fmt.Println("=================Wellthgreen Form=================")
+	fmt.Println()
+	routesUser.InitWellthgreenFormsRoutes(r)
+
+	fmt.Println()
 	fmt.Println("*****************ProfileService*****************")
 	fmt.Println()
 
