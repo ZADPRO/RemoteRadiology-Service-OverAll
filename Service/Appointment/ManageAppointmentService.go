@@ -133,16 +133,16 @@ func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int, roleIdValue int
 		for i, data := range patientQueue {
 			patientQueue[i].Username = hashdb.Decrypt(data.Username)
 
-			var dicom []model.GetDicomFile
-			log.Printf("Fetching Dicom for AppointmentId=%d, UserId=%d", data.AppointmentId, data.UserId)
+			// var dicom []model.GetDicomFile
+			// log.Printf("Fetching Dicom for AppointmentId=%d, UserId=%d", data.AppointmentId, data.UserId)
 
-			dicomErr := db.Raw(query.ViewGetDicomFile, data.AppointmentId, data.UserId).Scan(&dicom).Error
-			if dicomErr != nil {
-				log.Printf("ERROR: Failed to fetch Dicom Files: %v", dicomErr)
-				return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
-			}
+			// dicomErr := db.Raw(query.ViewGetDicomFile, data.AppointmentId, data.UserId).Scan(&dicom).Error
+			// if dicomErr != nil {
+			// 	log.Printf("ERROR: Failed to fetch Dicom Files: %v", dicomErr)
+			// 	return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
+			// }
 
-			patientQueue[i].DicomFiles = dicom
+			// patientQueue[i].DicomFiles = dicom
 		}
 
 		SuggestUserErr := db.Raw(query.GetUserWithScanDetails).Scan(&StaffAvailable).Error
@@ -166,40 +166,40 @@ func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int, roleIdValue int
 		for i, data := range patientQueue {
 			patientQueue[i].Username = hashdb.Decrypt(data.Username)
 
-			var dicom []model.GetDicomFile
-			log.Printf("Fetching Dicom for AppointmentId=%d, UserId=%d", data.AppointmentId, data.UserId)
+			// var dicom []model.GetDicomFile
+			// log.Printf("Fetching Dicom for AppointmentId=%d, UserId=%d", data.AppointmentId, data.UserId)
 
-			dicomErr := db.Raw(query.ViewGetDicomFile, data.AppointmentId, data.UserId).Scan(&dicom).Error
-			if dicomErr != nil {
-				log.Printf("ERROR: Failed to fetch Dicom Files: %v", dicomErr)
-				return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
-			}
+			// dicomErr := db.Raw(query.ViewGetDicomFile, data.AppointmentId, data.UserId).Scan(&dicom).Error
+			// if dicomErr != nil {
+			// 	log.Printf("ERROR: Failed to fetch Dicom Files: %v", dicomErr)
+			// 	return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
+			// }
 
-			patientQueue[i].DicomFiles = dicom
+			// patientQueue[i].DicomFiles = dicom
 
-			//Get the Correct and Edit
-			if roleIdValue == 1 || roleIdValue == 6 {
+			// //Get the Correct and Edit
+			// if roleIdValue == 1 || roleIdValue == 6 {
 
-				var CorrectEditModel []model.GetCorrectEditModel
+			// 	var CorrectEditModel []model.GetCorrectEditModel
 
-				CorrectEditModelErr := db.Raw(query.CorrectEditStatusSQL, data.UserId, data.AppointmentId, idValue).Scan(&CorrectEditModel).Error
-				if CorrectEditModelErr != nil {
-					log.Printf("ERROR: Failed to Identify Scan Center: %v", CorrectEditModelErr)
-					return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
-				}
+			// 	CorrectEditModelErr := db.Raw(query.CorrectEditStatusSQL, data.UserId, data.AppointmentId, idValue).Scan(&CorrectEditModel).Error
+			// 	if CorrectEditModelErr != nil {
+			// 		log.Printf("ERROR: Failed to Identify Scan Center: %v", CorrectEditModelErr)
+			// 		return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
+			// 	}
 
-				if len(CorrectEditModel) > 0 {
-					patientQueue[i].GetCorrectEditModel.RHHandleCorrect = CorrectEditModel[0].RHHandleCorrect
-					patientQueue[i].GetCorrectEditModel.RHHandleEdit = CorrectEditModel[0].RHHandleEdit
-				} else {
-					patientQueue[i].GetCorrectEditModel.RHHandleCorrect = false
-					patientQueue[i].GetCorrectEditModel.RHHandleEdit = false
-				}
+			// 	if len(CorrectEditModel) > 0 {
+			// 		patientQueue[i].GetCorrectEditModel.RHHandleCorrect = CorrectEditModel[0].RHHandleCorrect
+			// 		patientQueue[i].GetCorrectEditModel.RHHandleEdit = CorrectEditModel[0].RHHandleEdit
+			// 	} else {
+			// 		patientQueue[i].GetCorrectEditModel.RHHandleCorrect = false
+			// 		patientQueue[i].GetCorrectEditModel.RHHandleEdit = false
+			// 	}
 
-			} else {
-				patientQueue[i].GetCorrectEditModel.RHHandleCorrect = false
-				patientQueue[i].GetCorrectEditModel.RHHandleEdit = false
-			}
+			// } else {
+			// 	patientQueue[i].GetCorrectEditModel.RHHandleCorrect = false
+			// 	patientQueue[i].GetCorrectEditModel.RHHandleEdit = false
+			// }
 
 		}
 

@@ -1,5 +1,11 @@
 package model
 
+import (
+	"database/sql/driver"
+	"encoding/json"
+	"errors"
+)
+
 type AddAppointmentReq struct {
 	SCId            string `json:"refSCId" binding:"required" mapstructure:"refSCId"`
 	AppointmentDate string `json:"refAppointmentDate" binding:"required" mapstructure:"refAppointmentDate"`
@@ -59,6 +65,26 @@ type GetDicomFile struct {
 	RefDFSide        string `json:"refDFSide" gorm:"column:refDFSide"`
 }
 
+type DicomFileArray []GetDicomFile
+
+// Scan implements the sql.Scanner interface for DicomFileArray.
+func (a *DicomFileArray) Scan(value interface{}) error {
+	if value == nil {
+		*a = nil
+		return nil
+	}
+	bytes, ok := value.([]byte)
+	if !ok {
+		return errors.New("Scan source is not []byte")
+	}
+	return json.Unmarshal(bytes, a)
+}
+
+// Value implements the driver.Valuer interface for DicomFileArray.
+func (a DicomFileArray) Value() (driver.Value, error) {
+	return json.Marshal(a)
+}
+
 type ViewTechnicianPatientQueueModel struct {
 	AppointmentId       int                 `json:"refAppointmentId" gorm:"column:refAppointmentId"`
 	Remarks             string              `json:"refAppointmentRemarks" gorm:"column:refAppointmentRemarks"`
@@ -71,7 +97,7 @@ type ViewTechnicianPatientQueueModel struct {
 	AppointmentComplete string              `json:"refAppointmentComplete" gorm:"column:refAppointmentComplete"`
 	ScanCenterCustId    string              `json:"refSCCustId" gorm:"column:refSCCustId"`
 	ScanCenterId        string              `json:"refSCId" gorm:"column:refSCId"`
-	DicomFiles          []GetDicomFile      `json:"dicomFiles" gorm:"-"`
+	DicomFiles          DicomFileArray      `json:"dicomFiles" gorm:"column:dicomFiles"`
 	GetCorrectEditModel GetCorrectEditModel `json:"GetCorrectEditModel" gorm:"-"`
 }
 
