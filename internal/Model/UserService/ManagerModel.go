@@ -8,7 +8,7 @@ type ManagerRegisterReq struct {
 	PhoneNoCountryCode   string                      `json:"phoneCountryCode" binding:"required" mapstructure:"phoneCountryCode"`
 	PhoneNo              string                      `json:"phone" binding:"required" mapstructure:"phone"`
 	Email                string                      `json:"email" binding:"required" mapstructure:"email"`
-	DriversLicense       string                      `json:"drivers_license" binding:"required" mapstructure:"drivers_license"`
+	DriversLicense       string                      `json:"drivers_license" mapstructure:"drivers_license"`
 	Pan                  string                      `json:"pan" binding:"required" mapstructure:"pan"`
 	Aadhar               string                      `json:"aadhar" binding:"required" mapstructure:"aadhar"`
 	EducationCertificate []EducationCertificateFiles `json:"education_certificate" binding:"required" mapstructure:"education_certificate"`
