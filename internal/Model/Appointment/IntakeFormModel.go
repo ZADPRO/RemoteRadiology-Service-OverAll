@@ -89,5 +89,10 @@ type PatientReq struct {
 }
 
 type PatientResponse struct {
-	RTCText string `json:"refRTCText" gorm:"column:refRTCText"`
+	AppointmentId int    `json:"refAppointmentId" gorm:"column:refAppointmentId"`
+	RTCText       string `json:"refRTCText" gorm:"column:refRTCText"`
+}
+
+type GetViewReportReq struct {
+	AppointmentId []int `json:"appintmentId" binding:"appintmentId"  mapstructure:"appintmentId"`
 }

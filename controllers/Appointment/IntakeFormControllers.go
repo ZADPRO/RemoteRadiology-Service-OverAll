@@ -221,7 +221,7 @@ func GetReportDataController() gin.HandlerFunc {
 		}
 
 		//Request Should Be Encrypt
-		data, ok := helper.GetRequestBody[model.PatientReq](c, true)
+		data, ok := helper.GetRequestBody[model.GetViewReportReq](c, true)
 		if !ok {
 			return
 		}
@@ -232,8 +232,8 @@ func GetReportDataController() gin.HandlerFunc {
 		resVal := service.GetReportDataService(dbConn, data)
 
 		payload := map[string]interface{}{
-			"status":  true,
-			"RTCText": resVal.RTCText,
+			"status": true,
+			"data":   resVal,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)

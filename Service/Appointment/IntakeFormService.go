@@ -412,13 +412,13 @@ func UpdateIntakeFormService(db *gorm.DB, reqVal model.UpdateIntakeFormReq, idVa
 
 }
 
-func GetReportDataService(db *gorm.DB, reqVal model.PatientReq) model.PatientResponse {
+func GetReportDataService(db *gorm.DB, reqVal model.GetViewReportReq) []model.PatientResponse {
 	log := logger.InitLogger()
 
 	tx := db.Begin()
 	if tx.Error != nil {
 		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
-		return model.PatientResponse{}
+		return []model.PatientResponse{}
 	}
 
 	defer func() {
@@ -428,27 +428,23 @@ func GetReportDataService(db *gorm.DB, reqVal model.PatientReq) model.PatientRes
 		}
 	}()
 
-	fmt.Println(reqVal)
-
 	var TextContentModel []model.PatientResponse
 
-	err := db.Raw(query.GetTextContent, reqVal.Id, reqVal.AppointmentId).Scan(&TextContentModel).Error
+	err := db.Raw(query.GetTextContent, reqVal.AppointmentId).Scan(&TextContentModel).Error
 	if err != nil {
 		log.Printf("ERROR: Failed to fetch scan centers: %v", err)
-		return model.PatientResponse{}
+		return []model.PatientResponse{}
 	}
 
 	for i, data := range TextContentModel {
 		TextContentModel[i].RTCText = hashdb.Decrypt(data.RTCText)
 	}
 
-	fmt.Println(TextContentModel)
-
 	if err := tx.Commit().Error; err != nil {
 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
 		tx.Rollback()
-		return model.PatientResponse{}
+		return []model.PatientResponse{}
 	}
 
-	return TextContentModel[0]
+	return TextContentModel
 }
