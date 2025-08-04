@@ -17,6 +17,7 @@ type GetCoDoctorOne struct {
 	DriversLicenseNo            string                           `json:"drivers_license" gorm:"column:refCDDrivingLicense"`
 	Specialization              string                           `json:"Specialization" gorm:"column:refCDSpecialization"`
 	DigitalSignature            string                           `json:"digital_signature" gorm:"column:refCDDigitalSignature"`
+	CDEaseQTReportAccess        bool                             `json:"refCDEaseQTReportAccess" gorm:"column:refCDEaseQTReportAccess"`
 	NPI                         string                           `json:"refCDNPI" gorm:"column:refCDNPI"`
 	ProfileImgFile              *FileData                        `json:"profileImgFile" gorm:"-"`
 	DriversLicenseFile          *FileData                        `json:"driversLicenseFile"  gorm:"-"`

@@ -223,3 +223,18 @@ type ManagerData struct {
 	SCCustId string `json:"refSCCustId" gorm:"column:refSCCustId"`
 	Email    string `json:"refCODOEmail" gorm:"column:refCODOEmail"`
 }
+
+type SendMailReportReq struct {
+	AppointmentId     int  `json:"appintmentId" binding:"appintmentId"  mapstructure:"appintmentId"`
+	PatientId         int  `json:"patientId" binding:"required" mapstructure:"patientId"`
+	PatientMailStatus bool `json:"patientMailStatus" mapstructure:"patientMailStatus"`
+	ManagerMailStatus bool `json:"managerMailStatus" mapstructure:"managerMailStatus"`
+}
+
+type DoctorReportAccessStatus struct {
+	DDEaseQTReportAccess *bool `json:"refDDEaseQTReportAccess" gorm:"column:refDDEaseQTReportAccess"`
+}
+
+type CoDoctorReportAccessStatus struct {
+	CDEaseQTReportAccess *bool `json:"refCDEaseQTReportAccess" gorm:"column:refCDEaseQTReportAccess"`
+}

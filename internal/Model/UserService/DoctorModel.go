@@ -134,6 +134,7 @@ type UpdateDoctorReq struct {
 	LicenseFiles                []UpdateLicenseFiles                `json:"license_files" binding:"required" mapstructure:"license_files"`
 	MalpracticeInsuranceDetails []UpdateMalpracticeInsureanceFiles  `json:"malpracticeinsureance_files" binding:"required" mapstructure:"malpracticeinsureance_files"`
 	DigitalSignature            string                              `json:"digital_signature" binding:"required" mapstructure:"digital_signature"`
+	EaseQTReportAccess          bool                                `json:"easeQTReportAccess" binding:"required" mapstructure:"easeQTReportAccess"`
 	Status                      bool                                `json:"status" binding:"required" mapstructure:"status"`
 }
 

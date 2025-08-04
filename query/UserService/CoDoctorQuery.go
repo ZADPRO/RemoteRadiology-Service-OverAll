@@ -19,7 +19,8 @@ SET
   "refCDNPI" = ?,
   "refCDDrivingLicense" = ?,
   "refCDDigitalSignature" = ?,
-  "refCDSpecialization" = ?
+  "refCDSpecialization" = ?,
+  "refCDEaseQTReportAccess" = ?
 WHERE
   "refUserId" = ?
 `
