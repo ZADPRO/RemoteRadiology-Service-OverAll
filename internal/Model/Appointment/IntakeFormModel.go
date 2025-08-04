@@ -84,8 +84,8 @@ type TechnicianModel struct {
 }
 
 type PatientReq struct {
-	Id            int `json:"id" binding:"id"  mapstructure:"id"`
-	AppointmentId int `json:"appintmentId" binding:"appintmentId"  mapstructure:"appintmentId"`
+	Id            int `json:"id" binding:"required"  mapstructure:"id"`
+	AppointmentId int `json:"appintmentId" binding:"required"  mapstructure:"appintmentId"`
 }
 
 type PatientResponse struct {
@@ -94,5 +94,10 @@ type PatientResponse struct {
 }
 
 type GetViewReportReq struct {
-	AppointmentId []int `json:"appintmentId" binding:"appintmentId"  mapstructure:"appintmentId"`
+	AppointmentId []int `json:"appintmentId" binding:"required"  mapstructure:"appintmentId"`
+}
+
+type GetViewConsentResponse struct {
+	AppointmentId      int    `json:"refAppointmentId" gorm:"column:refAppointmentId"`
+	AppointmentConsent string `json:"refAppointmentConsent" gorm:"column:refAppointmentConsent"`
 }
