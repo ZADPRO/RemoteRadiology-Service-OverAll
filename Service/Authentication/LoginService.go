@@ -194,6 +194,7 @@ func VerifyOTPService(db *gorm.DB, reqVal model.VerifyReq) model.LoginResponse {
 		PasswordStatus: user.AHPassChangeStatus,
 		Token:          accesstoken.CreateToken(user.UserId, user.RId),
 		ScanCenterId:   RefSCIdVal,
+		Name:           AdminLoginModel[0].UserFirstName,
 	}
 
 }

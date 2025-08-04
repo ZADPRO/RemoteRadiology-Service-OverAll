@@ -15,6 +15,7 @@ func InitTechnicianIntakeFormRoutes(router *gin.Engine) {
 	route.POST("/dicomupload", accesstoken.JWTMiddleware(), controllers.PostUploadDicomFileController())
 	route.POST("/savedicom", accesstoken.JWTMiddleware(), controllers.SaveDicomController())
 	route.POST("/viewDicom", accesstoken.JWTMiddleware(), controllers.ViewDicomController())
+	route.POST("/deleteDicom", accesstoken.JWTMiddleware(), controllers.DeleteDicomController())
 	route.POST("/downloaddicom", accesstoken.JWTMiddleware(), controllers.DownloadDicomFileController())
 	route.POST("/alldownloaddicom", accesstoken.JWTMiddleware(), controllers.DownloadMultipleDicomFilesController())
 	route.POST("/overalldownloaddicom", accesstoken.JWTMiddleware(), controllers.OverallDownloadDicomFileController())

@@ -469,6 +469,14 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 		}
 	}()
 
+	//check the DIcom is Available
+	var ChecktheListCount []model.DicomFileModel
+	CheckDicomErr := tx.Raw(query.ViewGetDicomFile, reqVal.AppointmentId, reqVal.PatientId).Scan(&ChecktheListCount).Error
+	if CheckDicomErr != nil {
+		tx.Rollback()
+		return false, "Somthing went wrong, Try Again"
+	}
+
 	// Get Patient Customer ID
 	var patientCustId string
 	errPatient := tx.Table("\"Users\"").Select("\"refUserCustId\"").Where("\"refUserId\" = ?", reqVal.PatientId).Scan(&patientCustId).Error
@@ -517,7 +525,7 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 
 	//Handle Dicom File Store Process
 	currentDate := timeZone.GetTimeWithFormate("02-01-2006")
-	for i, file := range reqVal.DicomFiles {
+	for _, file := range reqVal.DicomFiles {
 		// Get the file extension
 		ext := filepath.Ext(file.FilesName)
 		if ext == "" {
@@ -530,13 +538,15 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 			side = "L"
 		}
 
+		dateBased := time.Now().Unix() / 86400
+
 		// Construct the new filename
 		newFilename := fmt.Sprintf("%s_%s_%s_%s_%d%s",
 			scanCenterCustId.RefSCCustId,
 			strings.ToUpper(patientCustId),
 			currentDate,
 			side,
-			i+1,
+			dateBased,
 			ext,
 		)
 
@@ -574,20 +584,24 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 
 	}
 
-	//Updating the End Time For the Report History
-	ReportHistoryErr := tx.Exec(
-		query.CompleteReportHistorySQL,
-		timeZone.GetPacificTime(),
-		"technologistformfill",
-		"",
-		reqVal.AppointmentId,
-		idValue,
-		reqVal.PatientId,
-	).Error
-	if ReportHistoryErr != nil {
-		log.Printf("ERROR: Failed to Update Report History: %v\n", ReportHistoryErr)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again"
+	if len(ChecktheListCount) == 0 {
+
+		//Updating the End Time For the Report History
+		ReportHistoryErr := tx.Exec(
+			query.CompleteReportHistorySQL,
+			timeZone.GetPacificTime(),
+			"technologistformfill",
+			"",
+			reqVal.AppointmentId,
+			idValue,
+			reqVal.PatientId,
+		).Error
+		if ReportHistoryErr != nil {
+			log.Printf("ERROR: Failed to Update Report History: %v\n", ReportHistoryErr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again"
+		}
+
 	}
 
 	if err := tx.Commit().Error; err != nil {
@@ -611,4 +625,57 @@ func ViewDicomService(db *gorm.DB, reqVal model.ViewTechnicianIntakeFormReq, idV
 	}
 
 	return DicomModel
+}
+
+func DeleteDicomService(db *gorm.DB, reqVal model.DeleteDicomReq) (bool, string) {
+
+	log := logger.InitLogger()
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
+		return false, "Something went wrong, Try Again"
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("ERROR: Recovered from panic, rolling back transaction:", r)
+			tx.Rollback()
+		}
+	}()
+
+	var DicomFiles []model.DicomFileModel
+	DicomErr := db.Raw(query.GetListDicomSQL, reqVal.DFId).Scan(&DicomFiles).Error
+	if DicomErr != nil {
+		log.Printf("ERROR: Failed to fetch scan centers: %v", DicomErr)
+		return false, "Something went wrong, Try Again"
+	}
+
+	DeleteDicomErr := tx.Exec(
+		query.DeleteDicomFileSQL,
+		reqVal.DFId,
+	).Error
+	if DeleteDicomErr != nil {
+		log.Error(DeleteDicomErr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	uploadPath := "./Assets/Dicom/"
+
+	for _, data := range DicomFiles {
+		filePath := filepath.Join(uploadPath, data.FileName)
+		if err := os.Remove(filePath); err != nil {
+			log.Error("File deletion failed:", err)
+			return false, "Something went wrong, Try Again"
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	return true, "Successfully Deleted"
 }

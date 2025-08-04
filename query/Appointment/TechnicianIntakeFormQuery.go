@@ -110,3 +110,19 @@ WHERE
   AND "refAppointmentId" = ?
   AND "refRHHandledUserId" = ?
 `
+
+var GetListDicomSQL = `
+SELECT
+  *
+FROM
+  dicom."refDicomFiles"
+WHERE
+  "refDFId" = ANY ($1)
+  `
+
+  var DeleteDicomFileSQL = `
+  DELETE FROM
+  dicom."refDicomFiles"
+WHERE
+  "refDFId" = ANY ($1)
+  `

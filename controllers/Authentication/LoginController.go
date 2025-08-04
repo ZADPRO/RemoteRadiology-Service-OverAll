@@ -77,6 +77,7 @@ func VerifyOTPController() gin.HandlerFunc {
 			response["RoleType"] = resVal.RoleType
 			response["PasswordStatus"] = resVal.PasswordStatus
 			response["ScancenterId"] = resVal.ScanCenterId
+			response["name"] = resVal.Name
 		}
 
 		c.JSON(http.StatusOK, gin.H{

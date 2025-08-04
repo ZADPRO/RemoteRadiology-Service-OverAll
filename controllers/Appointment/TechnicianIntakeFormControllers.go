@@ -353,6 +353,54 @@ func ViewDicomController() gin.HandlerFunc {
 	}
 }
 
+func DeleteDicomController() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idValue, idExists := c.Get("id")
+		roleIdValue, roleIdExists := c.Get("roleId")
+
+		if !idExists || !roleIdExists {
+			// Handle error: ID is missing from context (e.g., middleware didn't set it)
+			c.JSON(http.StatusUnauthorized, gin.H{ // Or StatusInternalServerError depending on why it's missing
+				"status":  false,
+				"message": "User ID, RoleID, Branch ID not found in request context.",
+			})
+			return
+		}
+
+		data, ok := helper.GetRequestBody[model.DeleteDicomReq](c, true)
+		if !ok {
+			return
+		}
+
+		// var reqVal model.AddIntakeFormReq
+
+		// if err := c.BindJSON(&reqVal); err != nil {
+		// 	c.JSON(http.StatusOK, gin.H{
+		// 		"status":  false,
+		// 		"message": "Something went wrong, Try Again " + err.Error(),
+		// 	})
+		// 	return
+		// }
+
+		dbConn, sqlDB := db.InitDB()
+		defer sqlDB.Close()
+
+		status, message := service.DeleteDicomService(dbConn, data)
+
+		payload := map[string]interface{}{
+			"status":  status,
+			"message": message,
+		}
+
+		token := accesstoken.CreateToken(idValue, roleIdValue)
+
+		c.JSON(http.StatusOK, gin.H{
+			"data":  hashapi.Encrypt(payload, true, token),
+			"token": token,
+		})
+	}
+}
+
 func DownloadDicomFileController() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get user ID and role from context (set by auth middleware)

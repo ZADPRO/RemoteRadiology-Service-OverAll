@@ -45,6 +45,10 @@ type GetCategoryIdModel struct {
 	CategoryId int `json:"refCategoryId" gorm:"column:refCategoryId"`
 }
 
+type DeleteDicomReq struct {
+	DFId []int `json:"refDFId" binding:"required" mapstructure:"refDFId"`
+}
+
 type DicomFileModel struct {
 	DFId          int       `gorm:"primaryKey;autoIncrement;column:refDFId"`
 	UserId        int       `gorm:"column:refUserId"`
