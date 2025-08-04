@@ -369,6 +369,7 @@ func PatchDoctorService(db *gorm.DB, reqVal model.UpdateDoctorReq, idValue int) 
 		hashdb.Encrypt(reqVal.DriversLicenseNo),
 		hashdb.Encrypt(reqVal.DigitalSignature),
 		hashdb.Encrypt(reqVal.Specialization),
+		reqVal.EaseQTReportAccess,
 		reqVal.ID,
 	).Error
 	if DoctorDomainerr != nil {

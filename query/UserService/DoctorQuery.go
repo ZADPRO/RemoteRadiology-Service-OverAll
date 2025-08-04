@@ -19,7 +19,8 @@ SET
   "refDDNPI" = ?,
   "refDDDrivingLicense" = ?,
   "refDDDigitalSignature" = ?,
-  "refDDSpecialization" = ?
+  "refDDSpecialization" = ?,
+  "refDDEaseQTReportAccess" = ?
 WHERE
   "refUserId" = ?
 `

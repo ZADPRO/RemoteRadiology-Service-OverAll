@@ -475,3 +475,30 @@ FROM
 WHERE
   "refAppointmentId" = $1
 `
+
+var UpdateMailStatusSQL = `UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentMailSendStatus" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var DoctorReportAccessSQL = `
+SELECT
+  "refDDEaseQTReportAccess"
+FROM
+  userdomain."refDoctorDomain"
+WHERE
+  "refUserId" = $1
+`
+
+var CoDoctorReportAccessSQL = `
+SELECT
+  "refCDEaseQTReportAccess"
+FROM
+  userdomain."refCoDoctorDomain"
+WHERE
+  "refUserId" = $1
+`
