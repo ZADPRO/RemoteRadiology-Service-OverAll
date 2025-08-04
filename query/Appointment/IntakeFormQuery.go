@@ -143,7 +143,7 @@ SELECT
 FROM
   notes."refReportsTextContent"
 WHERE
-  AND "refAppointmentId" = ANY ($1)
+  "refAppointmentId" = ANY ($1)
 `
 
 var GetAppointmentConsent = `
