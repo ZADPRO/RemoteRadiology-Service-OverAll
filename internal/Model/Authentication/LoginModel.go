@@ -25,6 +25,7 @@ type LoginResponse struct {
 	Email          string `json:"email"`
 	PasswordStatus bool   `json:"passwordStatus"`
 	ScanCenterId   int    `json:"scanCenterId"`
+	Name           string `json:"name"`
 }
 
 type ScanCenterStruct struct {

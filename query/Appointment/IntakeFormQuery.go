@@ -143,6 +143,5 @@ SELECT
 FROM
   notes."refReportsTextContent"
 WHERE
-  "refUserId" = ?
-  AND "refAppointmentId" = ?
+  AND "refAppointmentId" = ANY ($1)
 `
