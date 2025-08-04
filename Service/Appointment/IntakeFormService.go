@@ -448,3 +448,40 @@ func GetReportDataService(db *gorm.DB, reqVal model.GetViewReportReq) []model.Pa
 
 	return TextContentModel
 }
+
+func GetConsentDataService(db *gorm.DB, reqVal model.GetViewReportReq) []model.GetViewConsentResponse {
+	log := logger.InitLogger()
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
+		return []model.GetViewConsentResponse{}
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("ERROR: Recovered from panic, rolling back transaction:", r)
+			tx.Rollback()
+		}
+	}()
+
+	var TextContentModel []model.GetViewConsentResponse
+
+	err := db.Raw(query.GetAppointmentConsent, reqVal.AppointmentId).Scan(&TextContentModel).Error
+	if err != nil {
+		log.Printf("ERROR: Failed to fetch scan centers: %v", err)
+		return []model.GetViewConsentResponse{}
+	}
+
+	// for i, data := range TextContentModel {
+	// 	TextContentModel[i].RTCText = hashdb.Decrypt(data.RTCText)
+	// }
+
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+		tx.Rollback()
+		return []model.GetViewConsentResponse{}
+	}
+
+	return TextContentModel
+}

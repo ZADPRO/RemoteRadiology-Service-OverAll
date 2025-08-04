@@ -145,3 +145,12 @@ FROM
 WHERE
   AND "refAppointmentId" = ANY ($1)
 `
+
+var GetAppointmentConsent = `
+SELECT
+  *
+FROM
+  appointment."refAppointments"
+WHERE
+  "refAppointmentId" = ANY ($1)
+`
