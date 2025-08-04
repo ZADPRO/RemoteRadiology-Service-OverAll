@@ -19,7 +19,7 @@ func CreateToken(id any, roleId any) string {
 		"id":     id,
 		"roleId": roleId,
 		// "branchId": branchid,
-		"exp": time.Now().Add(20 * time.Minute).In(timeZone.MustGetPacificLocation()).Unix(), // expires after 'exp' duration
+		"exp": time.Now().Add(24 * time.Hour).In(timeZone.MustGetPacificLocation()).Unix(), // expires after 'exp' duration
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
