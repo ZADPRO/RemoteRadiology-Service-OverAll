@@ -538,7 +538,7 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 			side = "L"
 		}
 
-		dateBased := time.Now().Unix() / 86400
+		timestamp := time.Now().UnixMilli()
 
 		// Construct the new filename
 		newFilename := fmt.Sprintf("%s_%s_%s_%s_%d%s",
@@ -546,7 +546,7 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 			strings.ToUpper(patientCustId),
 			currentDate,
 			side,
-			dateBased,
+			timestamp,
 			ext,
 		)
 
