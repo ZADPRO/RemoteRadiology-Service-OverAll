@@ -336,3 +336,37 @@ func AssignUserService(db *gorm.DB, reqVal model.AssignUserReq, idValue int) (bo
 	return true, "Added Successfully!"
 
 }
+
+func ListMessagesService(db *gorm.DB, idValue int) []model.Notification {
+	log := logger.InitLogger()
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
+		return []model.Notification{}
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("ERROR: Recovered from panic, rolling back transaction:", r)
+			tx.Rollback()
+		}
+	}()
+
+	var Notification []model.Notification
+
+	NotificationErr := db.Raw(query.NotificationSQL, idValue).Scan(&Notification).Error
+	if NotificationErr != nil {
+		log.Error(NotificationErr)
+		return []model.Notification{}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+		tx.Rollback()
+		return []model.Notification{}
+	}
+
+	return Notification
+
+}
