@@ -112,23 +112,29 @@ type AnswerReqModel struct {
 }
 
 type SubmitReportReq struct {
-	ReportIntakeForm               []AnswerReqModel `json:"reportIntakeForm" binding:"required" mapstructure:"reportIntakeForm"`
-	TechnicianIntakeForm           []AnswerReqModel `json:"technicianIntakeForm" binding:"required" mapstructure:"technicianIntakeForm"`
-	PatientIntakeForm              []AnswerReqModel `json:"patientIntakeForm" binding:"required" mapstructure:"patientIntakeForm"`
-	ReportTextContent              string           `json:"reportTextContent" binding:"required" mapstructure:"reportTextContent"`
-	AppointmentId                  int              `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
-	PatientId                      int              `json:"patientId" binding:"required" mapstructure:"patientId"`
-	MovedStatus                    string           `json:"movedStatus" binding:"required" mapstructure:"movedStatus"`
-	CurrentStatus                  string           `json:"currentStatus" binding:"required" mapstructure:"currentStatus"`
-	SyncStatus                     bool             `json:"syncStatus" binding:"required" mapstructure:"syncStatus"`
-	EditStatus                     bool             `json:"editStatus" mapstructure:"editStatus"`
-	Impression                     string           `json:"impression" mapstructure:"impression"`
-	Recommendation                 string           `json:"recommendation" mapstructure:"recommendation"`
-	PatientMailStatus              bool             `json:"patientMailStatus" mapstructure:"patientMailStatus"`
-	ManagerMailStatus              bool             `json:"managerMailStatus" mapstructure:"managerMailStatus"`
-	ImpressionAddtional            string           `json:"impressionaddtional" mapstructure:"impressionaddtional"`
-	RecommendationAddtional        string           `json:"recommendationaddtional" mapstructure:"recommendationaddtional"`
-	CommonImpressionRecommendation string           `json:"commonImpressionRecommendation" mapstructure:"commonImpressionRecommendation"`
+	ReportIntakeForm                    []AnswerReqModel `json:"reportIntakeForm" binding:"required" mapstructure:"reportIntakeForm"`
+	TechnicianIntakeForm                []AnswerReqModel `json:"technicianIntakeForm" binding:"required" mapstructure:"technicianIntakeForm"`
+	PatientIntakeForm                   []AnswerReqModel `json:"patientIntakeForm" binding:"required" mapstructure:"patientIntakeForm"`
+	ReportTextContent                   string           `json:"reportTextContent" binding:"required" mapstructure:"reportTextContent"`
+	AppointmentId                       int              `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
+	PatientId                           int              `json:"patientId" binding:"required" mapstructure:"patientId"`
+	MovedStatus                         string           `json:"movedStatus" binding:"required" mapstructure:"movedStatus"`
+	CurrentStatus                       string           `json:"currentStatus" binding:"required" mapstructure:"currentStatus"`
+	SyncStatus                          bool             `json:"syncStatus" binding:"required" mapstructure:"syncStatus"`
+	EditStatus                          bool             `json:"editStatus" mapstructure:"editStatus"`
+	Impression                          string           `json:"impression" mapstructure:"impression"`
+	Recommendation                      string           `json:"recommendation" mapstructure:"recommendation"`
+	PatientMailStatus                   bool             `json:"patientMailStatus" mapstructure:"patientMailStatus"`
+	ManagerMailStatus                   bool             `json:"managerMailStatus" mapstructure:"managerMailStatus"`
+	ImpressionAddtional                 string           `json:"impressionaddtional" mapstructure:"impressionaddtional"`
+	RecommendationAddtional             string           `json:"recommendationaddtional" mapstructure:"recommendationaddtional"`
+	CommonImpressionRecommendation      string           `json:"commonImpressionRecommendation" mapstructure:"commonImpressionRecommendation"`
+	ImpressionRight                     string           `json:"impressionRight" mapstructure:"impressionRight"`
+	RecommendationRight                 string           `json:"recommendationRight" mapstructure:"recommendationRight"`
+	ImpressionAddtionalRight            string           `json:"impressionaddtionalRight" mapstructure:"impressionaddtionalRight"`
+	RecommendationAddtionalRight        string           `json:"recommendationaddtionalRight" mapstructure:"recommendationaddtionalRight"`
+	CommonImpressionRecommendationRight string           `json:"commonImpressionRecommendationRight" mapstructure:"commonImpressionRecommendationRight"`
+	ScanCenterProfileImg                *FileData        `json:"scancenterProfileImg" gorm:"-"`
 }
 
 type UpdateRemarkReq struct {
@@ -183,24 +189,29 @@ type ReportTextFormateModel struct {
 }
 
 type GetOneUserAppointmentModel struct {
-	AppointmentId                             int    `json:"refAppointmentId" gorm:"column:refAppointmentId"`
-	UserId                                    int    `json:"refUserId" gorm:"column:refUserId"`
-	SCId                                      int    `json:"refSCId" gorm:"column:refSCId"`
-	SCCustId                                  string `json:"refSCCustId" gorm:"column:refSCCustId"`
-	SCName                                    string `json:"refSCName" gorm:"column:refSCName"`
-	CategoryId                                int    `json:"refCategoryId" gorm:"column:refCategoryId"`
-	AppointmentDate                           string `json:"refAppointmentDate" gorm:"column:refAppointmentDate"`
-	AppointmentComplete                       string `json:"refAppointmentComplete" gorm:"column:refAppointmentComplete"`
-	AppointmentPriority                       string `json:"refAppointmentPriority" gorm:"column:refAppointmentPriority"`
-	AppointmentAccessId                       int    `json:"refAppointmentAccessId" gorm:"column:refAppointmentAccessId"`
-	AppointmentAccessStatus                   bool   `json:"refAppointmentAccessStatus" gorm:"column:refAppointmentAccessStatus"`
-	AppointmentAssignedUserId                 int    `json:"refAppointmentAssignedUserId" gorm:"column:refAppointmentAssignedUserId"`
-	AppointmentRemarks                        string `json:"refAppointmentRemarks" gorm:"column:refAppointmentRemarks"`
-	AppointmentImpression                     string `json:"refAppointmentImpression" gorm:"column:refAppointmentImpression"`
-	AppointmentRecommendation                 string `json:"refAppointmentRecommendation" gorm:"column:refAppointmentRecommendation"`
-	AppointmentImpressionAdditional           string `json:"refAppointmentImpressionAdditional" gorm:"column:refAppointmentImpressionAdditional"`
-	AppointmentRecommendationAdditional       string `json:"refAppointmentRecommendationAdditional" gorm:"column:refAppointmentRecommendationAdditional"`
-	AppointmentCommonImpressionRecommendation string `json:"refAppointmentCommonImpressionRecommendation" gorm:"column:refAppointmentCommonImpressionRecommendation"`
+	AppointmentId                                  int    `json:"refAppointmentId" gorm:"column:refAppointmentId"`
+	UserId                                         int    `json:"refUserId" gorm:"column:refUserId"`
+	SCId                                           int    `json:"refSCId" gorm:"column:refSCId"`
+	SCCustId                                       string `json:"refSCCustId" gorm:"column:refSCCustId"`
+	SCName                                         string `json:"refSCName" gorm:"column:refSCName"`
+	CategoryId                                     int    `json:"refCategoryId" gorm:"column:refCategoryId"`
+	AppointmentDate                                string `json:"refAppointmentDate" gorm:"column:refAppointmentDate"`
+	AppointmentComplete                            string `json:"refAppointmentComplete" gorm:"column:refAppointmentComplete"`
+	AppointmentPriority                            string `json:"refAppointmentPriority" gorm:"column:refAppointmentPriority"`
+	AppointmentAccessId                            int    `json:"refAppointmentAccessId" gorm:"column:refAppointmentAccessId"`
+	AppointmentAccessStatus                        bool   `json:"refAppointmentAccessStatus" gorm:"column:refAppointmentAccessStatus"`
+	AppointmentAssignedUserId                      int    `json:"refAppointmentAssignedUserId" gorm:"column:refAppointmentAssignedUserId"`
+	AppointmentRemarks                             string `json:"refAppointmentRemarks" gorm:"column:refAppointmentRemarks"`
+	AppointmentImpression                          string `json:"refAppointmentImpression" gorm:"column:refAppointmentImpression"`
+	AppointmentRecommendation                      string `json:"refAppointmentRecommendation" gorm:"column:refAppointmentRecommendation"`
+	AppointmentImpressionAdditional                string `json:"refAppointmentImpressionAdditional" gorm:"column:refAppointmentImpressionAdditional"`
+	AppointmentRecommendationAdditional            string `json:"refAppointmentRecommendationAdditional" gorm:"column:refAppointmentRecommendationAdditional"`
+	AppointmentCommonImpressionRecommendation      string `json:"refAppointmentCommonImpressionRecommendation" gorm:"column:refAppointmentCommonImpressionRecommendation"`
+	AppointmentImpressionRight                     string `json:"refAppointmentImpressionRight" gorm:"column:refAppointmentImpressionRight"`
+	AppointmentRecommendationRight                 string `json:"refAppointmentRecommendationRight" gorm:"column:refAppointmentRecommendationRight"`
+	AppointmentImpressionAdditionalRight           string `json:"refAppointmentImpressionAdditionalRight" gorm:"column:refAppointmentImpressionAdditionalRight"`
+	AppointmentRecommendationAdditionalRight       string `json:"refAppointmentRecommendationAdditionalRight" gorm:"column:refAppointmentRecommendationAdditionalRight"`
+	AppointmentCommonImpressionRecommendationRight string `json:"refAppointmentCommonImpressionRecommendationRight" gorm:"column:refAppointmentCommonImpressionRecommendationRight"`
 }
 
 type PatientCustId struct {

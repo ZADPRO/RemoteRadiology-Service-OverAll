@@ -324,6 +324,8 @@ func UpdateIntakeFormService(db *gorm.DB, reqVal model.UpdateIntakeFormReq, idVa
 			return false, "Something went wrong, Try Again"
 		}
 
+		fmt.Println("Updateing the Category Data", string(ChangesDataJSON))
+
 		categoryUpdate := tx.Exec(
 			query.UpdateCategoryId,
 			reqVal.CategoryId,
@@ -337,7 +339,6 @@ func UpdateIntakeFormService(db *gorm.DB, reqVal model.UpdateIntakeFormReq, idVa
 	}
 
 	for _, answer := range reqVal.Answers {
-
 		PrevData := model.GetViewIntakeData{}
 		errPrev := tx.Raw(query.GetIntakeDataSQL, answer.ITFId).Scan(&PrevData).Error
 		if errPrev != nil {
@@ -369,16 +370,17 @@ func UpdateIntakeFormService(db *gorm.DB, reqVal model.UpdateIntakeFormReq, idVa
 
 			transData := 24
 
-			errTrans := tx.Exec(query.InsertTransactionDataSQL, int(transData), int(reqVal.UserId), int(idValue), hashdb.Encrypt(string(ChangesDataJSON))).Error
+			errTrans := tx.Exec(query.InsertTransactionDataSQL, int(transData), int(reqVal.UserId), int(idValue), string(ChangesDataJSON)).Error
 			if errTrans != nil {
 				log.Printf("ERROR: Failed to Transaction History: %v\n", errTrans)
 				tx.Rollback()
 				return false, "Something went wrong, Try Again"
 			}
 
+			fmt.Println("Updateing the Intake Data", string(ChangesDataJSON))
 			updatedIntakeErr := tx.Exec(
 				query.UpdateIntakeDataSQL,
-				answer.Answer,
+				hashdb.Encrypt(answer.Answer),
 				idValue,
 				timeZone.GetPacificTime(),
 				answer.VerifiedTechnician,
@@ -405,6 +407,12 @@ func UpdateIntakeFormService(db *gorm.DB, reqVal model.UpdateIntakeFormReq, idVa
 	errreportStatus := db.Create(&reportStatus).Error
 	if errreportStatus != nil {
 		log.Error("errreportStatus INSERT ERROR at Trnasaction: " + errreportStatus.Error())
+		return false, "Something went wrong, Try Again"
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+		tx.Rollback()
 		return false, "Something went wrong, Try Again"
 	}
 

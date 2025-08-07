@@ -196,3 +196,12 @@ WHERE
 ORDER BY
   "refRTId"
 `
+
+var NotificationSQL = `
+SELECT
+  *
+FROM
+  notification."notification"
+WHERE
+  "refUserId" = $1
+`

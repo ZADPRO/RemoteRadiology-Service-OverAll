@@ -6,6 +6,7 @@ import (
 	logger "AuthenticationService/internal/Helper/Logger"
 	mailservice "AuthenticationService/internal/Helper/MailService"
 	timeZone "AuthenticationService/internal/Helper/TimeZone"
+	helperView "AuthenticationService/internal/Helper/ViewFile"
 	model "AuthenticationService/internal/Model/Appointment"
 	query "AuthenticationService/query/Appointment"
 	"encoding/json"
@@ -34,7 +35,7 @@ func CheckAccessService(db *gorm.DB, reqVal model.CheckAccessReq, idValue int) (
 	return result[0].Status, message, result[0].RefAppointmentAccessId, result[0].CustID
 }
 
-func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValue int, roleIdValue int) (bool, string, []model.GetViewIntakeData, []model.GetTechnicianIntakeData, []model.GetReportIntakeData, []model.GetReportTextContent, []model.GetReportHistory, []model.GetReportComments, []model.GetOneUserAppointmentModel, []model.ReportFormateModel, []model.GetUserDetails, []model.PatientCustId, bool) {
+func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValue int, roleIdValue int) (bool, string, []model.GetViewIntakeData, []model.GetTechnicianIntakeData, []model.GetReportIntakeData, []model.GetReportTextContent, []model.GetReportHistory, []model.GetReportComments, []model.GetOneUserAppointmentModel, []model.ReportFormateModel, []model.GetUserDetails, []model.PatientCustId, bool, *model.FileData, string) {
 	log := logger.InitLogger()
 
 	tx := db.Begin()
@@ -51,7 +52,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			[]model.ReportFormateModel{},
 			[]model.GetUserDetails{},
 			[]model.PatientCustId{},
-			false
+			false,
+			&model.FileData{},
+			""
 	}
 
 	defer func() {
@@ -133,7 +136,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						[]model.ReportFormateModel{},
 						[]model.GetUserDetails{},
 						[]model.PatientCustId{},
-						false
+						false,
+						&model.FileData{},
+						""
 				}
 
 				transData := 28
@@ -152,7 +157,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						[]model.ReportFormateModel{},
 						[]model.GetUserDetails{},
 						[]model.PatientCustId{},
-						false
+						false,
+						&model.FileData{},
+						""
 				}
 
 				categoryUpdate := tx.Exec(
@@ -176,7 +183,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						[]model.ReportFormateModel{},
 						[]model.GetUserDetails{},
 						[]model.PatientCustId{},
-						false
+						false,
+						&model.FileData{},
+						""
 				}
 
 				//List the Latest Report History
@@ -200,7 +209,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						[]model.ReportFormateModel{},
 						[]model.GetUserDetails{},
 						[]model.PatientCustId{},
-						false
+						false,
+						&model.FileData{},
+						""
 				}
 
 				if len(ReportHistory) > 0 {
@@ -226,7 +237,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 							[]model.ReportFormateModel{},
 							[]model.GetUserDetails{},
 							[]model.PatientCustId{},
-							false
+							false,
+							&model.FileData{},
+							""
 					}
 				}
 
@@ -248,7 +261,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 				[]model.ReportFormateModel{},
 				[]model.GetUserDetails{},
 				[]model.PatientCustId{},
-				false
+				false,
+				&model.FileData{},
+				""
 		}
 
 		var IntakeFormData []model.GetViewIntakeData
@@ -349,6 +364,29 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			ReportFormateList[i].RFName = hashdb.Decrypt(data.RFName)
 		}
 
+		//Scan Center Profile Img
+		var GetScanCenterImg []model.ScanCenterModel
+		GetScanCenterImgErr := db.Raw(query.ScanCenterSQL, Appointment[0].SCId).Scan(&GetScanCenterImg).Error
+		if GetScanCenterImgErr != nil {
+			log.Fatal(GetScanCenterImgErr)
+		}
+
+		var ScanCenterProfileImg *model.FileData
+
+		if len(GetScanCenterImg) > 0 {
+			viewedFile, viewErr := helperView.ViewFile("./Assets/Profile/" + hashdb.Decrypt(GetScanCenterImg[0].ProfileImg))
+			if viewErr != nil {
+				log.Fatalf("Failed to read ScanCenter profile image: %v", viewErr)
+			}
+
+			ScanCenterProfileImg = &model.FileData{
+				Base64Data:  viewedFile.Base64Data,
+				ContentType: viewedFile.ContentType,
+			}
+		} else {
+			ScanCenterProfileImg = &model.FileData{}
+		}
+
 		var EaseQTReportAccess = false
 
 		//Get the Ease QT Report Access Status
@@ -406,7 +444,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 
 		// }
 
-		return true, "Successfully Fetched", IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, OneUserAppointment, ReportFormateList, UserDetails, PatientUserDetails, EaseQTReportAccess
+		return true, "Successfully Fetched", IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, OneUserAppointment, ReportFormateList, UserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterProfileImg, hashdb.Decrypt(GetScanCenterImg[0].SCAddress)
 
 	} else {
 
@@ -424,7 +462,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 				[]model.ReportFormateModel{},
 				[]model.GetUserDetails{},
 				[]model.PatientCustId{},
-				false
+				false,
+				&model.FileData{},
+				""
 		}
 
 		return status, message,
@@ -438,7 +478,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			[]model.ReportFormateModel{},
 			[]model.GetUserDetails{},
 			[]model.PatientCustId{},
-			false
+			false,
+			&model.FileData{},
+			""
 	}
 
 }
@@ -1105,6 +1147,11 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 		reqVal.ImpressionAddtional,
 		reqVal.RecommendationAddtional,
 		reqVal.CommonImpressionRecommendation,
+		reqVal.ImpressionRight,
+		reqVal.RecommendationRight,
+		reqVal.ImpressionAddtionalRight,
+		reqVal.RecommendationAddtionalRight,
+		reqVal.CommonImpressionRecommendationRight,
 		reqVal.AppointmentId,
 		reqVal.PatientId,
 	).Error

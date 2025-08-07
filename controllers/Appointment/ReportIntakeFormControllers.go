@@ -74,7 +74,7 @@ func AssignGetReportController() gin.HandlerFunc {
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
 
-		status, message, IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, ReportAppointmentData, ReportFormateList, GetUserDetails, PatientUserDetails, EaseQTReportAccess := service.AssignGetReportService(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
+		status, message, IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, ReportAppointmentData, ReportFormateList, GetUserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterImg, ScancenterAddress := service.AssignGetReportService(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
 
 		payload := map[string]interface{}{
 			"status":                   status,
@@ -90,6 +90,8 @@ func AssignGetReportController() gin.HandlerFunc {
 			"userDeatils":              GetUserDetails,
 			"patientDetails":           PatientUserDetails,
 			"easeQTReportAccess":       EaseQTReportAccess,
+			"ScanCenterImg":            ScanCenterImg,
+			"ScancenterAddress":        ScancenterAddress,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)

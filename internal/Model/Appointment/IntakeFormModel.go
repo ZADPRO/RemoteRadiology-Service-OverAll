@@ -56,10 +56,10 @@ type VerifyIntakeFormReq struct {
 }
 
 type UpdateReqModel struct {
-	ITFId              int    `json:"ITFId" binding:"required" mapstructure:"ITFId"`
+	ITFId              int    `json:"refITFId" binding:"required" mapstructure:"refITFId"`
 	QuestionId         int    `json:"questionId" binding:"required" mapstructure:"questionId"`
 	Answer             string `json:"answer" binding:"required" mapstructure:"answer"`
-	VerifiedTechnician int    `json:"verifyTechnician" mapstructure:"verifyTechnician"`
+	VerifiedTechnician bool   `json:"verifyTechnician" mapstructure:"verifyTechnician"`
 }
 
 type UpdateIntakeFormReq struct {

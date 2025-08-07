@@ -304,7 +304,12 @@ SET
   "refAppointmentRecommendation" = ?,
   "refAppointmentImpressionAdditional" = ?,
   "refAppointmentRecommendationAdditional" = ?,
-  "refAppointmentCommonImpressionRecommendation" = ?
+  "refAppointmentCommonImpressionRecommendation" = ?,
+  "refAppointmentImpressionRight" = ?,
+  "refAppointmentRecommendationRight" = ?,
+  "refAppointmentImpressionAdditionalRight" = ?,
+  "refAppointmentRecommendationAdditionalRight" = ?,
+  "refAppointmentCommonImpressionRecommendationRight" = ?
 WHERE
   "refAppointmentId" = ?
   AND "refUserId" = ?
@@ -501,4 +506,13 @@ FROM
   userdomain."refCoDoctorDomain"
 WHERE
   "refUserId" = $1
+`
+
+var ScanCenterSQL = `
+SELECT
+  *
+FROM
+  public."ScanCenter"
+WHERE
+  "refSCId" = $1
 `

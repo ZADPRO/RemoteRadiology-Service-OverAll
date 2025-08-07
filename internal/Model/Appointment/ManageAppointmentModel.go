@@ -42,8 +42,10 @@ type RefTransHistory struct {
 }
 
 type ScanCenterModel struct {
-	SCId     int    `json:"refSCId" gorm:"column:refSCId"`
-	SCCustId string `json:"refSCCustId" gorm:"column:refSCCustId"`
+	SCId       int    `json:"refSCId" gorm:"column:refSCId"`
+	SCCustId   string `json:"refSCCustId" gorm:"column:refSCCustId"`
+	SCAddress  string `json:"refSCAddress" gorm:"column:refSCAddress"`
+	ProfileImg string `json:"refSCProfile" gorm:"column:refSCProfile"`
 }
 
 type ViewPatientHistoryModel struct {
@@ -96,6 +98,7 @@ type ViewTechnicianPatientQueueModel struct {
 	AssignedUserId            int                 `json:"refAppointmentAssignedUserId" gorm:"column:refAppointmentAssignedUserId"`
 	AppointmentComplete       string              `json:"refAppointmentComplete" gorm:"column:refAppointmentComplete"`
 	ScanCenterCustId          string              `json:"refSCCustId" gorm:"column:refSCCustId"`
+	SCAddress                 string              `json:"refSCAddress" gorm:"column:refSCAddress"`
 	ScanCenterId              string              `json:"refSCId" gorm:"column:refSCId"`
 	DicomFiles                DicomFileArray      `json:"dicomFiles" gorm:"column:dicomFiles"`
 	AppointmentMailSendStatus string              `json:"refAppointmentMailSendStatus" gorm:"column:refAppointmentMailSendStatus"`
@@ -150,4 +153,12 @@ type CorrectEditResponse struct {
 type GetCorrectEditModel struct {
 	RHHandleCorrect bool `json:"isHandleCorrect" gorm:"column:isHandleCorrect"`
 	RHHandleEdit    bool `json:"isHandleEdited" gorm:"column:isHandleEdited"`
+}
+
+type Notification struct {
+	RefNId        int    `json:"refNId" gorm:"column:refNId"`
+	RefUserId     int    `json:"refUserId" gorm:"column:refUserId"`
+	RefNMessage   string `json:"refNMessage" gorm:"column:refNMessage"`
+	RefNStatus    *bool  `json:"refNStatus" gorm:"column:refNStatus"`
+	RefNCreatedAt string `json:"refNCreatedAt" gorm:"column:refNCreatedAt"`
 }
