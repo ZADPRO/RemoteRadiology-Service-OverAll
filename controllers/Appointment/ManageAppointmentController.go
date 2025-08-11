@@ -49,7 +49,7 @@ func AddAppointmentController() gin.HandlerFunc {
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
 
-		status, message, SCId, AppointmentId, SCCustId := service.AddAppointmentService(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
+		status, message, AppointmentId, SCId, SCCustId := service.AddAppointmentService(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
 
 		payload := map[string]interface{}{
 			"status":        status,
