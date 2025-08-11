@@ -55,7 +55,7 @@ type UpdateScribeReq struct {
 	Pan                  string                            `json:"pan" binding:"required" mapstructure:"pan"`
 	Aadhar               string                            `json:"aadhar" binding:"required" mapstructure:"aadhar"`
 	DriversLicense       string                            `json:"drivers_license" binding:"required" mapstructure:"drivers_license"`
-	EducationCertificate []UpdateEducationCertificateFiles `json:"education_certificate" binding:"required" mapstructure:"cv_files"`
+	EducationCertificate []UpdateEducationCertificateFiles `json:"education_certificate" binding:"required" mapstructure:"education_certificate"`
 	Status               bool                              `json:"status" binding:"required" mapstructure:"status"`
 }
 

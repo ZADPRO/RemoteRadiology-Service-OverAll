@@ -9,6 +9,7 @@ import (
 	model "AuthenticationService/internal/Model/UserService"
 	query "AuthenticationService/query/UserService"
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"gorm.io/gorm"
@@ -319,10 +320,15 @@ func PatchManagerService(db *gorm.DB, reqVal model.UpdateManagerReq, idValue int
 		return false, "Something went wrong, Try Again"
 	}
 
+	fmt.Println("*********************", reqVal.EducationCertificate)
+
 	for _, file := range reqVal.EducationCertificate {
+
+		fmt.Println("**************************************", file.Status)
 
 		switch file.Status {
 		case "new":
+
 			oldData := map[string]interface{}{
 				"FileUpdated": "",
 				"UniqueFile":  "",

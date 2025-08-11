@@ -135,6 +135,7 @@ type SubmitReportReq struct {
 	RecommendationAddtionalRight        string           `json:"recommendationaddtionalRight" mapstructure:"recommendationaddtionalRight"`
 	CommonImpressionRecommendationRight string           `json:"commonImpressionRecommendationRight" mapstructure:"commonImpressionRecommendationRight"`
 	ScanCenterProfileImg                *FileData        `json:"scancenterProfileImg" gorm:"-"`
+	LeaveStatus                         bool             `json:"leaveStatus" mapstructure:"leaveStatus"`
 }
 
 type UpdateRemarkReq struct {

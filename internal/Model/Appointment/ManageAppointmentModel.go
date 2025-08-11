@@ -107,6 +107,7 @@ type ViewTechnicianPatientQueueModel struct {
 
 type StaffAvailableModel struct {
 	UserId     int    `json:"refUserId" gorm:"column:refUserId"`
+	RoleId     int    `json:"refRTId" gorm:"column:refRTId"`
 	UserCustId string `json:"refUserCustId" gorm:"column:refUserCustId"`
 	Username   string `json:"refUserFirstName" gorm:"column:refUserFirstName"`
 	SCId       int    `json:"refSCId" gorm:"column:refSCId"`

@@ -1125,7 +1125,6 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 			return status, message
 		}
 	}
-
 	//Updating the Report Text Content
 	status, message := AnswerTextContentService(tx, model.AnswerTextContentReq{
 		PatientId:     reqVal.PatientId,
@@ -1136,6 +1135,12 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 
 	if !status {
 		return status, message
+	}
+
+	var reportStatus = reqVal.CurrentStatus
+
+	if reqVal.LeaveStatus {
+		reportStatus = "Changes"
 	}
 
 	//Updating the Appointment Status
@@ -1165,7 +1170,7 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 	ReportStatustransData := 25
 	ReportStatusTransDataErr := model.RefTransHistory{
 		TransTypeId: ReportStatustransData,
-		THData:      "Report Finalized from " + reqVal.CurrentStatus,
+		THData:      "Report Finalized from " + reportStatus,
 		UserId:      reqVal.PatientId,
 		THActionBy:  idValue,
 	}
@@ -1210,7 +1215,7 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 	ReportHistoryErr := tx.Exec(
 		query.CompleteReportHistorySQL,
 		timeZone.GetPacificTime(),
-		reqVal.MovedStatus,
+		reportStatus,
 		hashdb.Encrypt(reqVal.ReportTextContent),
 		reqVal.AppointmentId,
 		idValue,
