@@ -127,7 +127,7 @@ UPDATE
   userdomain."refMalpractice"
 SET
   "refMPFileName" = ?,
-  rm."refMPOldFileName" = ?,
+  "refMPOldFileName" = ?,
   "refMPStatus" = ?
 WHERE
   "refMPId" = ?

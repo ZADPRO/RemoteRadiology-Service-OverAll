@@ -307,111 +307,6 @@ WHERE
 ;
 `
 
-// WITH impressions AS (
-//   SELECT '1' AS impression UNION ALL
-//   SELECT '1a' UNION ALL
-//   SELECT '2' UNION ALL
-//   SELECT '3' UNION ALL
-//   SELECT '3a' UNION ALL
-//   SELECT '3b' UNION ALL
-//   SELECT '3c' UNION ALL
-//   SELECT '3d' UNION ALL
-//   SELECT '3e' UNION ALL
-//   SELECT '3f' UNION ALL
-//   SELECT '3g' UNION ALL
-//   SELECT '4' UNION ALL
-//   SELECT '4a' UNION ALL
-//   SELECT '4b' UNION ALL
-//   SELECT '4c' UNION ALL
-//   SELECT '4d' UNION ALL
-//   SELECT '4e' UNION ALL
-//   SELECT '4f' UNION ALL
-//   SELECT '4g' UNION ALL
-//   SELECT '5' UNION ALL
-//   SELECT '6' UNION ALL
-//   SELECT '6a' UNION ALL
-//   SELECT '6b' UNION ALL
-//   SELECT '6c' UNION ALL
-//   SELECT '6d' UNION ALL
-//   SELECT '6e' UNION ALL
-//   SELECT '6f' UNION ALL
-//   SELECT '7a' UNION ALL
-//   SELECT '7b' UNION ALL
-//   SELECT '7c' UNION ALL
-//   SELECT '7d' UNION ALL
-//   SELECT '7e'
-// ),
-// actual_counts AS (
-//   SELECT
-//     ra."refAppointmentImpression" AS impression,
-//     COUNT(*) AS count
-//   FROM
-//     notes."refReportsHistory" rrh
-//     JOIN appointment."refAppointments" ra
-//       ON ra."refAppointmentId" = rrh."refAppointmentId"
-//   WHERE
-//     rrh."refRHHandledUserId" = ?
-//     AND TO_CHAR(ra."refAppointmentDate"::timestamp, 'YYYY-MM') = ?
-//   GROUP BY
-//     ra."refAppointmentImpression"
-// )
-// SELECT
-//   i.impression,
-//   COALESCE(a.count, 0) AS count
-// FROM
-//   impressions i
-//   LEFT JOIN actual_counts a ON i.impression = a.impression
-// ORDER BY
-//   i.impression;
-
-// var ImpressionNRecommentationScanCenterSQL = `
-// WITH
-//   latest_report_history AS (
-//     SELECT *
-//     FROM (
-//       SELECT *,
-//         ROW_NUMBER() OVER (
-//           PARTITION BY "refAppointmentId"
-//           ORDER BY "refRHId" DESC
-//         ) AS rn
-//       FROM notes."refReportsHistory"
-//     ) sub
-//     WHERE rn = 1
-//   ),
-//   actual_counts AS (
-//     SELECT
-//       ra."refAppointmentImpression" AS impression,
-//       COUNT(*) AS count
-//     FROM
-//       latest_report_history rrh
-//       JOIN appointment."refAppointments" ra
-//         ON ra."refAppointmentId" = rrh."refAppointmentId"
-//     WHERE
-//       TO_CHAR(ra."refAppointmentDate"::timestamp, 'YYYY-MM') = ?
-//       AND (
-//         ? = 0 OR ra."refSCId" = ?
-//       )
-//     GROUP BY
-//       ra."refAppointmentImpression"
-//   ),
-//   expected_impressions AS (
-//     SELECT unnest(ARRAY[
-//       '1','1a','2','3','3a','3b','3c','3d','3e','3f','3g',
-//       '4','4a','4b','4c','4d','4e','4f','4g',
-//       '5','6','6a','6b','6c','6d','6e','6f',
-//       '7a','7b','7c','7d','7e'
-//     ]) AS impression
-//   )
-// SELECT
-//   ei.impression,
-//   COALESCE(ac.count, 0) AS count
-// FROM
-//   expected_impressions ei
-//   LEFT JOIN actual_counts ac ON ei.impression = ac.impression
-// ORDER BY
-//   ei.impression;
-// `
-
 var ImpressionNRecommentationScanCenterSQL = `
 WITH
   latest_report_history AS (
@@ -445,10 +340,14 @@ WITH
   ),
   expected_impressions AS (
     SELECT unnest(ARRAY[
-      '1','1a','2','3','3a','3b','3c','3d','3e','3f','3g',
-      '4','4a','4b','4c','4d','4e','4f','4g',
-      '5','6','6a','6b','6c','6d','6e','6f',
-      '7a','7b','7c','7d','7e','10'
+      '1','1a',
+      '2','2a',
+      '3','3a','3b','3c','3d','3e','3f','3g',
+      '4','4a','4b','4c','4d','4e','4f','4g','4h','4i','4j','4k','4l','4m',
+      '5',
+      '6','6a','6b','6c','6d','6e','6f','6g',
+      '7a','7b','7c','7d','7e',
+      '10','10a'
     ]) AS impression
   )
 SELECT
@@ -460,89 +359,6 @@ FROM
 ORDER BY
   ei.impression;
 `
-
-// var ImpressionNRecommentationSQL = `
-// WITH
-//   latest_report_history AS (
-//     SELECT
-//       *
-//     FROM
-//       (
-//         SELECT
-//           *,
-//           ROW_NUMBER() OVER (
-//             PARTITION BY
-//               "refAppointmentId"
-//             ORDER BY
-//               "refRHId" DESC
-//           ) AS rn
-//         FROM
-//           notes."refReportsHistory"
-//         WHERE
-//           "refRHHandledUserId" = ?
-//       ) sub
-//     WHERE
-//       rn = 1
-//   ),
-//   actual_counts AS (
-//     SELECT
-//       ra."refAppointmentImpression" AS impression,
-//       COUNT(*) AS count
-//     FROM
-//       latest_report_history rrh
-//       JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
-//     WHERE
-//       TO_CHAR(ra."refAppointmentDate"::timestamp, 'YYYY-MM') = ?
-//     GROUP BY
-//       ra."refAppointmentImpression"
-//   ),
-//   expected_impressions AS (
-//     SELECT
-//       unnest(
-//         array[
-//           '1',
-//           '1a',
-//           '2',
-//           '3',
-//           '3a',
-//           '3b',
-//           '3c',
-//           '3d',
-//           '3e',
-//           '3f',
-//           '3g',
-//           '4',
-//           '4a',
-//           '4b',
-//           '4c',
-//           '4d',
-//           '4e',
-//           '4f',
-//           '4g',
-//           '5',
-//           '6',
-//           '6a',
-//           '6b',
-//           '6c',
-//           '6d',
-//           '6e',
-//           '6f',
-//           '7a',
-//           '7b',
-//           '7c',
-//           '7d',
-//           '7e'
-//         ]
-//       ) AS impression
-//   )
-// SELECT
-//   ei.impression,
-//   COALESCE(ac.count, 0) AS count
-// FROM
-//   expected_impressions ei
-//   LEFT JOIN actual_counts ac ON ei.impression = ac.impression;
-// `
-
 var ImpressionNRecommentationSQL = `
 WITH
   latest_report_history AS (
@@ -586,6 +402,7 @@ WITH
           '1',
           '1a',
           '2',
+          '2a',
           '3',
           '3a',
           '3b',
@@ -602,6 +419,12 @@ WITH
           '4e',
           '4f',
           '4g',
+          '4h',
+          '4i',
+          '4j',
+          '4k',
+          '4l',
+          '4m',
           '5',
           '6',
           '6a',
@@ -610,12 +433,14 @@ WITH
           '6d',
           '6e',
           '6f',
+          '6g',
           '7a',
           '7b',
           '7c',
           '7d',
           '7e',
-          '10'
+          '10',
+          '10a'
         ]
       ) AS impression
   )

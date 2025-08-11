@@ -13,13 +13,13 @@ import (
 	"gorm.io/gorm"
 )
 
-func AddAppointmentService(db *gorm.DB, reqVal model.AddAppointmentReq, idValue int) (bool, string) {
+func AddAppointmentService(db *gorm.DB, reqVal model.AddAppointmentReq, idValue int, roleIdValue int) (bool, string, int, int, string) {
 	log := logger.InitLogger()
 
 	tx := db.Begin()
 	if tx.Error != nil {
 		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
-		return false, "Something went wrong, Try Again"
+		return false, "Something went wrong, Try Again", 0, 0, ""
 	}
 
 	defer func() {
@@ -37,7 +37,7 @@ func AddAppointmentService(db *gorm.DB, reqVal model.AddAppointmentReq, idValue 
 	}
 
 	if len(FindScancenter) == 0 {
-		return false, "Invalid Scan Center Id"
+		return false, "Invalid Scan Center Id", 0, 0, ""
 	}
 
 	var TotalCount []model.TotalCountModel
@@ -46,11 +46,11 @@ func AddAppointmentService(db *gorm.DB, reqVal model.AddAppointmentReq, idValue 
 	err := db.Raw(query.VerifyAppointment, FindScancenter[0].SCId, reqVal.AppointmentDate, idValue).Scan(&TotalCount).Error
 	if err != nil {
 		log.Printf("ERROR: Failed to fetch User Total Count: %v", err)
-		return false, "Something went wrong, Try Again"
+		return false, "Something went wrong, Try Again", 0, 0, ""
 	}
 
 	if TotalCount[0].TotalCount > 0 {
-		return false, "Appointment Already Exists"
+		return false, "Appointment Already Exists", 0, 0, ""
 	}
 
 	Appointment := model.CreateAppointmentModel{
@@ -68,7 +68,7 @@ func AddAppointmentService(db *gorm.DB, reqVal model.AddAppointmentReq, idValue 
 	if Appointmenterr != nil {
 		log.Printf("ERROR: Failed to create Appointment: %v\n", Appointmenterr)
 		tx.Rollback()
-		return false, "Something went wrong, Try Again"
+		return false, "Something went wrong, Try Again", 0, 0, ""
 	}
 
 	history := model.RefTransHistory{
@@ -81,16 +81,16 @@ func AddAppointmentService(db *gorm.DB, reqVal model.AddAppointmentReq, idValue 
 	errhistory := db.Create(&history).Error
 	if errhistory != nil {
 		log.Error("LoginService INSERT ERROR at Trnasaction: " + errhistory.Error())
-		return false, "Something went wrong, Try Again"
+		return false, "Something went wrong, Try Again", 0, 0, ""
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
 		tx.Rollback()
-		return false, "Something went wrong, Try Again"
+		return false, "Something went wrong, Try Again", 0, 0, ""
 	}
 
-	return true, "Successfully Appointment Created"
+	return true, "Successfully Appointment Created", Appointment.AppointmentId, Appointment.SCId, reqVal.SCId
 }
 
 func ViewPatientHistoryService(db *gorm.DB, idValue int) []model.ViewPatientHistoryModel {
@@ -111,6 +111,7 @@ func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int, roleIdValue int
 	log := logger.InitLogger()
 
 	var StaffAvailable []model.StaffAvailableModel
+	var FinalStaffAvailable []model.StaffAvailableModel
 
 	var patientQueue []model.ViewTechnicianPatientQueueModel
 
@@ -211,7 +212,24 @@ func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int, roleIdValue int
 		for i, data := range StaffAvailable {
 			StaffAvailable[i].Username = hashdb.Decrypt(data.Username)
 		}
-		return patientQueue, StaffAvailable
+
+		if roleIdValue == 1 || roleIdValue == 10 {
+			FinalStaffAvailable = StaffAvailable
+		} else if roleIdValue == 2 || roleIdValue == 3 || roleIdValue == 5 || roleIdValue == 8 {
+			for _, data := range StaffAvailable {
+				if data.RoleId == 1 || data.RoleId == 10 || data.RoleId == 5 || data.RoleId == 8 {
+					FinalStaffAvailable = append(FinalStaffAvailable, data)
+				}
+			}
+		} else if roleIdValue == 6 || roleIdValue == 7 {
+			for _, data := range StaffAvailable {
+				if data.RoleId == 1 || data.RoleId == 10 || data.RoleId == 6 || data.RoleId == 7 {
+					FinalStaffAvailable = append(FinalStaffAvailable, data)
+				}
+			}
+		}
+
+		return patientQueue, FinalStaffAvailable
 	}
 
 }
