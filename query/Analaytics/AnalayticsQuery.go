@@ -109,6 +109,19 @@ ORDER BY
   "refUserId";
 `
 
+var ScanCenterUserListIdsSQL = `
+SELECT
+  *
+FROM
+  public."Users" u
+  JOIN map."refScanCenterMap" rscm ON rscm."refUserId" = u."refUserId"
+WHERE
+  u."refRTId" IN ? AND rscm."refSCId" = ?
+  ORDER BY
+  u."refRTId",
+  u."refUserId";
+`
+
 var WellGreenUserAnalayticsSQL = `
 WITH
   months AS (
