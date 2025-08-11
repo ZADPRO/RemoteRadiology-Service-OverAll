@@ -50,17 +50,20 @@ func AdminOverallOneAnalayticsService(db *gorm.DB, reqVal model.AdminOverallOneA
 	switch roleIdValue {
 	case 3:
 		userListIds = []int{2, 5, 8}
+		//List the All the User List with the Above Choosen User RoleIds
+		var UserListIdsDataerr = db.Raw(query.ScanCenterUserListIdsSQL, userListIds, reqVal.SCId).Scan(&response.UserListIdsData).Error
+		if UserListIdsDataerr != nil {
+			log.Fatal(UserListIdsDataerr.Error())
+			return model.AdminOverallAnalyticsResponse{}
+		}
 	case 1, 9:
 		userListIds = []int{1, 2, 5, 6, 7, 8, 10}
-	default:
-		userListIds = []int{} // or keep as is since it's initialized empty
-	}
-
-	//List the All the User List with the Above Choosen User RoleIds
-	var UserListIdsDataerr = db.Raw(query.UserListIdsSQL, userListIds).Scan(&response.UserListIdsData).Error
-	if UserListIdsDataerr != nil {
-		log.Fatal(UserListIdsDataerr.Error())
-		return model.AdminOverallAnalyticsResponse{}
+		//List the All the User List with the Above Choosen User RoleIds
+		var UserListIdsDataerr = db.Raw(query.UserListIdsSQL, userListIds).Scan(&response.UserListIdsData).Error
+		if UserListIdsDataerr != nil {
+			log.Fatal(UserListIdsDataerr.Error())
+			return model.AdminOverallAnalyticsResponse{}
+		}
 	}
 
 	//Impression and Recommentation

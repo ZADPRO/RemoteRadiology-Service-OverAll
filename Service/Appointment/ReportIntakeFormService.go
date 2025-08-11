@@ -1310,6 +1310,10 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 			return false, "Something went wrong, Try Again"
 		}
 
+		for i, data := range PatientdataModel {
+			PatientdataModel[i].UserFirstName = hashdb.Decrypt(data.UserFirstName)
+		}
+
 		htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, PatientdataModel[0].SCCustId)
 
 		subject := "Your Report Status"
@@ -1579,6 +1583,10 @@ func SendMailReportService(db *gorm.DB, reqVal model.SendMailReportReq) (bool, s
 	if err != nil {
 		log.Printf("ERROR: Failed to fetch scan centers: %v", err)
 		return false, "Something went wrong, Try Again"
+	}
+
+	for i, data := range PatientdataModel {
+		PatientdataModel[i].UserFirstName = hashdb.Decrypt(data.UserFirstName)
 	}
 
 	if reqVal.PatientMailStatus {
