@@ -4,6 +4,7 @@ import (
 	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
 	timeZone "AuthenticationService/internal/Helper/TimeZone"
+	helper "AuthenticationService/internal/Helper/ViewFile"
 	model "AuthenticationService/internal/Model/Analaytics"
 	query "AuthenticationService/query/Analaytics"
 
@@ -215,6 +216,7 @@ func GenerateInvoiceDataService(db *gorm.DB, reqVal model.GenerateInvoiceReq, id
 		timeZone.GetPacificTime(),
 		idValue,
 		reqVal.ToAddress,
+		reqVal.Signature,
 	).Error
 	if InsertInvoiceErr != nil {
 		log.Fatal(InsertInvoiceErr)
@@ -261,6 +263,24 @@ func GetInvoiceHistoryService(db *gorm.DB, reqVal model.GetInvoiceHistoryReq, id
 	if InvoiceHistoryErr != nil {
 		log.Fatal(InvoiceHistoryErr)
 		return []model.InvoiceHistory{}, []model.TakenDate{}
+	}
+
+	for i, data := range invoiceHistory {
+		if len(data.RefIHSignature) > 0 {
+			DriversLicenseNoImgHelperData, viewErr := helper.ViewFile("./Assets/Files/" + data.RefIHSignature)
+			if viewErr != nil {
+				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
+				log.Fatalf("Failed to read DrivingLicense file: %v", viewErr)
+			}
+			if DriversLicenseNoImgHelperData != nil {
+				invoiceHistory[i].RefIHSignatureFile = &model.FileData{
+					Base64Data:  DriversLicenseNoImgHelperData.Base64Data,
+					ContentType: DriversLicenseNoImgHelperData.ContentType,
+				}
+			}
+		} else {
+			invoiceHistory[i].RefIHSignatureFile = nil
+		}
 	}
 
 	//Already Taken Date

@@ -516,3 +516,12 @@ FROM
 WHERE
   "refSCId" = $1
 `
+
+var DownloadReportSQL = `
+SELECT
+  *
+FROM
+  notes."refIntakeForm"
+WHERE
+  "refITFId" = $1
+`

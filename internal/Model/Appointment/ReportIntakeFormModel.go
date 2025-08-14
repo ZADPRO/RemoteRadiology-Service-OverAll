@@ -250,3 +250,13 @@ type DoctorReportAccessStatus struct {
 type CoDoctorReportAccessStatus struct {
 	CDEaseQTReportAccess *bool `json:"refCDEaseQTReportAccess" gorm:"column:refCDEaseQTReportAccess"`
 }
+
+type AddAddendumReq struct {
+	AddAddendumText string `json:"addAddendumText" binding:"required" mapstructure:"addAddendumText"`
+	AppointmentId   int    `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
+	PatientId       int    `json:"patientId" binding:"required" mapstructure:"patientId"`
+}
+
+type DownloadReportReq struct {
+	Id int `json:"id" binding:"required" mapstructure:"id"`
+}

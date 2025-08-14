@@ -1645,3 +1645,132 @@ func SendMailReportService(db *gorm.DB, reqVal model.SendMailReportReq) (bool, s
 	return true, "Successfully Mail Sended !"
 
 }
+
+func DownloadReportService(db *gorm.DB, reqVal model.DownloadReportReq) model.GetViewIntakeData {
+	log := logger.InitLogger()
+
+	var PatientFile model.GetViewIntakeData
+
+	err := db.Raw(query.DownloadReportSQL, reqVal.Id).Scan(&PatientFile).Error
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if len(PatientFile.Answer) > 0 {
+		DriversLicenseNoImgHelperData, viewErr := helperView.ViewFile("./Assets/Files/" + hashdb.Decrypt(PatientFile.Answer))
+		if viewErr != nil {
+			// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
+			log.Fatalf("Failed to read DrivingLicense file: %v", viewErr)
+		}
+
+		// for i, data := range PatientFile {
+		PatientFile.File = &model.FileData{
+			Base64Data:  DriversLicenseNoImgHelperData.Base64Data,
+			ContentType: DriversLicenseNoImgHelperData.ContentType,
+		}
+	}
+
+	// }
+
+	return PatientFile
+}
+
+// func AddAddendumService(db *gorm.DB, reqVal model.AddAddendumReq) (bool, string) {
+// 	log := logger.InitLogger()
+
+// 	tx := db.Begin()
+// 	if tx.Error != nil {
+// 		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
+// 		return false, "Something went wrong, Try Again"
+// 	}
+
+// 	defer func() {
+// 		if r := recover(); r != nil {
+// 			log.Error("ERROR: Recovered from panic, rolling back transaction:", r)
+// 			tx.Rollback()
+// 		}
+// 	}()
+
+// 	//Update the Mail send Status in Appointment
+// 	UpdateMailStatusErr := tx.Exec(
+// 		query.UpdateMailStatusSQL,
+// 		"sended",
+// 		reqVal.AppointmentId,
+// 		reqVal.PatientId,
+// 	).Error
+// 	if UpdateMailStatusErr != nil {
+// 		log.Printf("ERROR: Failed to Update Mail Status: %v\n", UpdateMailStatusErr)
+// 		tx.Rollback()
+// 		return false, "Something went wrong, Try Again"
+// 	}
+
+// 	//Send Mail for the Patient
+
+// 	var PatientdataModel []model.Patientdata
+
+// 	err := db.Raw(query.GetPatientData, reqVal.PatientId, reqVal.AppointmentId).Scan(&PatientdataModel).Error
+// 	if err != nil {
+// 		log.Printf("ERROR: Failed to fetch scan centers: %v", err)
+// 		return false, "Something went wrong, Try Again"
+// 	}
+
+// 	for i, data := range PatientdataModel {
+// 		PatientdataModel[i].UserFirstName = hashdb.Decrypt(data.UserFirstName)
+// 	}
+
+// 	if reqVal.PatientMailStatus {
+
+// 		htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, PatientdataModel[0].SCCustId)
+
+// 		subject := "Your Report Status"
+
+// 		emailStatus := mailservice.MailService(PatientdataModel[0].Email, htmlContent, subject)
+
+// 		if !emailStatus {
+// 			log.Error("Sending Mail Meets Error")
+// 			return false, "Something went wrong, Try Again"
+// 		}
+// 	}
+
+// 	//Send Mail for the Scan Center Manager
+// 	if reqVal.ManagerMailStatus {
+// 		// var PatientdataModel []model.Patientdata
+
+// 		// err := db.Raw(query.GetPatientData, reqVal.PatientId, reqVal.AppointmentId).Scan(&PatientdataModel).Error
+// 		// if err != nil {
+// 		// 	log.Printf("ERROR: Failed to fetch scan centers: %v", err)
+// 		// 	return false, "Something went wrong, Try Again"
+// 		// }
+
+// 		var ManagerModel []model.ManagerData
+
+// 		Managererr := db.Raw(query.GetManagerData, 3, reqVal.AppointmentId).Scan(&ManagerModel).Error
+// 		if Managererr != nil {
+// 			log.Printf("ERROR: Failed to fetch scan centers: %v", Managererr)
+// 			return false, "Something went wrong, Try Again"
+// 		}
+
+// 		for _, data := range ManagerModel {
+// 			htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, data.SCCustId)
+
+// 			subject := "Your Report Status"
+
+// 			emailStatus := mailservice.MailService(data.Email, htmlContent, subject)
+
+// 			if !emailStatus {
+// 				log.Error("Sending Mail Meets Error")
+// 				return false, "Something went wrong, Try Again"
+// 			}
+// 		}
+
+// 	}
+
+// 	if err := tx.Commit().Error; err != nil {
+// 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+// 		tx.Rollback()
+// 		return false, "Something went wrong, Try Again"
+// 	}
+
+// 	return true, "Successfully Mail Sended !"
+
+// }
