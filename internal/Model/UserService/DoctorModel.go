@@ -34,12 +34,12 @@ type DoctorRegisterReq struct {
 	Email                       string                   `json:"email" binding:"required" mapstructure:"email"`
 	SocialSecurityNo            string                   `json:"social_security_no" binding:"required" mapstructure:"social_security_no"`
 	DriversLicenseNo            string                   `json:"drivers_license" mapstructure:"drivers_license"`
-	Specialization              string                   `json:"Specialization" binding:"required" mapstructure:"Specialization"`
-	NPI                         string                   `json:"npi" binding:"required" mapstructure:"npi"`
+	Specialization              string                   `json:"Specialization" mapstructure:"Specialization"`
+	NPI                         string                   `json:"npi" mapstructure:"npi"`
 	MedicalLicenseSecurity      []MedicalLicenseSecurity `json:"medical_license_security" binding:"required" mapstructure:"medical_license_security"`
 	LicenseFiles                []LicenseFiles           `json:"license_files" binding:"required" mapstructure:"license_files"`
-	MalpracticeInsuranceDetails []MalpracticeInsureance  `json:"malpracticeinsureance_files" binding:"required" mapstructure:"malpracticeinsureance_files"`
-	DigitalSignature            string                   `json:"digital_signature" binding:"required" mapstructure:"digital_signature"`
+	MalpracticeInsuranceDetails []MalpracticeInsureance  `json:"malpracticeinsureance_files" mapstructure:"malpracticeinsureance_files"`
+	DigitalSignature            string                   `json:"digital_signature" mapstructure:"digital_signature"`
 	ScanCenterId                int                      `json:"refSCId" binding:"required"  mapstructure:"refSCId"`
 }
 
@@ -128,12 +128,12 @@ type UpdateDoctorReq struct {
 	Email                       string                              `json:"email" binding:"required" mapstructure:"email"`
 	SocialSecurityNo            string                              `json:"social_security_no" binding:"required" mapstructure:"social_security_no"`
 	DriversLicenseNo            string                              `json:"drivers_license" mapstructure:"drivers_license"`
-	Specialization              string                              `json:"Specialization" binding:"required" mapstructure:"Specialization"`
-	NPI                         string                              `json:"npi" binding:"required" mapstructure:"npi"`
+	Specialization              string                              `json:"Specialization" mapstructure:"Specialization"`
+	NPI                         string                              `json:"npi" mapstructure:"npi"`
 	MedicalLicenseSecurity      []UpdateMedicalLicenseSecurityModel `json:"medical_license_security" binding:"required" mapstructure:"medical_license_security"`
 	LicenseFiles                []UpdateLicenseFiles                `json:"license_files" binding:"required" mapstructure:"license_files"`
-	MalpracticeInsuranceDetails []UpdateMalpracticeInsureanceFiles  `json:"malpracticeinsureance_files" binding:"required" mapstructure:"malpracticeinsureance_files"`
-	DigitalSignature            string                              `json:"digital_signature" binding:"required" mapstructure:"digital_signature"`
+	MalpracticeInsuranceDetails []UpdateMalpracticeInsureanceFiles  `json:"malpracticeinsureance_files" mapstructure:"malpracticeinsureance_files"`
+	DigitalSignature            string                              `json:"digital_signature" mapstructure:"digital_signature"`
 	EaseQTReportAccess          bool                                `json:"easeQTReportAccess" binding:"required" mapstructure:"easeQTReportAccess"`
 	Status                      bool                                `json:"status" binding:"required" mapstructure:"status"`
 }

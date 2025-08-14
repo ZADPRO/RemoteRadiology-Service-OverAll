@@ -104,10 +104,12 @@ INSERT INTO
     "refIHTotal",
     "refIHCreatedAt",
     "refIHCreatedBy",
-    "refIHToAddress"
+    "refIHToAddress",
+    "refIHSignature"
   )
 VALUES
   (
+    ?,
     ?,
     ?,
     ?,
