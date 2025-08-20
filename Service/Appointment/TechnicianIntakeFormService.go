@@ -260,6 +260,8 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 		query.UpdateTechnicianAppointmentStatus,
 		"reportformfill",
 		reqVal.Priority,
+		reqVal.ArtificatsLeft,
+		reqVal.ArtificatsRight,
 		reqVal.AppointmentId,
 	).Error
 	if UpdateAppointmentStatuserr != nil {

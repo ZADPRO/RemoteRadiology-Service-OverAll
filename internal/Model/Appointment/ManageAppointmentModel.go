@@ -48,6 +48,13 @@ type ScanCenterModel struct {
 	ProfileImg string `json:"refSCProfile" gorm:"column:refSCProfile"`
 }
 
+type GetAllUserDetailsModel struct {
+	User_Id          string `json:"User_Id" gorm:"column:User_Id"`
+	Assigned_Id      string `json:"Assigned_Id" gorm:"column:Assigned_Id"`
+	Patient_Id       string `json:"Patient_Id" gorm:"column:Patient_Id"`
+	Appointment_date string `json:"appointment_date" gorm:"column:appointment_date"`
+}
+
 type ViewPatientHistoryModel struct {
 	AppointmentId       int    `json:"refAppointmentId" gorm:"column:refAppointmentId"`
 	SCId                int    `json:"refSCId" gorm:"column:refSCId"`
@@ -103,8 +110,12 @@ type ViewTechnicianPatientQueueModel struct {
 	DicomFiles                DicomFileArray      `json:"dicomFiles" gorm:"column:dicomFiles"`
 	AppointmentMailSendStatus string              `json:"refAppointmentMailSendStatus" gorm:"column:refAppointmentMailSendStatus"`
 	GetCorrectEditModel       GetCorrectEditModel `json:"GetCorrectEditModel" gorm:"-"`
+	ReportStatus              string              `json:"reportStatus"  gorm:"-"`
 }
 
+type ReportUrgentStatusModel struct {
+	ReportStatus string `json:"reportStatus" gorm:"column:refTITFAnswer"`
+}
 type StaffAvailableModel struct {
 	UserId     int    `json:"refUserId" gorm:"column:refUserId"`
 	RoleId     int    `json:"refRTId" gorm:"column:refRTId"`

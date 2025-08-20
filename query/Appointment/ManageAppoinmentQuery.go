@@ -165,6 +165,19 @@ WHERE
   "refUserId" = ?
 `
 
+var GetAllUserDetailsSQL = `
+SELECT 
+    uu."refUserCustId" AS "User_Id", 
+    ua."refUserCustId" AS "Assigned_Id",
+    up."refUserCustId" AS "Patient_Id",
+	ra."refAppointmentDate" AS "appointment_date"
+FROM public."Users" uu 
+JOIN public."Users" ua ON ua."refUserId" = $1
+FULL JOIN public."Users" up ON up."refUserId" = $2
+FULL JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = $3
+WHERE uu."refUserId" = $4
+`
+
 var UpdateAssignUser = `
 UPDATE
   appointment."refAppointments"
@@ -172,6 +185,12 @@ SET
   "refAppointmentAssignedUserId" = ?
 WHERE
   "refAppointmentId" = ?
+`
+
+var InsertNotificationSQL = `
+INSERT INTO notification.refnotification(
+	"refUserId", "refNMessage", "refAppointmentId", "refNAssignedBy", "refNCreatedAt", "refNReadStatus", "refNstatus")
+	VALUES ( $1, $2, $3, $4, $5, $6, $7);
 `
 
 var CorrectEditStatusSQL = `
@@ -205,3 +224,13 @@ FROM
 WHERE
   "refUserId" = $1
 `
+
+var GetReportStatusSQL = `
+SELECT
+  *
+FROM
+  notes."refTechnicianIntakeForm"
+WHERE
+  "refAppointmentId" = $1
+  AND "refTITFQId" = 1
+  `

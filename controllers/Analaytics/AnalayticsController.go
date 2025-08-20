@@ -49,6 +49,8 @@ func AdminOverallOneAnalayticsController() gin.HandlerFunc {
 			"AllScaCenter":                        Value.GetAllScaCenter,
 			"UserListIds":                         Value.UserListIdsData,
 			"ImpressionModel":                     Value.ImpressionModel,
+			"TechArtificate":                      Value.TechArtificats,
+			"ReportArtificate":                    Value.ReportArtificats,
 		}
 
 		//Create a tokens
@@ -101,6 +103,8 @@ func OneUserController() gin.HandlerFunc {
 			"TotalCorrectEdit":                    Value.TotalCorrectEdit,
 			"ImpressionModel":                     Value.ImpressionModel,
 			"DurationBucketModel":                 Value.DurationBucketModel,
+			"TechArtificate":                      Value.TechArtificats,
+			"ReportArtificate":                    Value.ReportArtificats,
 		}
 
 		//Create a tokens

@@ -134,6 +134,18 @@ func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int, roleIdValue int
 		for i, data := range patientQueue {
 			patientQueue[i].Username = hashdb.Decrypt(data.Username)
 
+			var ReportUrgentStatus []model.ReportUrgentStatusModel
+
+			GetReportUregentStatuserr := db.Raw(query.GetReportStatusSQL, data.AppointmentId).Scan(&ReportUrgentStatus).Error
+			if GetReportUregentStatuserr != nil {
+				log.Printf("ERROR: Failed to Get Report Status: %v", GetReportUregentStatuserr)
+				return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
+			}
+
+			if len(ReportUrgentStatus) > 0 {
+				patientQueue[i].ReportStatus = hashdb.Decrypt(ReportUrgentStatus[0].ReportStatus)
+			}
+
 			// var dicom []model.GetDicomFile
 			// log.Printf("Fetching Dicom for AppointmentId=%d, UserId=%d", data.AppointmentId, data.UserId)
 
@@ -185,6 +197,18 @@ func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int, roleIdValue int
 
 		for i, data := range patientQueue {
 			patientQueue[i].Username = hashdb.Decrypt(data.Username)
+
+			var ReportUrgentStatus []model.ReportUrgentStatusModel
+
+			GetReportUregentStatuserr := db.Raw(query.GetReportStatusSQL, data.AppointmentId).Scan(&ReportUrgentStatus).Error
+			if GetReportUregentStatuserr != nil {
+				log.Printf("ERROR: Failed to Get Report Status: %v", GetReportUregentStatuserr)
+				return []model.ViewTechnicianPatientQueueModel{}, []model.StaffAvailableModel{}
+			}
+
+			if len(ReportUrgentStatus) > 0 {
+				patientQueue[i].ReportStatus = hashdb.Decrypt(ReportUrgentStatus[0].ReportStatus)
+			}
 
 			// var dicom []model.GetDicomFile
 			// log.Printf("Fetching Dicom for AppointmentId=%d, UserId=%d", data.AppointmentId, data.UserId)
@@ -338,7 +362,21 @@ func AssignUserService(db *gorm.DB, reqVal model.AssignUserReq, idValue int) (bo
 		}
 	}()
 
-	fmt.Println(reqVal.AssingUserId, reqVal.AppointmentId)
+	var GetUserDetails model.GetAllUserDetailsModel
+
+	// fmt.Println(reqVal.AssingUserId, reqVal.AppointmentId)
+	GetUserDeatilsErr := tx.Raw(
+		query.GetAllUserDetailsSQL,
+		reqVal.AssingUserId,
+		reqVal.PatientId,
+		reqVal.AppointmentId,
+		idValue,
+	).Scan(&GetUserDetails).Error
+	if GetUserDeatilsErr != nil {
+		log.Printf("ERROR: Failed to update assign user: %v\n", GetUserDeatilsErr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
 
 	//Updating the Assigning User
 	errExec := tx.Exec(
@@ -348,6 +386,29 @@ func AssignUserService(db *gorm.DB, reqVal model.AssignUserReq, idValue int) (bo
 	).Error
 	if errExec != nil {
 		log.Printf("ERROR: Failed to update assign user: %v\n", errExec)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	message := fmt.Sprintf(
+		"A report has been assigned to you by %s. The patient ID is %s, and the appointment is scheduled for %s.",
+		GetUserDetails.User_Id,
+		GetUserDetails.Patient_Id,
+		GetUserDetails.Appointment_date,
+	)
+
+	notificationExec := tx.Exec(
+		query.InsertNotificationSQL,
+		reqVal.AssingUserId,
+		message,
+		reqVal.AppointmentId,
+		idValue,
+		timeZone.GetPacificTime(),
+		false,
+		true,
+	).Error
+	if notificationExec != nil {
+		log.Printf("ERROR: Failed to update assign user: %v\n", notificationExec)
 		tx.Rollback()
 		return false, "Something went wrong, Try Again"
 	}

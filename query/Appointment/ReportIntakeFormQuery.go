@@ -293,6 +293,38 @@ VALUES
   (?, ?, ?, ?);
 `
 
+var AutoCompleteReportAppointmentSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentImpression" = ?,
+  "refAppointmentRecommendation" = ?,
+  "refAppointmentImpressionAdditional" = ?,
+  "refAppointmentRecommendationAdditional" = ?,
+  "refAppointmentCommonImpressionRecommendation" = ?,
+  "refAppointmentImpressionRight" = ?,
+  "refAppointmentRecommendationRight" = ?,
+  "refAppointmentImpressionAdditionalRight" = ?,
+  "refAppointmentRecommendationAdditionalRight" = ?,
+  "refAppointmentCommonImpressionRecommendationRight" = ?,
+  "refAppointmentReportArtifactsLeft" = ?,
+  "refAppointmentReportArtifactsRight" = ?,
+  "refAppointmentPatietHistory" = ?,
+  "refAppointmentBreastImplantImageText" = ?,
+  "refAppointmentSymmetryImageText" = ?,
+  "refAppointmentBreastdensityImageText" = ?,
+  "refAppointmentNippleAreolaImageText" = ?,
+  "refAppointmentGlandularImageText" = ?,
+  "refAppointmentLymphnodeImageText" = ?,
+  "refAppointmentBreastdensityImageTextLeft" = ?,
+  "refAppointmentNippleAreolaImageTextLeft" = ?,
+  "refAppointmentGlandularImageTextLeft" = ?,
+  "refAppointmentLymphnodeImageTextLeft" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
 var CompleteReportAppointmentSQL = `
 UPDATE
   appointment."refAppointments"
@@ -309,7 +341,20 @@ SET
   "refAppointmentRecommendationRight" = ?,
   "refAppointmentImpressionAdditionalRight" = ?,
   "refAppointmentRecommendationAdditionalRight" = ?,
-  "refAppointmentCommonImpressionRecommendationRight" = ?
+  "refAppointmentCommonImpressionRecommendationRight" = ?,
+  "refAppointmentReportArtifactsLeft" = ?,
+  "refAppointmentReportArtifactsRight" = ?,
+  "refAppointmentPatietHistory" = ?,
+  "refAppointmentBreastImplantImageText" = ?,
+  "refAppointmentSymmetryImageText" = ?,
+  "refAppointmentBreastdensityImageText" = ?,
+  "refAppointmentNippleAreolaImageText" = ?,
+  "refAppointmentGlandularImageText" = ?,
+  "refAppointmentLymphnodeImageText" = ?,
+  "refAppointmentBreastdensityImageTextLeft" = ?,
+  "refAppointmentNippleAreolaImageTextLeft" = ?,
+  "refAppointmentGlandularImageTextLeft" = ?,
+  "refAppointmentLymphnodeImageTextLeft" = ?
 WHERE
   "refAppointmentId" = ?
   AND "refUserId" = ?
@@ -524,4 +569,21 @@ FROM
   notes."refIntakeForm"
 WHERE
   "refITFId" = $1
+`
+
+var InsertAddedumSQL = `
+INSERT INTO notes."refAddendum"(
+	"refAppointmentId", "refUserId", "refADText", "refADCreatedAt")
+	VALUES ($1, $2, $3, $4);
+`
+
+var ListAddendumSQL = `
+SELECT
+  ra.*,
+  u."refUserCustId"
+FROM
+  notes."refAddendum" ra
+  JOIN public."Users" u ON u."refUserId" = ra."refUserId"
+WHERE
+  ra."refAppointmentId" = $1
 `

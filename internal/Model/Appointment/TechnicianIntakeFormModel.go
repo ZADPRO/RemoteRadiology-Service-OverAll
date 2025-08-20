@@ -25,6 +25,8 @@ type AddTechnicianIntakeFormReq struct {
 	CategoryId        int                     `json:"categoryId" mapstructure:"categoryId"`
 	AppointmentId     int                     `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
 	Priority          string                  `json:"priority" binding:"required" mapstructure:"priority"`
+	ArtificatsLeft    bool                    `json:"artificatsLeft" mapstructure:"artificatsLeft"`
+	ArtificatsRight   bool                    `json:"artificatsRight" mapstructure:"artificatsRight"`
 	UpdatedAnswers    []UpdateAnswersReqModel `json:"updatedAnswers" binding:"required" mapstructure:"updatedAnswers"`
 	TechnicianAnswers []AnswersReqModel       `json:"technicianAnswers" binding:"required" mapstructure:"technicianAnswers"`
 	// DicomFiles        []DicomFile             `json:"dicom_files" binding:"required" mapstructure:"dicom_files"`

@@ -563,3 +563,77 @@ FROM
       AND rrh."refRHHandleEndTime" IS NOT NULL
   ) AS subquery;
 `
+
+var TechArtificatsAll = `
+SELECT
+    COUNT(CASE WHEN ra."refAppointmentTechArtifactsLeft" = TRUE 
+                AND ra."refAppointmentTechArtifactsRight" = FALSE THEN 1 END) AS leftartifacts,
+    COUNT(CASE WHEN ra."refAppointmentTechArtifactsLeft" = FALSE 
+                AND ra."refAppointmentTechArtifactsRight" = TRUE THEN 1 END) AS rightartifacts,
+    COUNT(CASE WHEN ra."refAppointmentTechArtifactsLeft" = TRUE 
+                AND ra."refAppointmentTechArtifactsRight" = TRUE THEN 1 END) AS bothartifacts
+FROM
+    appointment."refAppointments" ra
+WHERE
+    ($1 = 0 OR ra."refSCId" = $1) AND
+    ra."refAppointmentDate" >= $2 AND
+    ra."refAppointmentDate" <= $3;
+`
+
+var ReportArtificatsAll = `
+SELECT
+    COUNT(CASE WHEN ra."refAppointmentReportArtifactsLeft" = TRUE 
+                AND ra."refAppointmentReportArtifactsRight" = FALSE THEN 1 END) AS leftartifacts,
+    COUNT(CASE WHEN ra."refAppointmentReportArtifactsLeft" = FALSE 
+                AND ra."refAppointmentReportArtifactsRight" = TRUE THEN 1 END) AS rightartifacts,
+    COUNT(CASE WHEN ra."refAppointmentReportArtifactsLeft" = TRUE 
+                AND ra."refAppointmentReportArtifactsRight" = TRUE THEN 1 END) AS bothartifacts
+FROM
+    appointment."refAppointments" ra
+WHERE
+    ($1 = 0 OR ra."refSCId" = $1) AND
+    ra."refAppointmentDate" >= $2 AND
+    ra."refAppointmentDate" <= $3;
+`
+
+var TechArtificats = `
+SELECT
+   COUNT(CASE WHEN ra."refAppointmentTechArtifactsLeft" = TRUE 
+                AND ra."refAppointmentTechArtifactsRight" = FALSE THEN 1 END) AS leftartifacts,
+    COUNT(CASE WHEN ra."refAppointmentTechArtifactsLeft" = FALSE 
+                AND ra."refAppointmentTechArtifactsRight" = TRUE THEN 1 END) AS rightartifacts,
+    COUNT(CASE WHEN ra."refAppointmentTechArtifactsLeft" = TRUE 
+                AND ra."refAppointmentTechArtifactsRight" = TRUE THEN 1 END) AS bothartifacts
+FROM (
+    SELECT DISTINCT rrh."refAppointmentId"
+    FROM notes."refReportsHistory" rrh
+    WHERE rrh."refRHHandledUserId" = $1
+	  AND rrh."refRHHandleStartTime" >= $2
+    AND rrh."refRHHandleStartTime" <= $3
+    AND rrh."refRHHandleStartTime" IS NOT NULL
+    AND rrh."refRHHandleEndTime" IS NOT NULL
+) uniq
+JOIN appointment."refAppointments" ra 
+  ON ra."refAppointmentId" = uniq."refAppointmentId";
+`
+
+var ReportArtificats = `
+SELECT
+   COUNT(CASE WHEN ra."refAppointmentReportArtifactsLeft" = TRUE 
+                AND ra."refAppointmentReportArtifactsRight" = FALSE THEN 1 END) AS leftartifacts,
+    COUNT(CASE WHEN ra."refAppointmentReportArtifactsLeft" = FALSE 
+                AND ra."refAppointmentReportArtifactsRight" = TRUE THEN 1 END) AS rightartifacts,
+    COUNT(CASE WHEN ra."refAppointmentReportArtifactsLeft" = TRUE 
+                AND ra."refAppointmentReportArtifactsRight" = TRUE THEN 1 END) AS bothartifacts
+FROM (
+    SELECT DISTINCT rrh."refAppointmentId"
+    FROM notes."refReportsHistory" rrh
+    WHERE rrh."refRHHandledUserId" = $1
+	  AND rrh."refRHHandleStartTime" >= $2
+    AND rrh."refRHHandleStartTime" <= $3
+    AND rrh."refRHHandleStartTime" IS NOT NULL
+    AND rrh."refRHHandleEndTime" IS NOT NULL
+) uniq
+JOIN appointment."refAppointments" ra 
+  ON ra."refAppointmentId" = uniq."refAppointmentId";
+`

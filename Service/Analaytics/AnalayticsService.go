@@ -73,6 +73,20 @@ func AdminOverallOneAnalayticsService(db *gorm.DB, reqVal model.AdminOverallOneA
 		return model.AdminOverallAnalyticsResponse{}
 	}
 
+	//Tech Artificates
+	TechArtificatsErr := db.Raw(query.TechArtificatsAll, reqVal.SCId, reqVal.StartDate, reqVal.EndDate).Scan(&response.TechArtificats).Error
+	if TechArtificatsErr != nil {
+		log.Fatal(TechArtificatsErr.Error())
+		return model.AdminOverallAnalyticsResponse{}
+	}
+
+	//Report Artificates
+	ReportArtificatsErr := db.Raw(query.ReportArtificatsAll, reqVal.SCId, reqVal.StartDate, reqVal.EndDate).Scan(&response.ReportArtificats).Error
+	if ReportArtificatsErr != nil {
+		log.Fatal(ReportArtificatsErr.Error())
+		return model.AdminOverallAnalyticsResponse{}
+	}
+
 	return response
 }
 
@@ -134,6 +148,20 @@ func UserAnalaytics(db *gorm.DB, reqVal model.OneUserReq, UserId int, roleIdValu
 	TotalTATErr := db.Raw(query.TotalTATSQL, reqVal.StartDate, reqVal.EndDate, UserId).Scan(&response.DurationBucketModel).Error
 	if TotalTATErr != nil {
 		log.Fatal(TotalTATErr.Error())
+		return model.OneUserReponse{}
+	}
+
+	//Tech Artificates
+	TechArtificatsErr := db.Raw(query.TechArtificats, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.TechArtificats).Error
+	if TechArtificatsErr != nil {
+		log.Fatal(TechArtificatsErr.Error())
+		return model.OneUserReponse{}
+	}
+
+	//Report Artificates
+	ReportArtificatsErr := db.Raw(query.ReportArtificats, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.ReportArtificats).Error
+	if ReportArtificatsErr != nil {
+		log.Fatal(ReportArtificatsErr.Error())
 		return model.OneUserReponse{}
 	}
 

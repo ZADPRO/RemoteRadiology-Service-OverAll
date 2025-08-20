@@ -74,7 +74,7 @@ func AssignGetReportController() gin.HandlerFunc {
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
 
-		status, message, IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, ReportAppointmentData, ReportFormateList, GetUserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterImg, ScancenterAddress := service.AssignGetReportService(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
+		status, message, IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, ReportAppointmentData, ReportFormateList, GetUserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterImg, ScancenterAddress, Addendum := service.AssignGetReportService(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
 
 		payload := map[string]interface{}{
 			"status":                   status,
@@ -92,6 +92,7 @@ func AssignGetReportController() gin.HandlerFunc {
 			"easeQTReportAccess":       EaseQTReportAccess,
 			"ScanCenterImg":            ScanCenterImg,
 			"ScancenterAddress":        ScancenterAddress,
+			"Addendum":                 Addendum,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)
@@ -320,6 +321,48 @@ func CompleteReportController() gin.HandlerFunc {
 		payload := map[string]interface{}{
 			"status":  status,
 			"message": message,
+		}
+
+		token := accesstoken.CreateToken(idValue, roleIdValue)
+
+		c.JSON(http.StatusOK, gin.H{
+			"data":  hashapi.Encrypt(payload, true, token),
+			"token": token,
+		})
+	}
+}
+
+func AutosaveController() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idValue, idExists := c.Get("id")
+		roleIdValue, roleIdExists := c.Get("roleId")
+
+		if !idExists || !roleIdExists {
+			// Handle error: ID is missing from context (e.g., middleware didn't set it)
+			c.JSON(http.StatusUnauthorized, gin.H{ // Or StatusInternalServerError depending on why it's missing
+				"status":  false,
+				"message": "User ID, RoleID, Branch ID not found in request context.",
+			})
+			return
+		}
+
+		data, ok := helper.GetRequestBody[model.AutoSubmitReportReq](c, true)
+		if !ok {
+			return
+		}
+
+		dbConn, sqlDB := db.InitDB()
+		defer sqlDB.Close()
+
+		status, message, ReportIntake, TextContent, AppointmentDetails, EaseQTReportAccess := service.AutosaveServicee(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
+
+		payload := map[string]interface{}{
+			"status":                status,
+			"message":               message,
+			"reportIntakeFormData":  ReportIntake,
+			"reportTextContentData": TextContent,
+			"appointmentStatus":     AppointmentDetails,
+			"easeQTReportAccess":    EaseQTReportAccess,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)
@@ -598,40 +641,41 @@ func DownloadReportService() gin.HandlerFunc {
 	}
 }
 
-// func AddAddendumController() gin.HandlerFunc {
-// 	return func(c *gin.Context) {
-// 		idValue, idExists := c.Get("id")
-// 		roleIdValue, roleIdExists := c.Get("roleId")
+func AddAddendumController() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idValue, idExists := c.Get("id")
+		roleIdValue, roleIdExists := c.Get("roleId")
 
-// 		if !idExists || !roleIdExists {
-// 			// Handle error: ID is missing from context (e.g., middleware didn't set it)
-// 			c.JSON(http.StatusUnauthorized, gin.H{ // Or StatusInternalServerError depending on why it's missing
-// 				"status":  false,
-// 				"message": "User ID, RoleID, Branch ID not found in request context.",
-// 			})
-// 			return
-// 		}
+		if !idExists || !roleIdExists {
+			// Handle error: ID is missing from context (e.g., middleware didn't set it)
+			c.JSON(http.StatusUnauthorized, gin.H{ // Or StatusInternalServerError depending on why it's missing
+				"status":  false,
+				"message": "User ID, RoleID, Branch ID not found in request context.",
+			})
+			return
+		}
 
-// 		data, ok := helper.GetRequestBody[model.AddAddendumReq](c, true)
-// 		if !ok {
-// 			return
-// 		}
+		data, ok := helper.GetRequestBody[model.AddAddendumReq](c, true)
+		if !ok {
+			return
+		}
 
-// 		dbConn, sqlDB := db.InitDB()
-// 		defer sqlDB.Close()
+		dbConn, sqlDB := db.InitDB()
+		defer sqlDB.Close()
 
-// 		status, message := service.AddAddendumService(dbConn, data)
+		status, message, resVal := service.AddAddendumService(dbConn, data, int(idValue.(float64)))
 
-// 		payload := map[string]interface{}{
-// 			"status":  status,
-// 			"message": message,
-// 		}
+		payload := map[string]interface{}{
+			"status":  status,
+			"message": message,
+			"data":    resVal,
+		}
 
-// 		token := accesstoken.CreateToken(idValue, roleIdValue)
+		token := accesstoken.CreateToken(idValue, roleIdValue)
 
-// 		c.JSON(http.StatusOK, gin.H{
-// 			"data":  hashapi.Encrypt(payload, true, token),
-// 			"token": token,
-// 		})
-// 	}
-// }
+		c.JSON(http.StatusOK, gin.H{
+			"data":  hashapi.Encrypt(payload, true, token),
+			"token": token,
+		})
+	}
+}

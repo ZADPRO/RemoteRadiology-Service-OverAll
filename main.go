@@ -194,6 +194,12 @@ func main() {
 	routesAppointment.InitManageAppointmentRoutes(r)
 
 	fmt.Println()
+	fmt.Println("=================Notification=================")
+	fmt.Println()
+
+	routesAppointment.InitNotificationRoutes(r)
+
+	fmt.Println()
 	fmt.Println("=================Intake Form=================")
 	fmt.Println()
 

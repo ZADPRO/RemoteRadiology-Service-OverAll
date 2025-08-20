@@ -75,7 +75,9 @@ UPDATE
   appointment."refAppointments"
 SET
   "refAppointmentComplete" = ?,
-  "refAppointmentPriority" = ?
+  "refAppointmentPriority" = ?,
+  "refAppointmentTechArtifactsLeft" = ?,
+  "refAppointmentTechArtifactsRight" = ?
 WHERE
   "refAppointmentId" = ?
 `
