@@ -113,8 +113,6 @@ type AnswerReqModel struct {
 
 type SubmitReportReq struct {
 	ReportIntakeForm                    []AnswerReqModel `json:"reportIntakeForm" binding:"required" mapstructure:"reportIntakeForm"`
-	TechnicianIntakeForm                []AnswerReqModel `json:"technicianIntakeForm" binding:"required" mapstructure:"technicianIntakeForm"`
-	PatientIntakeForm                   []AnswerReqModel `json:"patientIntakeForm" binding:"required" mapstructure:"patientIntakeForm"`
 	ReportTextContent                   string           `json:"reportTextContent" binding:"required" mapstructure:"reportTextContent"`
 	AppointmentId                       int              `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
 	PatientId                           int              `json:"patientId" binding:"required" mapstructure:"patientId"`
@@ -136,6 +134,50 @@ type SubmitReportReq struct {
 	CommonImpressionRecommendationRight string           `json:"commonImpressionRecommendationRight" mapstructure:"commonImpressionRecommendationRight"`
 	ScanCenterProfileImg                *FileData        `json:"scancenterProfileImg" gorm:"-"`
 	LeaveStatus                         bool             `json:"leaveStatus" mapstructure:"leaveStatus"`
+	ArtificatsLeft                      bool             `json:"artificatsLeft" mapstructure:"artificatsLeft"`
+	ArtificatsRight                     bool             `json:"artificatsRight" mapstructure:"artificatsRight"`
+	PatientHistory                      string           `json:"patienthistory" mapstructure:"patienthistory"`
+	BreastImplantsImagetext             string           `json:"breastimplantImageText" mapstructure:"breastimplantImageText"`
+	SymmetryImageText                   string           `json:"symmetryImageText" mapstructure:"symmetryImageText"`
+	BreastdensityImageText              string           `json:"breastdensityImageText" mapstructure:"breastdensityImageText"`
+	NippleAreolaImageText               string           `json:"nippleareolaImageText" mapstructure:"nippleareolaImageText"`
+	GlandularImageText                  string           `json:"glandularImageText" mapstructure:"glandularImageText"`
+	LymphnodesImageText                 string           `json:"lymphnodesImageText" mapstructure:"lymphnodesImageText"`
+	BreastdensityImageTextLeft          string           `json:"breastdensityImageTextLeft" mapstructure:"breastdensityImageTextLeft"`
+	NippleAreolaImageTextLeft           string           `json:"nippleareolaImageTextLeft" mapstructure:"nippleareolaImageTextLeft"`
+	GlandularImageTextLeft              string           `json:"glandularImageTextLeft" mapstructure:"glandularImageTextLeft"`
+	LymphnodesImageTextLeft             string           `json:"lymphnodesImageTextLeft" mapstructure:"lymphnodesImageTextLeft"`
+}
+
+type AutoSubmitReportReq struct {
+	ReportIntakeForm                    []AnswerReqModel `json:"reportIntakeForm" binding:"required" mapstructure:"reportIntakeForm"`
+	ReportTextContent                   string           `json:"reportTextContent" binding:"required" mapstructure:"reportTextContent"`
+	AppointmentId                       int              `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
+	PatientId                           int              `json:"patientId" binding:"required" mapstructure:"patientId"`
+	SyncStatus                          bool             `json:"syncStatus" binding:"required" mapstructure:"syncStatus"`
+	Impression                          string           `json:"impression" mapstructure:"impression"`
+	Recommendation                      string           `json:"recommendation" mapstructure:"recommendation"`
+	ImpressionAddtional                 string           `json:"impressionaddtional" mapstructure:"impressionaddtional"`
+	RecommendationAddtional             string           `json:"recommendationaddtional" mapstructure:"recommendationaddtional"`
+	CommonImpressionRecommendation      string           `json:"commonImpressionRecommendation" mapstructure:"commonImpressionRecommendation"`
+	ImpressionRight                     string           `json:"impressionRight" mapstructure:"impressionRight"`
+	RecommendationRight                 string           `json:"recommendationRight" mapstructure:"recommendationRight"`
+	ImpressionAddtionalRight            string           `json:"impressionaddtionalRight" mapstructure:"impressionaddtionalRight"`
+	RecommendationAddtionalRight        string           `json:"recommendationaddtionalRight" mapstructure:"recommendationaddtionalRight"`
+	CommonImpressionRecommendationRight string           `json:"commonImpressionRecommendationRight" mapstructure:"commonImpressionRecommendationRight"`
+	ArtificatsLeft                      bool             `json:"artificatsLeft" mapstructure:"artificatsLeft"`
+	ArtificatsRight                     bool             `json:"artificatsRight" mapstructure:"artificatsRight"`
+	PatientHistory                      string           `json:"patienthistory" mapstructure:"patienthistory"`
+	BreastImplantsImagetext             string           `json:"breastimplantImageText" mapstructure:"breastimplantImageText"`
+	SymmetryImageText                   string           `json:"symmetryImageText" mapstructure:"symmetryImageText"`
+	BreastdensityImageText              string           `json:"breastdensityImageText" mapstructure:"breastdensityImageText"`
+	NippleAreolaImageText               string           `json:"nippleareolaImageText" mapstructure:"nippleareolaImageText"`
+	GlandularImageText                  string           `json:"glandularImageText" mapstructure:"glandularImageText"`
+	LymphnodesImageText                 string           `json:"lymphnodesImageText" mapstructure:"lymphnodesImageText"`
+	BreastdensityImageTextLeft          string           `json:"breastdensityImageTextLeft" mapstructure:"breastdensityImageTextLeft"`
+	NippleAreolaImageTextLeft           string           `json:"nippleareolaImageTextLeft" mapstructure:"nippleareolaImageTextLeft"`
+	GlandularImageTextLeft              string           `json:"glandularImageTextLeft" mapstructure:"glandularImageTextLeft"`
+	LymphnodesImageTextLeft             string           `json:"lymphnodesImageTextLeft" mapstructure:"lymphnodesImageTextLeft"`
 }
 
 type UpdateRemarkReq struct {
@@ -213,6 +255,17 @@ type GetOneUserAppointmentModel struct {
 	AppointmentImpressionAdditionalRight           string `json:"refAppointmentImpressionAdditionalRight" gorm:"column:refAppointmentImpressionAdditionalRight"`
 	AppointmentRecommendationAdditionalRight       string `json:"refAppointmentRecommendationAdditionalRight" gorm:"column:refAppointmentRecommendationAdditionalRight"`
 	AppointmentCommonImpressionRecommendationRight string `json:"refAppointmentCommonImpressionRecommendationRight" gorm:"column:refAppointmentCommonImpressionRecommendationRight"`
+	AppointmentPatientHistory                      string `json:"refAppointmentPatietHistory" gorm:"column:refAppointmentPatietHistory"`
+	AppointmentBreastImplantImageText              string `json:"refAppointmentBreastImplantImageText" gorm:"column:refAppointmentBreastImplantImageText"`
+	AppointmentSymmetryImageText                   string `json:"refAppointmentSymmetryImageText" gorm:"column:refAppointmentSymmetryImageText"`
+	AppointmentBreastdensityImageText              string `json:"refAppointmentBreastdensityImageText" gorm:"column:refAppointmentBreastdensityImageText"`
+	AppointmentNippleAreolaImageText               string `json:"refAppointmentNippleAreolaImageText" gorm:"column:refAppointmentNippleAreolaImageText"`
+	AppointmentGlandularImageText                  string `json:"refAppointmentGlandularImageText" gorm:"column:refAppointmentGlandularImageText"`
+	AppointmentLymphnodeImageText                  string `json:"refAppointmentLymphnodeImageText" gorm:"column:refAppointmentLymphnodeImageText"`
+	AppointmentBreastdensityImageTextLeft          string `json:"refAppointmentBreastdensityImageTextLeft" gorm:"column:refAppointmentBreastdensityImageTextLeft"`
+	AppointmentNippleAreolaImageTextLeft           string `json:"refAppointmentNippleAreolaImageTextLeft" gorm:"column:refAppointmentNippleAreolaImageTextLeft"`
+	AppointmentGlandularImageTextLeft              string `json:"refAppointmentGlandularImageTextLeft" gorm:"column:refAppointmentGlandularImageTextLeft"`
+	AppointmentLymphnodeImageTextLeft              string `json:"refAppointmentLymphnodeImageTextLeft" gorm:"column:refAppointmentLymphnodeImageTextLeft"`
 }
 
 type PatientCustId struct {
@@ -254,7 +307,15 @@ type CoDoctorReportAccessStatus struct {
 type AddAddendumReq struct {
 	AddAddendumText string `json:"addAddendumText" binding:"required" mapstructure:"addAddendumText"`
 	AppointmentId   int    `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
-	PatientId       int    `json:"patientId" binding:"required" mapstructure:"patientId"`
+}
+
+type AddAddendumModel struct {
+	ADID          int    `json:"refADID" gorm:"column:refADID"`
+	AppointmentId string `json:"refAppointmentId" gorm:"column:refAppointmentId"`
+	UserId        int    `json:"refUserId" gorm:"column:refUserId"`
+	CustId        string `json:"refUserCustId" gorm:"column:refUserCustId"`
+	ADText        string `json:"refADText" gorm:"column:refADText"`
+	ADCreatedAt   string `json:"refADCreatedAt" gorm:"column:refADCreatedAt"`
 }
 
 type DownloadReportReq struct {

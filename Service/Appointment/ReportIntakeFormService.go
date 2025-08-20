@@ -35,7 +35,7 @@ func CheckAccessService(db *gorm.DB, reqVal model.CheckAccessReq, idValue int) (
 	return result[0].Status, message, result[0].RefAppointmentAccessId, result[0].CustID
 }
 
-func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValue int, roleIdValue int) (bool, string, []model.GetViewIntakeData, []model.GetTechnicianIntakeData, []model.GetReportIntakeData, []model.GetReportTextContent, []model.GetReportHistory, []model.GetReportComments, []model.GetOneUserAppointmentModel, []model.ReportFormateModel, []model.GetUserDetails, []model.PatientCustId, bool, *model.FileData, string) {
+func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValue int, roleIdValue int) (bool, string, []model.GetViewIntakeData, []model.GetTechnicianIntakeData, []model.GetReportIntakeData, []model.GetReportTextContent, []model.GetReportHistory, []model.GetReportComments, []model.GetOneUserAppointmentModel, []model.ReportFormateModel, []model.GetUserDetails, []model.PatientCustId, bool, *model.FileData, string, []model.AddAddendumModel) {
 	log := logger.InitLogger()
 
 	tx := db.Begin()
@@ -54,7 +54,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			[]model.PatientCustId{},
 			false,
 			&model.FileData{},
-			""
+			"",
+			[]model.AddAddendumModel{}
 	}
 
 	defer func() {
@@ -138,7 +139,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						[]model.PatientCustId{},
 						false,
 						&model.FileData{},
-						""
+						"",
+						[]model.AddAddendumModel{}
 				}
 
 				transData := 28
@@ -159,7 +161,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						[]model.PatientCustId{},
 						false,
 						&model.FileData{},
-						""
+						"",
+						[]model.AddAddendumModel{}
 				}
 
 				categoryUpdate := tx.Exec(
@@ -185,7 +188,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						[]model.PatientCustId{},
 						false,
 						&model.FileData{},
-						""
+						"",
+						[]model.AddAddendumModel{}
 				}
 
 				//List the Latest Report History
@@ -211,7 +215,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						[]model.PatientCustId{},
 						false,
 						&model.FileData{},
-						""
+						"",
+						[]model.AddAddendumModel{}
 				}
 
 				if len(ReportHistory) > 0 {
@@ -239,7 +244,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 							[]model.PatientCustId{},
 							false,
 							&model.FileData{},
-							""
+							"",
+							[]model.AddAddendumModel{}
 					}
 				}
 
@@ -263,7 +269,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 				[]model.PatientCustId{},
 				false,
 				&model.FileData{},
-				""
+				"",
+				[]model.AddAddendumModel{}
 		}
 
 		var IntakeFormData []model.GetViewIntakeData
@@ -444,7 +451,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 
 		// }
 
-		return true, "Successfully Fetched", IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, OneUserAppointment, ReportFormateList, UserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterProfileImg, hashdb.Decrypt(GetScanCenterImg[0].SCAddress)
+		return true, "Successfully Fetched", IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, OneUserAppointment, ReportFormateList, UserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterProfileImg, hashdb.Decrypt(GetScanCenterImg[0].SCAddress), ListAddendumService(db, reqVal.AppointmentId)
 
 	} else {
 
@@ -464,7 +471,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 				[]model.PatientCustId{},
 				false,
 				&model.FileData{},
-				""
+				"",
+				[]model.AddAddendumModel{}
 		}
 
 		return status, message,
@@ -480,7 +488,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			[]model.PatientCustId{},
 			false,
 			&model.FileData{},
-			""
+			"",
+			[]model.AddAddendumModel{}
 	}
 
 }
@@ -1068,6 +1077,181 @@ func CompleteReportService(db *gorm.DB, reqVal model.CompleteReportReq, idValue 
 	return true, "Successfully Changes Saved"
 }
 
+func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int, roleIdValue int) (bool, string, []model.GetReportIntakeData, []model.GetReportTextContent, []model.GetOneUserAppointmentModel, bool) {
+	log := logger.InitLogger()
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
+		return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("ERROR: Recovered from panic, rolling back transaction:", r)
+			tx.Rollback()
+		}
+	}()
+
+	//Inserting and Upadating the Report Intake Form
+	for _, data := range reqVal.ReportIntakeForm {
+		status, message := AnswerReportIntakeService(tx, model.AnswerReportIntakeReq{
+			PatientId:     reqVal.PatientId,
+			AppointmentId: reqVal.AppointmentId,
+			QuestionId:    data.QuestionId,
+			Answer:        data.Answer,
+		}, idValue)
+
+		if !status {
+			return status, message, []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Updating the Report Text Content
+	status, message := AnswerTextContentService(tx, model.AnswerTextContentReq{
+		PatientId:     reqVal.PatientId,
+		AppointmentId: reqVal.AppointmentId,
+		TextContent:   reqVal.ReportTextContent,
+		SyncStatus:    reqVal.SyncStatus,
+	}, idValue)
+
+	if !status {
+		return status, message, []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+	}
+
+	//Updating the Appointment Status
+	UpdateAppointementErr := tx.Exec(
+		query.AutoCompleteReportAppointmentSQL,
+		reqVal.Impression,
+		reqVal.Recommendation,
+		reqVal.ImpressionAddtional,
+		reqVal.RecommendationAddtional,
+		reqVal.CommonImpressionRecommendation,
+		reqVal.ImpressionRight,
+		reqVal.RecommendationRight,
+		reqVal.ImpressionAddtionalRight,
+		reqVal.RecommendationAddtionalRight,
+		reqVal.CommonImpressionRecommendationRight,
+		reqVal.ArtificatsLeft,
+		reqVal.ArtificatsRight,
+		reqVal.PatientHistory,
+		reqVal.BreastImplantsImagetext,
+		reqVal.SymmetryImageText,
+		reqVal.BreastdensityImageText,
+		reqVal.NippleAreolaImageText,
+		reqVal.GlandularImageText,
+		reqVal.LymphnodesImageText,
+		reqVal.BreastdensityImageTextLeft,
+		reqVal.NippleAreolaImageTextLeft,
+		reqVal.GlandularImageTextLeft,
+		reqVal.LymphnodesImageTextLeft,
+		reqVal.AppointmentId,
+		reqVal.PatientId,
+	).Error
+	if UpdateAppointementErr != nil {
+		log.Printf("ERROR: Failed to Update Appointement: %v\n", UpdateAppointementErr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+	}
+
+	//Report Intake Form Table
+	var ReportIntakeFormData []model.GetReportIntakeData
+	ReportIntakeFormDataerr := db.Raw(query.GetReportIntakeFormSQL, reqVal.AppointmentId).Scan(&ReportIntakeFormData).Error
+	if ReportIntakeFormDataerr != nil {
+		log.Fatal(ReportIntakeFormDataerr)
+	}
+
+	//Decrypt Report Intake Form Table
+	for i, data := range ReportIntakeFormData {
+		fmt.Println(hashdb.Decrypt(data.Answer))
+		ReportIntakeFormData[i].Answer = hashdb.Decrypt(data.Answer)
+	}
+
+	//Report Text Content Table
+	var ReportTextContentData []model.GetReportTextContent
+	ReportTextContentDataerr := db.Raw(query.GetReporttextContent, reqVal.AppointmentId).Scan(&ReportTextContentData).Error
+	if ReportTextContentDataerr != nil {
+		log.Fatal(ReportTextContentDataerr)
+	}
+
+	//Decrypt Report Text Content Table
+	for i, data := range ReportTextContentData {
+		ReportTextContentData[i].TextContent = hashdb.Decrypt(data.TextContent)
+	}
+
+	var OneUserAppointment []model.GetOneUserAppointmentModel
+	//Appointment Table
+	ViewAppointmentErr := db.Raw(query.GetOneUserAppointment, reqVal.PatientId, reqVal.AppointmentId).Scan(&OneUserAppointment).Error
+	if ViewAppointmentErr != nil {
+		log.Fatal(ViewAppointmentErr)
+	}
+
+	//Decrypt Appointment Table
+	for i, data := range OneUserAppointment {
+		OneUserAppointment[i].SCName = hashdb.Decrypt(data.SCName)
+	}
+
+	var EaseQTReportAccess = false
+
+	//Get the Ease QT Report Access Status
+	switch roleIdValue {
+	case 1: //Master Admin
+		EaseQTReportAccess = true
+	case 2: //Scan Center Technician
+		EaseQTReportAccess = false
+	case 3: //Scan Center Manager
+		EaseQTReportAccess = false
+	case 4: //Patient
+		EaseQTReportAccess = false
+	case 5: //Scan Center Doctor
+
+		var ReportStatus []model.DoctorReportAccessStatus
+		err := db.Raw(query.DoctorReportAccessSQL, idValue).Scan(&ReportStatus).Error
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if len(ReportStatus) == 0 || ReportStatus[0].DDEaseQTReportAccess == nil {
+			EaseQTReportAccess = false
+			break
+		}
+
+		EaseQTReportAccess = *ReportStatus[0].DDEaseQTReportAccess
+
+	case 6: //Junior Doctor
+		EaseQTReportAccess = true
+	case 7: //Scribe
+		EaseQTReportAccess = true
+	case 8: //Scan Center Reviewer
+		var ReportStatus []model.CoDoctorReportAccessStatus
+		err := db.Raw(query.CoDoctorReportAccessSQL, idValue).Scan(&ReportStatus).Error
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if len(ReportStatus) == 0 || ReportStatus[0].CDEaseQTReportAccess == nil {
+			EaseQTReportAccess = false
+			break
+		}
+
+		EaseQTReportAccess = *ReportStatus[0].CDEaseQTReportAccess
+	case 9: //Manager
+		EaseQTReportAccess = true
+	case 10: //Performing Provider
+		EaseQTReportAccess = true
+	default:
+		EaseQTReportAccess = false
+	}
+
+	return true, "Successfully Changes Saved", ReportIntakeFormData, ReportTextContentData, OneUserAppointment, EaseQTReportAccess
+}
+
 func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int, roleIdValue int) (bool, string) {
 	log := logger.InitLogger()
 
@@ -1098,33 +1282,34 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 		}
 	}
 
-	//Updating the TechnicianIntake Form
-	for _, data := range reqVal.TechnicianIntakeForm {
-		status, message := AnswerTechnicianIntakeService(tx, model.AnswerReportIntakeReq{
-			PatientId:     reqVal.PatientId,
-			AppointmentId: reqVal.AppointmentId,
-			QuestionId:    data.QuestionId,
-			Answer:        data.Answer,
-		}, idValue)
+	// //Updating the TechnicianIntake Form
+	// for _, data := range reqVal.TechnicianIntakeForm {
+	// 	status, message := AnswerTechnicianIntakeService(tx, model.AnswerReportIntakeReq{
+	// 		PatientId:     reqVal.PatientId,
+	// 		AppointmentId: reqVal.AppointmentId,
+	// 		QuestionId:    data.QuestionId,
+	// 		Answer:        data.Answer,
+	// 	}, idValue)
 
-		if !status {
-			return status, message
-		}
-	}
+	// 	if !status {
+	// 		return status, message
+	// 	}
+	// }
 
-	//Updating the PatientIntake Form
-	for _, data := range reqVal.PatientIntakeForm {
-		status, message := AnswerPatientIntakeService(tx, model.AnswerReportIntakeReq{
-			PatientId:     reqVal.PatientId,
-			AppointmentId: reqVal.AppointmentId,
-			QuestionId:    data.QuestionId,
-			Answer:        data.Answer,
-		}, idValue)
+	// //Updating the PatientIntake Form
+	// for _, data := range reqVal.PatientIntakeForm {
+	// 	status, message := AnswerPatientIntakeService(tx, model.AnswerReportIntakeReq{
+	// 		PatientId:     reqVal.PatientId,
+	// 		AppointmentId: reqVal.AppointmentId,
+	// 		QuestionId:    data.QuestionId,
+	// 		Answer:        data.Answer,
+	// 	}, idValue)
 
-		if !status {
-			return status, message
-		}
-	}
+	// 	if !status {
+	// 		return status, message
+	// 	}
+	// }
+
 	//Updating the Report Text Content
 	status, message := AnswerTextContentService(tx, model.AnswerTextContentReq{
 		PatientId:     reqVal.PatientId,
@@ -1157,6 +1342,19 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 		reqVal.ImpressionAddtionalRight,
 		reqVal.RecommendationAddtionalRight,
 		reqVal.CommonImpressionRecommendationRight,
+		reqVal.ArtificatsLeft,
+		reqVal.ArtificatsRight,
+		reqVal.PatientHistory,
+		reqVal.BreastImplantsImagetext,
+		reqVal.SymmetryImageText,
+		reqVal.BreastdensityImageText,
+		reqVal.NippleAreolaImageText,
+		reqVal.GlandularImageText,
+		reqVal.LymphnodesImageText,
+		reqVal.BreastdensityImageTextLeft,
+		reqVal.NippleAreolaImageTextLeft,
+		reqVal.GlandularImageTextLeft,
+		reqVal.LymphnodesImageTextLeft,
 		reqVal.AppointmentId,
 		reqVal.PatientId,
 	).Error
@@ -1675,102 +1873,56 @@ func DownloadReportService(db *gorm.DB, reqVal model.DownloadReportReq) model.Ge
 	return PatientFile
 }
 
-// func AddAddendumService(db *gorm.DB, reqVal model.AddAddendumReq) (bool, string) {
-// 	log := logger.InitLogger()
+func ListAddendumService(db *gorm.DB, appointmentId int) []model.AddAddendumModel {
+	log := logger.InitLogger()
 
-// 	tx := db.Begin()
-// 	if tx.Error != nil {
-// 		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
-// 		return false, "Something went wrong, Try Again"
-// 	}
+	var ListAddendumModel []model.AddAddendumModel
 
-// 	defer func() {
-// 		if r := recover(); r != nil {
-// 			log.Error("ERROR: Recovered from panic, rolling back transaction:", r)
-// 			tx.Rollback()
-// 		}
-// 	}()
+	ListAddendumErr := db.Raw(query.ListAddendumSQL, appointmentId).Scan(&ListAddendumModel).Error
+	if ListAddendumErr != nil {
+		log.Printf("ERROR: Failed to fetch scan centers: %v", ListAddendumErr)
+		return []model.AddAddendumModel{}
+	}
 
-// 	//Update the Mail send Status in Appointment
-// 	UpdateMailStatusErr := tx.Exec(
-// 		query.UpdateMailStatusSQL,
-// 		"sended",
-// 		reqVal.AppointmentId,
-// 		reqVal.PatientId,
-// 	).Error
-// 	if UpdateMailStatusErr != nil {
-// 		log.Printf("ERROR: Failed to Update Mail Status: %v\n", UpdateMailStatusErr)
-// 		tx.Rollback()
-// 		return false, "Something went wrong, Try Again"
-// 	}
+	return ListAddendumModel
 
-// 	//Send Mail for the Patient
+}
 
-// 	var PatientdataModel []model.Patientdata
+func AddAddendumService(db *gorm.DB, reqVal model.AddAddendumReq, idValue int) (bool, string, []model.AddAddendumModel) {
+	log := logger.InitLogger()
 
-// 	err := db.Raw(query.GetPatientData, reqVal.PatientId, reqVal.AppointmentId).Scan(&PatientdataModel).Error
-// 	if err != nil {
-// 		log.Printf("ERROR: Failed to fetch scan centers: %v", err)
-// 		return false, "Something went wrong, Try Again"
-// 	}
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
+		return false, "Something went wrong, Try Again", []model.AddAddendumModel{}
+	}
 
-// 	for i, data := range PatientdataModel {
-// 		PatientdataModel[i].UserFirstName = hashdb.Decrypt(data.UserFirstName)
-// 	}
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("ERROR: Recovered from panic, rolling back transaction:", r)
+			tx.Rollback()
+		}
+	}()
 
-// 	if reqVal.PatientMailStatus {
+	InsertErr := tx.Exec(
+		query.InsertAddedumSQL,
+		reqVal.AppointmentId,
+		idValue,
+		reqVal.AddAddendumText,
+		timeZone.GetPacificTime(),
+	).Error
+	if InsertErr != nil {
+		log.Printf("ERROR: Failed to Insert Addendum: %v\n", InsertErr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again", []model.AddAddendumModel{}
+	}
 
-// 		htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, PatientdataModel[0].SCCustId)
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again", []model.AddAddendumModel{}
+	}
 
-// 		subject := "Your Report Status"
+	return true, "Successfully Addedum Received", ListAddendumService(db, reqVal.AppointmentId)
 
-// 		emailStatus := mailservice.MailService(PatientdataModel[0].Email, htmlContent, subject)
-
-// 		if !emailStatus {
-// 			log.Error("Sending Mail Meets Error")
-// 			return false, "Something went wrong, Try Again"
-// 		}
-// 	}
-
-// 	//Send Mail for the Scan Center Manager
-// 	if reqVal.ManagerMailStatus {
-// 		// var PatientdataModel []model.Patientdata
-
-// 		// err := db.Raw(query.GetPatientData, reqVal.PatientId, reqVal.AppointmentId).Scan(&PatientdataModel).Error
-// 		// if err != nil {
-// 		// 	log.Printf("ERROR: Failed to fetch scan centers: %v", err)
-// 		// 	return false, "Something went wrong, Try Again"
-// 		// }
-
-// 		var ManagerModel []model.ManagerData
-
-// 		Managererr := db.Raw(query.GetManagerData, 3, reqVal.AppointmentId).Scan(&ManagerModel).Error
-// 		if Managererr != nil {
-// 			log.Printf("ERROR: Failed to fetch scan centers: %v", Managererr)
-// 			return false, "Something went wrong, Try Again"
-// 		}
-
-// 		for _, data := range ManagerModel {
-// 			htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, data.SCCustId)
-
-// 			subject := "Your Report Status"
-
-// 			emailStatus := mailservice.MailService(data.Email, htmlContent, subject)
-
-// 			if !emailStatus {
-// 				log.Error("Sending Mail Meets Error")
-// 				return false, "Something went wrong, Try Again"
-// 			}
-// 		}
-
-// 	}
-
-// 	if err := tx.Commit().Error; err != nil {
-// 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
-// 		tx.Rollback()
-// 		return false, "Something went wrong, Try Again"
-// 	}
-
-// 	return true, "Successfully Mail Sended !"
-
-// }
+}

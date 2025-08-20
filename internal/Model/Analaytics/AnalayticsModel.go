@@ -37,12 +37,20 @@ type UserListIdsData struct {
 	RoleId     int    `json:"refRTId" gorm:"column:refRTId"`
 }
 
+type Artificates struct {
+	Leftartifacts  int `json:"leftartifacts" gorm:"column:leftartifacts"`
+	Rightartifacts int `json:"rightartifacts" gorm:"column:rightartifacts"`
+	Bothartifacts  int `json:"bothartifacts" gorm:"column:bothartifacts"`
+}
+
 type AdminOverallAnalyticsResponse struct {
 	AdminScanCenterModel                     []AdminScanCenterModel
 	AdminOverallScanIndicatesAnalayticsModel []AdminOverallScanIndicatesAnalayticsModel
 	GetAllScaCenter                          []GetAllScaCenter
 	UserListIdsData                          []UserListIdsData
 	ImpressionModel                          []ImpressionModel
+	TechArtificats                           []Artificates
+	ReportArtificats                         []Artificates
 }
 
 type ListScanAppointmentCountModel struct {
@@ -92,4 +100,6 @@ type OneUserReponse struct {
 	TotalCorrectEdit                         []TotalCorrectEditModel
 	ImpressionModel                          []ImpressionModel
 	DurationBucketModel                      []DurationBucketModel
+	TechArtificats                           []Artificates
+	ReportArtificats                         []Artificates
 }
