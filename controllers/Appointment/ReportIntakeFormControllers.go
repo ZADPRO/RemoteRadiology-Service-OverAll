@@ -7,6 +7,7 @@ import (
 	hashapi "AuthenticationService/internal/Helper/HashAPI"
 	helper "AuthenticationService/internal/Helper/RequestHandler"
 	model "AuthenticationService/internal/Model/Appointment"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -34,7 +35,7 @@ func CheckAccessController() gin.HandlerFunc {
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
 
-		status, message, accessId, custId := service.CheckAccessService(dbConn, data, int(idValue.(float64)))
+		status, message, accessId, custId := service.CheckAccessService(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
 
 		payload := map[string]interface{}{
 			"status":   status,
@@ -73,6 +74,8 @@ func AssignGetReportController() gin.HandlerFunc {
 
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
+
+		fmt.Println("$$$$$$$$$$$$$", data)
 
 		status, message, IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, ReportAppointmentData, ReportFormateList, GetUserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterImg, ScancenterAddress, Addendum := service.AssignGetReportService(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
 
@@ -373,6 +376,15 @@ func AutosaveController() gin.HandlerFunc {
 		})
 	}
 }
+
+func CancelReportController() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+
+
+		
+
+	}}
 
 func SubmitReportController() gin.HandlerFunc {
 	return func(c *gin.Context) {
