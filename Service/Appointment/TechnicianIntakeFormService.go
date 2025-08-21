@@ -301,6 +301,14 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 		return false, "Something went wrong, Try Again"
 	}
 
+	InsertReportHistoryErr := tx.Exec(query.InsertReportIntakeAllSQL, int(reqVal.PatientId), int(reqVal.AppointmentId), timeZone.GetPacificTime(), int(idValue)).Error
+	if InsertReportHistoryErr != nil {
+		log.Printf("ERROR: Failed to Transaction History: %v\n", InsertReportHistoryErr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+
 	if err := tx.Commit().Error; err != nil {
 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
 		tx.Rollback()

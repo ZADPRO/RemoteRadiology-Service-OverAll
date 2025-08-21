@@ -109,6 +109,18 @@ SELECT
 FROM input_data;
 `
 
+var InsertReportIntakeAllSQL = `
+INSERT INTO notes."refReportIntakeForm"
+    ("refUserId", "refAppointmentId", "refRITFQId", "refRITFCreatedAt", "refRITFCreatedBy")
+SELECT
+    $1 AS refUserId,          -- constant
+    $2 AS refAppointmentId, -- constant
+    gs AS refRITFQId,        -- series 1 to 133
+    $3 AS refRITFCreatedAt, -- constant
+    $4 AS refRITFCreatedBy   -- constant
+FROM generate_series(1, 133) gs;
+`
+
 var UpdateIntakeDataSQL = `
 UPDATE
   notes."refIntakeForm"

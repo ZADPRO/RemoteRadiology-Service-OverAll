@@ -1715,7 +1715,7 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 		return status, message
 	}
 
-	var reportStatus = reqVal.CurrentStatus
+	var reportStatus = reqVal.MovedStatus
 
 	if reqVal.LeaveStatus {
 		reportStatus = "Changes"
