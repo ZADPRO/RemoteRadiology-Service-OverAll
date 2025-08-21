@@ -15,15 +15,28 @@ import (
 	"gorm.io/gorm"
 )
 
-func CheckAccessService(db *gorm.DB, reqVal model.CheckAccessReq, idValue int) (bool, string, int, string) {
+func CheckAccessService(db *gorm.DB, reqVal model.CheckAccessReq, idValue int, roleIdValue int) (bool, string, int, string) {
 	log := logger.InitLogger()
 
 	var result []model.AccessStatus
 
-	err := db.Raw(query.CheckAccessSQL, idValue, reqVal.AppointmentId).Scan(&result).Error
+	fmt.Println("222222222222222222", roleIdValue, idValue, reqVal)
 
-	if err != nil {
-		log.Fatal(err)
+	if roleIdValue == 7 {
+		err := db.Raw(query.ScribeCheckAccessSQL, idValue, reqVal.AppointmentId).Scan(&result).Error
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println("&&&&&&&&&&&&&&&", result)
+
+	} else {
+		err := db.Raw(query.CheckAccessSQL, idValue, reqVal.AppointmentId).Scan(&result).Error
+
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	var message = "Another User Already Accessing it"
@@ -94,7 +107,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 		AppointmentId: reqVal.AppointmentId,
 	}
 
-	status, message, _, _ := CheckAccessService(db, checkAccessReq, idValue)
+	status, message, _, _ := CheckAccessService(db, checkAccessReq, idValue, roleIdValue)
 
 	fmt.Println(status, message)
 
@@ -108,8 +121,15 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 		}
 
 		if !reqVal.ReadOnlyStatus {
+
+			var AppointementAccessIdVal = Appointment[0].AppointmentAccessId
+
+			if roleIdValue == 7 {
+				AppointementAccessIdVal = Appointment[0].AppointmentScribeAccessId
+			}
+
 			oldDataCat := map[string]interface{}{
-				"Report Access ID": Appointment[0].AppointmentAccessId,
+				"Report Access ID": AppointementAccessIdVal,
 			}
 
 			updatedDataCat := map[string]interface{}{
@@ -165,8 +185,14 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						[]model.AddAddendumModel{}
 				}
 
+				var UpdateAccessSQL = query.UpdateAccessAppointment
+
+				if roleIdValue == 7 {
+					UpdateAccessSQL = query.ScribeUpdateAccessAppointment
+				}
+
 				categoryUpdate := tx.Exec(
-					query.UpdateAccessAppointment,
+					UpdateAccessSQL,
 					true,
 					idValue,
 					reqVal.AppointmentId,
@@ -220,13 +246,22 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 				}
 
 				if len(ReportHistory) > 0 {
+
+					var starttime = ReportHistory[0].HandleEndTime
+
+					if len(ReportHistory[0].HandleEndTime) == 0 {
+						starttime = ReportHistory[1].HandleEndTime
+					}
+
+					fmt.Println("___________________>", starttime)
+
 					//Insert the History
 					ReportHistoryErr := tx.Exec(
 						query.InsertReportHistorySQL,
 						reqVal.PatientId,
 						reqVal.AppointmentId,
 						idValue,
-						ReportHistory[0].HandleEndTime,
+						starttime,
 					).Error
 					if ReportHistoryErr != nil {
 						log.Printf("ERROR: Failed to Insert Report History: %v\n", ReportHistoryErr)
@@ -1093,6 +1128,8 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		}
 	}()
 
+	fmt.Println("%%%%%%%%%%", reqVal.ChangedOneState)
+
 	//Inserting and Upadating the Report Intake Form
 	for _, data := range reqVal.ReportIntakeForm {
 		status, message := AnswerReportIntakeService(tx, model.AnswerReportIntakeReq{
@@ -1108,50 +1145,407 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 	}
 
 	//Updating the Report Text Content
-	status, message := AnswerTextContentService(tx, model.AnswerTextContentReq{
-		PatientId:     reqVal.PatientId,
-		AppointmentId: reqVal.AppointmentId,
-		TextContent:   reqVal.ReportTextContent,
-		SyncStatus:    reqVal.SyncStatus,
-	}, idValue)
+	if reqVal.ChangedOneState.ReportTextContent {
 
-	if !status {
-		return status, message, []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		var updateAutoerr = tx.Exec(query.UpdateAutosaveTextContentSQL,
+			hashdb.Encrypt(reqVal.ReportTextContent),
+			timeZone.GetPacificTime(),
+			idValue,
+			reqVal.AppointmentId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave Text Content: %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+
 	}
 
-	//Updating the Appointment Status
-	UpdateAppointementErr := tx.Exec(
-		query.AutoCompleteReportAppointmentSQL,
-		reqVal.Impression,
-		reqVal.Recommendation,
-		reqVal.ImpressionAddtional,
-		reqVal.RecommendationAddtional,
-		reqVal.CommonImpressionRecommendation,
-		reqVal.ImpressionRight,
-		reqVal.RecommendationRight,
-		reqVal.ImpressionAddtionalRight,
-		reqVal.RecommendationAddtionalRight,
-		reqVal.CommonImpressionRecommendationRight,
-		reqVal.ArtificatsLeft,
-		reqVal.ArtificatsRight,
-		reqVal.PatientHistory,
-		reqVal.BreastImplantsImagetext,
-		reqVal.SymmetryImageText,
-		reqVal.BreastdensityImageText,
-		reqVal.NippleAreolaImageText,
-		reqVal.GlandularImageText,
-		reqVal.LymphnodesImageText,
-		reqVal.BreastdensityImageTextLeft,
-		reqVal.NippleAreolaImageTextLeft,
-		reqVal.GlandularImageTextLeft,
-		reqVal.LymphnodesImageTextLeft,
-		reqVal.AppointmentId,
-		reqVal.PatientId,
-	).Error
-	if UpdateAppointementErr != nil {
-		log.Printf("ERROR: Failed to Update Appointement: %v\n", UpdateAppointementErr)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+	//Update Report Sync Status
+	if reqVal.ChangedOneState.SyncStatus {
+
+		var updateAutoerr = tx.Exec(query.UpdateAutosaveSyncStatusSQL,
+			reqVal.SyncStatus,
+			timeZone.GetPacificTime(),
+			idValue,
+			reqVal.AppointmentId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+
+	}
+
+	//Update the Impression
+	if reqVal.ChangedOneState.Impression {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveImpressionSQL,
+			reqVal.Impression,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the Recommendation
+	if reqVal.ChangedOneState.Recommendation {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveRecommendationSQL,
+			reqVal.Recommendation,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the ImpressionAddtional
+	if reqVal.ChangedOneState.ImpressionAddtional {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveImpressionAddtionalSQL,
+			reqVal.ImpressionAddtional,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the RecommendationAddtional
+	if reqVal.ChangedOneState.RecommendationAddtional {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveRecommendationAddtionalSQL,
+			reqVal.RecommendationAddtional,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the CommonImpressionRecommendation
+	if reqVal.ChangedOneState.CommonImpressionRecommendation {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveCommonImpressionRecommendationSQL,
+			reqVal.CommonImpressionRecommendation,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the ImpressionRight
+	if reqVal.ChangedOneState.ImpressionRight {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveImpressionRightSQL,
+			reqVal.ImpressionRight,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the RecommendationRight
+	if reqVal.ChangedOneState.RecommendationRight {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveRecommendationRightSQL,
+			reqVal.RecommendationRight,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the ImpressionAddtionalRight
+	if reqVal.ChangedOneState.ImpressionAddtionalRight {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveImpressionAddtionalRightSQL,
+			reqVal.ImpressionAddtionalRight,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the RecommendationAddtionalRight
+	if reqVal.ChangedOneState.RecommendationAddtionalRight {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveRecommendationAddtionalRightSQL,
+			reqVal.RecommendationAddtionalRight,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the CommonImpressionRecommendationRight
+	if reqVal.ChangedOneState.CommonImpressionRecommendationRight {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveCommonImpressionRecommendationRightRightSQL,
+			reqVal.CommonImpressionRecommendationRight,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the ArtificatsLeft
+	if reqVal.ChangedOneState.ArtificatsLeft {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveArtificatsLeftSQL,
+			reqVal.ArtificatsLeft,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the ArtificatsLeft
+	if reqVal.ChangedOneState.ArtificatsRight {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveArtificatsLeftSQL,
+			reqVal.ArtificatsRight,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the PatientHistory
+	if reqVal.ChangedOneState.PatientHistory {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosavePatientHistorySQL,
+			reqVal.PatientHistory,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the BreastImplantsImagetext
+	if reqVal.ChangedOneState.BreastImplantImageText {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveBreastImplantsImagetextSQL,
+			reqVal.BreastImplantsImagetext,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the SymmetryImageText
+	if reqVal.ChangedOneState.SymmetryImageText {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveSymmetryImageTextSQL,
+			reqVal.SymmetryImageText,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the BreastdensityImageText
+	if reqVal.ChangedOneState.BreastDensityImageText {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveBreastDensityImageTextSQL,
+			reqVal.BreastdensityImageText,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the NippleAreolaImageText
+	if reqVal.ChangedOneState.NippleAreolaImageText {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveNippleAreolaImageTextSQL,
+			reqVal.NippleAreolaImageText,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the GlandularImageText
+	if reqVal.ChangedOneState.GlandularImageText {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveGlandularImageTextSQL,
+			reqVal.GlandularImageText,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the LymphnodesImageText
+	if reqVal.ChangedOneState.LymphNodesImageText {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveLymphnodesImageTextSQL,
+			reqVal.LymphnodesImageText,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the BreastdensityImageTextLeft
+	if reqVal.ChangedOneState.BreastDensityImageTextLeft {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveBreastDensityImageTextLeftSQL,
+			reqVal.BreastdensityImageTextLeft,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the NippleAreolaImageTextLeft
+	if reqVal.ChangedOneState.NippleAreolaImageTextLeft {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveNippleAreolaImageTextLeftSQL,
+			reqVal.NippleAreolaImageTextLeft,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the GlandularImageTextLeft
+	if reqVal.ChangedOneState.GlandularImageTextLeft {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveGlandularImageTextLeftSQL,
+			reqVal.GlandularImageTextLeft,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
+	}
+
+	//Update the LymphnodesImageTextLeft
+	if reqVal.ChangedOneState.LymphNodesImageTextLeft {
+		var updateAutoerr = tx.Exec(
+			query.UpdateAutosaveLymphNodesImageTextLeftSQL,
+			reqVal.LymphnodesImageTextLeft,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+
+		if updateAutoerr != nil {
+			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
@@ -1169,7 +1563,6 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 
 	//Decrypt Report Intake Form Table
 	for i, data := range ReportIntakeFormData {
-		fmt.Println(hashdb.Decrypt(data.Answer))
 		ReportIntakeFormData[i].Answer = hashdb.Decrypt(data.Answer)
 	}
 
@@ -1328,40 +1721,78 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 		reportStatus = "Changes"
 	}
 
-	//Updating the Appointment Status
-	UpdateAppointementErr := tx.Exec(
-		query.CompleteReportAppointmentSQL,
-		reqVal.MovedStatus,
-		reqVal.Impression,
-		reqVal.Recommendation,
-		reqVal.ImpressionAddtional,
-		reqVal.RecommendationAddtional,
-		reqVal.CommonImpressionRecommendation,
-		reqVal.ImpressionRight,
-		reqVal.RecommendationRight,
-		reqVal.ImpressionAddtionalRight,
-		reqVal.RecommendationAddtionalRight,
-		reqVal.CommonImpressionRecommendationRight,
-		reqVal.ArtificatsLeft,
-		reqVal.ArtificatsRight,
-		reqVal.PatientHistory,
-		reqVal.BreastImplantsImagetext,
-		reqVal.SymmetryImageText,
-		reqVal.BreastdensityImageText,
-		reqVal.NippleAreolaImageText,
-		reqVal.GlandularImageText,
-		reqVal.LymphnodesImageText,
-		reqVal.BreastdensityImageTextLeft,
-		reqVal.NippleAreolaImageTextLeft,
-		reqVal.GlandularImageTextLeft,
-		reqVal.LymphnodesImageTextLeft,
-		reqVal.AppointmentId,
-		reqVal.PatientId,
-	).Error
-	if UpdateAppointementErr != nil {
-		log.Printf("ERROR: Failed to Update Appointement: %v\n", UpdateAppointementErr)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again"
+	if roleIdValue == 7 {
+		//Updating the Appointment Status
+		UpdateAppointementErr := tx.Exec(
+			query.ScribeCompleteReportAppointmentSQL,
+			reqVal.MovedStatus,
+			reqVal.Impression,
+			reqVal.Recommendation,
+			reqVal.ImpressionAddtional,
+			reqVal.RecommendationAddtional,
+			reqVal.CommonImpressionRecommendation,
+			reqVal.ImpressionRight,
+			reqVal.RecommendationRight,
+			reqVal.ImpressionAddtionalRight,
+			reqVal.RecommendationAddtionalRight,
+			reqVal.CommonImpressionRecommendationRight,
+			reqVal.ArtificatsLeft,
+			reqVal.ArtificatsRight,
+			reqVal.PatientHistory,
+			reqVal.BreastImplantsImagetext,
+			reqVal.SymmetryImageText,
+			reqVal.BreastdensityImageText,
+			reqVal.NippleAreolaImageText,
+			reqVal.GlandularImageText,
+			reqVal.LymphnodesImageText,
+			reqVal.BreastdensityImageTextLeft,
+			reqVal.NippleAreolaImageTextLeft,
+			reqVal.GlandularImageTextLeft,
+			reqVal.LymphnodesImageTextLeft,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+		if UpdateAppointementErr != nil {
+			log.Printf("ERROR: Failed to Update Appointement: %v\n", UpdateAppointementErr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again"
+		}
+	} else {
+		//Updating the Appointment Status
+		UpdateAppointementErr := tx.Exec(
+			query.CompleteReportAppointmentSQL,
+			reqVal.MovedStatus,
+			reqVal.Impression,
+			reqVal.Recommendation,
+			reqVal.ImpressionAddtional,
+			reqVal.RecommendationAddtional,
+			reqVal.CommonImpressionRecommendation,
+			reqVal.ImpressionRight,
+			reqVal.RecommendationRight,
+			reqVal.ImpressionAddtionalRight,
+			reqVal.RecommendationAddtionalRight,
+			reqVal.CommonImpressionRecommendationRight,
+			reqVal.ArtificatsLeft,
+			reqVal.ArtificatsRight,
+			reqVal.PatientHistory,
+			reqVal.BreastImplantsImagetext,
+			reqVal.SymmetryImageText,
+			reqVal.BreastdensityImageText,
+			reqVal.NippleAreolaImageText,
+			reqVal.GlandularImageText,
+			reqVal.LymphnodesImageText,
+			reqVal.BreastdensityImageTextLeft,
+			reqVal.NippleAreolaImageTextLeft,
+			reqVal.GlandularImageTextLeft,
+			reqVal.LymphnodesImageTextLeft,
+			reqVal.AppointmentId,
+			reqVal.PatientId,
+		).Error
+		if UpdateAppointementErr != nil {
+			log.Printf("ERROR: Failed to Update Appointement: %v\n", UpdateAppointementErr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again"
+		}
 	}
 
 	//Inserting the Audit for the Report Status

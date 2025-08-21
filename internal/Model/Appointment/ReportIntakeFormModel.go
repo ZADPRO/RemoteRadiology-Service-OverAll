@@ -17,9 +17,9 @@ type AssignGetReportReq struct {
 }
 
 type AccessStatus struct {
-	Status                 bool   `gorm:"column:status"`
-	RefAppointmentAccessId int    `gorm:"column:refAppointmentAccessId"`
-	CustID                 string `gorm:"column:userCustId"`
+	Status                       bool   `gorm:"column:status"`
+	RefAppointmentAccessId       int    `gorm:"column:refAppointmentAccessId"`
+	CustID                       string `gorm:"column:userCustId"`
 }
 
 type GetTechnicianIntakeData struct {
@@ -61,15 +61,17 @@ type GetReportComments struct {
 }
 
 type AppointmentModel struct {
-	AppointmentId           int    `json:"refAppointmentId" gorm:"column:refAppointmentId"`
-	UserId                  int    `json:"refUserId" gorm:"column:refUserId"`
-	SCId                    int    `json:"refSCId" gorm:"column:refSCId"`
-	CategoryId              int    `json:"refCategoryId" gorm:"column:refCategoryId"`
-	AppointmentDate         string `json:"refAppointmentDate" gorm:"column:refAppointmentDate"`
-	AppointmentComplete     string `json:"refAppointmentComplete" gorm:"column:refAppointmentComplete"`
-	AppointmentPriority     string `json:"refAppointmentPriority" gorm:"column:refAppointmentPriority"`
-	AppointmentAccessId     int    `json:"refAppointmentAccessId" gorm:"column:refAppointmentAccessId"`
-	AppointmentAccessStatus bool   `json:"refAppointmentAccessStatus" gorm:"column:refAppointmentAccessStatus"`
+	AppointmentId                 int    `json:"refAppointmentId" gorm:"column:refAppointmentId"`
+	UserId                        int    `json:"refUserId" gorm:"column:refUserId"`
+	SCId                          int    `json:"refSCId" gorm:"column:refSCId"`
+	CategoryId                    int    `json:"refCategoryId" gorm:"column:refCategoryId"`
+	AppointmentDate               string `json:"refAppointmentDate" gorm:"column:refAppointmentDate"`
+	AppointmentComplete           string `json:"refAppointmentComplete" gorm:"column:refAppointmentComplete"`
+	AppointmentPriority           string `json:"refAppointmentPriority" gorm:"column:refAppointmentPriority"`
+	AppointmentAccessId           int    `json:"refAppointmentAccessId" gorm:"column:refAppointmentAccessId"`
+	AppointmentAccessStatus       bool   `json:"refAppointmentAccessStatus" gorm:"column:refAppointmentAccessStatus"`
+	AppointmentScribeAccessId     int    `json:"refAppointmentScribeAccessId" gorm:"column:refAppointmentScribeAccessId"`
+	AppointmentScribeAccessStatus bool   `json:"refAppointmentScribeAccessStatus" gorm:"column:refAppointmentScribeAccessStatus"`
 }
 
 type AnswerReportIntakeReq struct {
@@ -118,7 +120,7 @@ type SubmitReportReq struct {
 	PatientId                           int              `json:"patientId" binding:"required" mapstructure:"patientId"`
 	MovedStatus                         string           `json:"movedStatus" binding:"required" mapstructure:"movedStatus"`
 	CurrentStatus                       string           `json:"currentStatus" binding:"required" mapstructure:"currentStatus"`
-	SyncStatus                          bool             `json:"syncStatus" binding:"required" mapstructure:"syncStatus"`
+	SyncStatus                          bool             `json:"syncStatus" mapstructure:"syncStatus"`
 	EditStatus                          bool             `json:"editStatus" mapstructure:"editStatus"`
 	Impression                          string           `json:"impression" mapstructure:"impression"`
 	Recommendation                      string           `json:"recommendation" mapstructure:"recommendation"`
@@ -149,12 +151,42 @@ type SubmitReportReq struct {
 	LymphnodesImageTextLeft             string           `json:"lymphnodesImageTextLeft" mapstructure:"lymphnodesImageTextLeft"`
 }
 
+type ChangedOneState struct {
+	ReportQuestion                      []int `json:"reportQuestion"` // or []string if your IDs are strings
+	ReportTextContent                   bool  `json:"reportTextContent"`
+	SyncStatus                          bool  `json:"syncStatus"`
+	Impression                          bool  `json:"impression"`
+	Recommendation                      bool  `json:"recommendation"`
+	ImpressionAddtional                 bool  `json:"impressionaddtional"`
+	RecommendationAddtional             bool  `json:"recommendationaddtional"`
+	CommonImpressionRecommendation      bool  `json:"commonImpressionRecommendation"`
+	ImpressionRight                     bool  `json:"impressionRight"`
+	RecommendationRight                 bool  `json:"recommendationRight"`
+	ImpressionAddtionalRight            bool  `json:"impressionaddtionalRight"`
+	RecommendationAddtionalRight        bool  `json:"recommendationaddtionalRight"`
+	CommonImpressionRecommendationRight bool  `json:"commonImpressionRecommendationRight"`
+	ArtificatsLeft                      bool  `json:"artificatsLeft"`
+	ArtificatsRight                     bool  `json:"artificatsRight"`
+	PatientHistory                      bool  `json:"patienthistory"`
+	BreastImplantImageText              bool  `json:"breastimplantImageText"`
+	SymmetryImageText                   bool  `json:"symmetryImageText"`
+	BreastDensityImageText              bool  `json:"breastdensityImageText"`
+	NippleAreolaImageText               bool  `json:"nippleareolaImageText"`
+	GlandularImageText                  bool  `json:"glandularImageText"`
+	LymphNodesImageText                 bool  `json:"lymphnodesImageText"`
+	BreastDensityImageTextLeft          bool  `json:"breastdensityImageTextLeft"`
+	NippleAreolaImageTextLeft           bool  `json:"nippleareolaImageTextLeft"`
+	GlandularImageTextLeft              bool  `json:"glandularImageTextLeft"`
+	LymphNodesImageTextLeft             bool  `json:"lymphnodesImageTextLeft"`
+}
+
 type AutoSubmitReportReq struct {
+	ChangedOneState                     ChangedOneState  `json:"changedOne" binding:"required" mapstructure:"changedOne"`
 	ReportIntakeForm                    []AnswerReqModel `json:"reportIntakeForm" binding:"required" mapstructure:"reportIntakeForm"`
 	ReportTextContent                   string           `json:"reportTextContent" binding:"required" mapstructure:"reportTextContent"`
 	AppointmentId                       int              `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
 	PatientId                           int              `json:"patientId" binding:"required" mapstructure:"patientId"`
-	SyncStatus                          bool             `json:"syncStatus" binding:"required" mapstructure:"syncStatus"`
+	SyncStatus                          bool             `json:"syncStatus" mapstructure:"syncStatus"`
 	Impression                          string           `json:"impression" mapstructure:"impression"`
 	Recommendation                      string           `json:"recommendation" mapstructure:"recommendation"`
 	ImpressionAddtional                 string           `json:"impressionaddtional" mapstructure:"impressionaddtional"`

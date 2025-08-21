@@ -2,7 +2,6 @@ package helper
 
 import (
 	hashapi "AuthenticationService/internal/Helper/HashAPI"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -149,6 +148,5 @@ func GetRequestBody[T any](c *gin.Context, useEncryption bool) (T, bool) {
 		}
 	}
 
-	fmt.Println("--- Final Decoded Struct Data:", data)
 	return data, true
 }

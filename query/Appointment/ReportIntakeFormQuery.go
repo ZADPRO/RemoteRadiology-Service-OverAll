@@ -22,6 +22,28 @@ WHERE
   "refAppointmentId" = ?
 `
 
+var ScribeCheckAccessSQL = `
+SELECT
+  CASE
+    WHEN "refAppointmentScribeAccessStatus" = true
+    AND "refAppointmentScribeAccessId" != ? THEN false
+    ELSE true
+  END AS "status",
+  "refAppointmentScribeAccessId" AS "refAppointmentAccessId",
+  (
+    SELECT
+      "refUserCustId"
+    FROM
+      public."Users"
+    WHERE
+      "refUserId" = "refAppointmentScribeAccessId"
+    ) AS "userCustId"
+FROM
+  appointment."refAppointments"
+WHERE
+  "refAppointmentId" = ?
+`
+
 var GetOneUserAppointment = `
 SELECT
   sc."refSCCustId",
@@ -113,6 +135,16 @@ UPDATE
 SET
   "refAppointmentAccessStatus" = ?,
   "refAppointmentAccessId" = ?
+WHERE
+  "refAppointmentId" = ?
+`
+
+var ScribeUpdateAccessAppointment = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentScribeAccessStatus" = ?,
+  "refAppointmentScribeAccessId" = ?
 WHERE
   "refAppointmentId" = ?
 `
@@ -332,6 +364,41 @@ SET
   "refAppointmentComplete" = ?,
   "refAppointmentAccessStatus" = false,
   "refAppointmentAccessId" = NULL,
+  "refAppointmentImpression" = ?,
+  "refAppointmentRecommendation" = ?,
+  "refAppointmentImpressionAdditional" = ?,
+  "refAppointmentRecommendationAdditional" = ?,
+  "refAppointmentCommonImpressionRecommendation" = ?,
+  "refAppointmentImpressionRight" = ?,
+  "refAppointmentRecommendationRight" = ?,
+  "refAppointmentImpressionAdditionalRight" = ?,
+  "refAppointmentRecommendationAdditionalRight" = ?,
+  "refAppointmentCommonImpressionRecommendationRight" = ?,
+  "refAppointmentReportArtifactsLeft" = ?,
+  "refAppointmentReportArtifactsRight" = ?,
+  "refAppointmentPatietHistory" = ?,
+  "refAppointmentBreastImplantImageText" = ?,
+  "refAppointmentSymmetryImageText" = ?,
+  "refAppointmentBreastdensityImageText" = ?,
+  "refAppointmentNippleAreolaImageText" = ?,
+  "refAppointmentGlandularImageText" = ?,
+  "refAppointmentLymphnodeImageText" = ?,
+  "refAppointmentBreastdensityImageTextLeft" = ?,
+  "refAppointmentNippleAreolaImageTextLeft" = ?,
+  "refAppointmentGlandularImageTextLeft" = ?,
+  "refAppointmentLymphnodeImageTextLeft" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var ScribeCompleteReportAppointmentSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentComplete" = ?,
+  "refAppointmentScribeAccessStatus" = false,
+  "refAppointmentScribeAccessId" = NULL,
   "refAppointmentImpression" = ?,
   "refAppointmentRecommendation" = ?,
   "refAppointmentImpressionAdditional" = ?,
@@ -586,4 +653,254 @@ FROM
   JOIN public."Users" u ON u."refUserId" = ra."refUserId"
 WHERE
   ra."refAppointmentId" = $1
+`
+
+var UpdateAutosaveTextContentSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTCText" = ?,
+  "refRTUpdatedAt" = ?,
+  "refRTUpdatedBy" = ?
+WHERE
+  "refAppointmentId" = ?
+`
+
+var UpdateAutosaveSyncStatusSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTSyncStatus" = ?,
+  "refRTUpdatedAt" = ?,
+  "refRTUpdatedBy" = ?
+WHERE
+  "refAppointmentId" = ?
+`
+
+var UpdateAutosaveImpressionSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentImpression" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveRecommendationSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentRecommendation" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveImpressionAddtionalSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentImpressionAdditional" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveRecommendationAddtionalSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentRecommendationAdditional" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveCommonImpressionRecommendationSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentCommonImpressionRecommendation" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveImpressionRightSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentImpressionRight" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveRecommendationRightSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentRecommendationRight" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveImpressionAddtionalRightSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentImpressionAdditionalRight" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveRecommendationAddtionalRightSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentRecommendationAdditionalRight" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveCommonImpressionRecommendationRightRightSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentCommonImpressionRecommendationRight" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+var UpdateAutosaveArtificatsLeftSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentReportArtifactsLeft" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveArtificatsRightSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentReportArtifactsRight" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosavePatientHistorySQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentPatietHistory" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveBreastImplantsImagetextSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentBreastImplantImageText" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveSymmetryImageTextSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentSymmetryImageText" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveBreastDensityImageTextSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentBreastdensityImageText" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+var UpdateAutosaveNippleAreolaImageTextSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentNippleAreolaImageText" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveGlandularImageTextSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentGlandularImageText" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveLymphnodesImageTextSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentLymphnodeImageText" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveBreastDensityImageTextLeftSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentBreastdensityImageTextLeft" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveNippleAreolaImageTextLeftSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentNippleAreolaImageTextLeft" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveGlandularImageTextLeftSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentGlandularImageTextLeft" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveLymphNodesImageTextLeftSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentLymphnodeImageTextLeft" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
 `
