@@ -4,7 +4,6 @@ import (
 	becrypt "AuthenticationService/internal/Helper/Becrypt"
 	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
-	mailservice "AuthenticationService/internal/Helper/MailService"
 	model "AuthenticationService/internal/Model/UserService"
 	query "AuthenticationService/query/UserService"
 	"strconv"
@@ -310,21 +309,21 @@ func PostRegisterPatientService(db *gorm.DB, reqVal model.RegisterPatientReq) mo
 		}
 	}
 
-	userName := reqVal.FirstName + " " + reqVal.LastName
+	// userName := reqVal.FirstName + " " + reqVal.LastName
 
-	subject := "Welcome to Wellthgreen HealthCare Pvt Ltd"
+	// subject := "Welcome to Wellthgreen HealthCare Pvt Ltd"
 
-	htmlContent := mailservice.RegisterationMailContent(userName)
+	// htmlContent := mailservice.RegisterationMailContent(userName)
 
-	emailStatus := mailservice.MailService(reqVal.Email, htmlContent, subject)
+	// emailStatus := mailservice.MailService(reqVal.Email, htmlContent, subject)
 
-	if !emailStatus {
-		log.Error("Sending Mail Meets Error")
-		return model.RegisterPatientRes{
-			Status:  false,
-			Message: "Something went wrong, Try Again",
-		}
-	}
+	// if !emailStatus {
+	// 	log.Error("Sending Mail Meets Error")
+	// 	return model.RegisterPatientRes{
+	// 		Status:  false,
+	// 		Message: "Something went wrong, Try Again",
+	// 	}
+	// }
 
 	if err := tx.Commit().Error; err != nil {
 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
