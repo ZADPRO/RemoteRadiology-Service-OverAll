@@ -53,7 +53,8 @@ FROM
   ) d ON d."refAppointmentId" = ra."refAppointmentId"
 WHERE
   rscm."refUserId" = ?
-  AND rscm."refSCId" = ?;
+  AND rscm."refSCId" = ?
+  AND ra."refAppointmentStatus" = true;
 `
 
 var ViewAllPatientQueueSQL = `
@@ -79,7 +80,8 @@ FROM
       dicom."refDicomFiles" rdf
     GROUP BY
       rdf."refAppointmentId"
-  ) dicom_data ON dicom_data."refAppointmentId" = ra."refAppointmentId";
+  ) dicom_data ON dicom_data."refAppointmentId" = ra."refAppointmentId"
+  WHERE ra."refAppointmentStatus" = true;
 `
 
 var InsertAdditionalFiles = `
