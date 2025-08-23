@@ -9,6 +9,7 @@ WHERE
   "refSCId" = ?
   AND "refAppointmentDate" = ?
   AND "refUserId" = ?
+  AND "refAppointmentStatus" = TRUE
 `
 
 var FindScanCenterSQL = `
