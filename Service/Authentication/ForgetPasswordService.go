@@ -5,7 +5,6 @@ import (
 	helper "AuthenticationService/internal/Helper/GenerateOTP"
 	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
-	mailservice "AuthenticationService/internal/Helper/MailService"
 	model "AuthenticationService/internal/Model/Authentication"
 	query "AuthenticationService/query/Authentication"
 	"strconv"
@@ -53,19 +52,19 @@ func ForgetPasswordService(db *gorm.DB, reqVal model.ForgetPasswordReq) model.Lo
 			}
 		}
 
-		htmlContent := mailservice.ForgetPasswordOTPContent(otp)
+		// htmlContent := mailservice.ForgetPasswordOTPContent(otp)
 
-		subject := "Your Forget Password Passcode"
+		// subject := "Your Forget Password Passcode"
 
-		emailStatus := mailservice.MailService(user.CODOEmail, htmlContent, subject)
+		// emailStatus := mailservice.MailService(user.CODOEmail, htmlContent, subject)
 
-		if !emailStatus {
-			log.Error("Sending Mail Meets Error")
-			return model.LoginResponse{
-				Status:  false,
-				Message: "Something went wrong, Try Again",
-			}
-		}
+		// if !emailStatus {
+		// 	log.Error("Sending Mail Meets Error")
+		// 	return model.LoginResponse{
+		// 		Status:  false,
+		// 		Message: "Something went wrong, Try Again",
+		// 	}
+		// }
 
 		return model.LoginResponse{
 			Status:  true,
