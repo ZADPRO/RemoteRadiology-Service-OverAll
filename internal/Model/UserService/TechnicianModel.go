@@ -11,8 +11,8 @@ type TechnicianRegisterReq struct {
 	SSNo               string         `json:"social_security_no" binding:"required" mapstructure:"social_security_no"`
 	DriversLicenseNo   string         `json:"drivers_license" mapstructure:"drivers_license"`
 	TrainedEaseQT      bool           `json:"trained_ease_qt" binding:"required" mapstructure:"trained_ease_qt"`
-	DigitalSignature   string         `json:"digital_signature" binding:"required" mapstructure:"digital_signature"`
-	LicenseFiles       []LicenseFiles `json:"license_files" binding:"required" mapstructure:"license_files"`
+	DigitalSignature   string         `json:"digital_signature" mapstructure:"digital_signature"`
+	LicenseFiles       []LicenseFiles `json:"license_files" mapstructure:"license_files"`
 	ScanCenterId       int            `json:"scan_center_id" binding:"required" mapstructure:"scan_center_id"`
 }
 
@@ -224,8 +224,8 @@ type UpdateTechnicianReq struct {
 	SSNo               string               `json:"social_security_no" binding:"required" mapstructure:"social_security_no"`
 	DriversLicenseNo   string               `json:"drivers_license" mapstructure:"drivers_license"`
 	TrainedEaseQT      bool                 `json:"trained_ease_qt" binding:"required" mapstructure:"trained_ease_qt"`
-	DigitalSignature   string               `json:"digital_signature" binding:"required" mapstructure:"digital_signature"`
-	LicenseFiles       []UpdateLicenseFiles `json:"license_files" binding:"required" mapstructure:"license_files"`
+	DigitalSignature   string               `json:"digital_signature" mapstructure:"digital_signature"`
+	LicenseFiles       []UpdateLicenseFiles `json:"license_files" mapstructure:"license_files"`
 	Status             bool                 `json:"status" binding:"required" mapstructure:"status"`
 }
 

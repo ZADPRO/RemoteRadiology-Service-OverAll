@@ -63,6 +63,7 @@ type ViewPatientHistoryModel struct {
 	Remarks             string `json:"refAppointmentRemarks" gorm:"column:refAppointmentRemarks"`
 	AppointmentComplete string `json:"refAppointmentComplete" gorm:"column:refAppointmentComplete"`
 	CustSCId            string `json:"refSCCustId" gorm:"column:refSCCustId"`
+	OverrideStatus      string `json:"refOverrideStatus" gorm:"column:refOverrideStatus"`
 }
 
 type GetDicomFile struct {
@@ -108,6 +109,7 @@ type ViewTechnicianPatientQueueModel struct {
 	SCAddress                 string              `json:"refSCAddress" gorm:"column:refSCAddress"`
 	ScanCenterId              string              `json:"refSCId" gorm:"column:refSCId"`
 	DicomFiles                DicomFileArray      `json:"dicomFiles" gorm:"column:dicomFiles"`
+	OverrideStatus            string              `json:"refOverrideStatus" gorm:"column:refOverrideStatus"`
 	AppointmentMailSendStatus string              `json:"refAppointmentMailSendStatus" gorm:"column:refAppointmentMailSendStatus"`
 	GetCorrectEditModel       GetCorrectEditModel `json:"GetCorrectEditModel" gorm:"-"`
 	ReportStatus              string              `json:"reportStatus"  gorm:"-"`

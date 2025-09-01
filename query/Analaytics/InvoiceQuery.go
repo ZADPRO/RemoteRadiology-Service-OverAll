@@ -156,3 +156,28 @@ FROM
 WHERE
   "refUserId" = ?
 `
+
+var GetInvoiceOverAllHistorySQL = `
+SELECT
+  ih.*,
+  u."refUserCustId",
+  sc."refSCCustId"
+FROM
+  invoice."invoiceHistory" ih
+  LEFT JOIN public."Users" u ON u."refUserId" = ih."refUserId"
+  LEFT JOIN public."ScanCenter" sc ON sc."refSCId" = ih."refSCId"
+WHERE
+  (
+    $1 = 1
+    OR u."refRTId" IN (1, 6, 7, 10)
+  )
+  AND 
+  (
+    $2 = ''
+    OR ih."refIHCreatedAt"::timestamp >= $2::timestamp
+  )
+  AND (
+    $3 = ''
+    OR ih."refIHCreatedAt"::timestamp <= $3::timestamp
+  );
+`

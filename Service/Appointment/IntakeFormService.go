@@ -111,19 +111,37 @@ func AddIntakeFormService(db *gorm.DB, reqVal model.AddIntakeFormReq, idValue in
 		return false, "Something went wrong, Try Again"
 	}
 
+	var UpdateAppointmentStatus = "technologistformfill"
+	var oversideStatus = "success"
+
 	if reqVal.OverrideRequest {
-		override := model.OverrideRequestModel{
-			UserId:         idValue,
-			AppointmentId:  reqVal.AppointmentId,
-			ApprovedStatus: "pending",
-		}
+		UpdateAppointmentStatus = "noteligible"
+		oversideStatus = "pending"
+	}
+	override := model.OverrideRequestModel{
+		UserId:         idValue,
+		AppointmentId:  reqVal.AppointmentId,
+		ApprovedStatus: oversideStatus,
+	}
 
-		overrideerr := db.Create(&override).Error
-		if overrideerr != nil {
-			log.Error("LoginService INSERT ERROR at Trnasaction: " + overrideerr.Error())
-			return false, "Something went wrong, Try Again"
-		}
+	overrideerr := db.Create(&override).Error
+	if overrideerr != nil {
+		log.Error("LoginService INSERT ERROR at Trnasaction: " + overrideerr.Error())
+		return false, "Something went wrong, Try Again"
+	}
 
+	UpdateAppointmentStatuserr := tx.Exec(
+		query.UpdateAppointmentStatus,
+		UpdateAppointmentStatus,
+		reqVal.AppointmentId,
+	).Error
+	if UpdateAppointmentStatuserr != nil {
+		log.Printf("ERROR: Failed to Update Appointment Status: %v\n", UpdateAppointmentStatuserr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	if reqVal.OverrideRequest {
 		history := model.RefTransHistory{
 			TransTypeId: 23,
 			THData:      "Applied Override Request",
@@ -137,29 +155,18 @@ func AddIntakeFormService(db *gorm.DB, reqVal model.AddIntakeFormReq, idValue in
 			return false, "Something went wrong, Try Again"
 		}
 	} else {
-		UpdateAppointmentStatuserr := tx.Exec(
-			query.UpdateAppointmentStatus,
-			"technologistformfill",
-			reqVal.AppointmentId,
-		).Error
-		if UpdateAppointmentStatuserr != nil {
-			log.Printf("ERROR: Failed to Update Appointment Status: %v\n", UpdateAppointmentStatuserr)
-			tx.Rollback()
+		history := model.RefTransHistory{
+			TransTypeId: 23,
+			THData:      "Intake Form Created Successfully",
+			UserId:      idValue,
+			THActionBy:  idValue,
+		}
+
+		errhistory := db.Create(&history).Error
+		if errhistory != nil {
+			log.Error("LoginService INSERT ERROR at Trnasaction: " + errhistory.Error())
 			return false, "Something went wrong, Try Again"
 		}
-	}
-
-	history := model.RefTransHistory{
-		TransTypeId: 23,
-		THData:      "Intake Form Created Successfully",
-		UserId:      idValue,
-		THActionBy:  idValue,
-	}
-
-	errhistory := db.Create(&history).Error
-	if errhistory != nil {
-		log.Error("LoginService INSERT ERROR at Trnasaction: " + errhistory.Error())
-		return false, "Something went wrong, Try Again"
 	}
 
 	reportStatus := model.RefTransHistory{
@@ -492,4 +499,54 @@ func GetConsentDataService(db *gorm.DB, reqVal model.GetViewReportReq) []model.G
 	}
 
 	return TextContentModel
+}
+
+func AllowOverrideService(db *gorm.DB, reqVal model.GetOverRideReportReq, idValue int) (bool, string) {
+	log := logger.InitLogger()
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
+		return false, "Something went wrong, Try Again"
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("ERROR: Recovered from panic, rolling back transaction:", r)
+			tx.Rollback()
+		}
+	}()
+
+	UpdateAppointmentStatuserr := tx.Exec(
+		query.UpdateAppointmentStatus,
+		"fillform",
+		reqVal.AppointmentId,
+	).Error
+	if UpdateAppointmentStatuserr != nil {
+		log.Printf("ERROR: Failed to Update Appointment Status: %v\n", UpdateAppointmentStatuserr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	UpdateOverideERr := tx.Exec(
+		query.UpdateOverrideSQL,
+		"approved",
+		idValue,
+		timeZone.GetPacificTime(),
+		reqVal.AppointmentId,
+	)
+
+	if UpdateOverideERr.Error != nil {
+		log.Printf("ERROR: Failed to Update Override: %v\n", UpdateOverideERr.Error)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	return true, "Succesfully Override Request Approved"
 }

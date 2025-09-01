@@ -51,6 +51,7 @@ func AdminOverallOneAnalayticsController() gin.HandlerFunc {
 			"ImpressionModel":                     Value.ImpressionModel,
 			"TechArtificate":                      Value.TechArtificats,
 			"ReportArtificate":                    Value.ReportArtificats,
+			"OverAllAnalytics":                    Value.OverAllScancenterAnalaytics,
 		}
 
 		//Create a tokens
@@ -105,6 +106,7 @@ func OneUserController() gin.HandlerFunc {
 			"DurationBucketModel":                 Value.DurationBucketModel,
 			"TechArtificate":                      Value.TechArtificats,
 			"ReportArtificate":                    Value.ReportArtificats,
+			"OverAllAnalytics":                    Value.OverAllAnalaytics,
 		}
 
 		//Create a tokens

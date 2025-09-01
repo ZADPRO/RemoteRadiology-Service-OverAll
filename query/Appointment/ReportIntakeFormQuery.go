@@ -93,9 +93,10 @@ WHERE
   "refAppointmentId" = ?
 `
 
-var GetReportHistorySQL = `
+var GetReportHistoryFullSQL = `
 SELECT
   f."refUserFirstName" AS "HandleUserName",
+  f."refRTId" AS "HandlerRTId",
   rrh.*
 FROM
   notes."refReportsHistory" rrh
@@ -103,6 +104,22 @@ FROM
 WHERE
   rrh."refAppointmentId" = ?
   AND (rrh."refRHHandleStatus" != 'technologistformfill' OR rrh."refRHHandleStatus" IS NULL)
+ORDER BY
+  rrh."refRHId" ASC;
+`
+
+var GetReportHistorySQL = `
+SELECT
+  f."refUserFirstName" AS "HandleUserName",
+  f."refRTId" AS "HandlerRTId",
+  rrh.*
+FROM
+  notes."refReportsHistory" rrh
+  JOIN public."Users" f ON f."refUserId" = rrh."refRHHandledUserId"
+WHERE
+  rrh."refAppointmentId" = ?
+  AND (rrh."refRHHandleStatus" != 'technologistformfill' OR rrh."refRHHandleStatus" IS NULL)
+  AND f."refRTId" IN (1, 2, 3, 5, 8, 10)
 ORDER BY
   rrh."refRHId" ASC;
 `
@@ -293,12 +310,13 @@ var CheckLatestReportSQL = `
 SELECT
   *
 FROM
-  notes."refReportsHistory"
+  notes."refReportsHistory" rrh
+  JOIN public."Users" u ON u."refUserId" = rrh."refUserId"
 WHERE
-  "refAppointmentId" = ?
-  AND "refUserId" = ?
+  rrh."refAppointmentId" = ?
+  AND rrh."refUserId" = ?
 ORDER BY
-  "refRHId" DESC
+  rrh."refRHId" DESC
 `
 
 var TechInsertReportHistorySQL = `
@@ -392,6 +410,15 @@ WHERE
   AND "refUserId" = ?
 `
 
+var AddedumCountSQL = `
+SELECT
+  count(*) AS count
+FROM
+  notes."refAddendum"
+WHERE
+  "refAppointmentId" = $1
+`
+
 var ScribeCompleteReportAppointmentSQL = `
 UPDATE
   appointment."refAppointments"
@@ -453,17 +480,51 @@ INSERT INTO
     "refRFStatus"
   )
 VALUES
-  (?, ?, ?, ?, true)
-  RETURNING "refRFId"
+  ($1, $2, $3, $4, true)
+RETURNING
+  "refRFId",
+  (
+    SELECT
+      "refUserCustId"
+    FROM
+      public."Users"
+    WHERE
+      "refUserId" = $4
+  );
+`
+
+var GetReportFormateAllListSQL = `
+SELECT
+  u."refUserCustId",
+  rrf.*
+FROM
+  notes."refReportFormate" rrf
+  JOIN public."Users" u ON u."refUserId" = rrf."refRFCreatedBy"
+WHERE
+  rrf."refRFStatus" = true
+  ORDER BY
+  rrf."refRFId" DESC
 `
 
 var GetReportFormateListSQL = `
 SELECT
-  *
+  u."refUserCustId",
+  rrf.*
 FROM
-  notes."refReportFormate"
+  notes."refReportFormate" rrf
+  JOIN public."Users" u ON u."refUserId" = rrf."refRFCreatedBy"
 WHERE
-  "refRFStatus" = true
+  rrf."refRFStatus" = true
+  AND rrf."refRFCreatedBy" = ?
+  ORDER BY
+  rrf."refRFId" DESC
+`
+
+var DeleteReportTemplateSQL = `
+UPDATE notes."refReportFormate"
+SET 
+  "refRFStatus" = false
+WHERE "refRFId" = $1;
 `
 
 var GetOneReportFormateListSQL = `
@@ -528,7 +589,7 @@ FROM
 WHERE
   rrh."refUserId" = ?
   AND rrh."refAppointmentId" = ?
-  AND u."refRTId" = ?
+  AND u."refRTId" IN ?
 ORDER BY
   rrh."refRHId" DESC
 `
@@ -541,6 +602,21 @@ SET
   "refRHHandleEdit" = ?
 WHERE
   "refRHId" = ?
+`
+
+var UpdateHandlerCorrectEditIdSQL = `
+UPDATE notes."refReportsHistory"
+SET
+  "refRHHandleCorrect" = $1,
+  "refRHHandleEdit" = $2
+WHERE "refRHId" = (
+  SELECT "refRHId"
+  FROM notes."refReportsHistory"
+  WHERE "refRHHandledUserId" = $3
+    AND "refAppointmentId" = $4
+  ORDER BY "refRHId" DESC
+  LIMIT 1
+);
 `
 
 var GetPatientData = `
@@ -903,4 +979,303 @@ SET
 WHERE
   "refAppointmentId" = ?
   AND "refUserId" = ?
+`
+
+var UpdateAutosavePatientHistorySyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTPatientHistorySyncStatus" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveBreastImplantSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTBreastImplantSyncStatus" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveSymmetrySyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTSymmetrySyncStatus" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveBreastDensitySyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTBreastDensityandImageRightSyncStatus" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveNippleAreolaSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTNippleAreolaSkinRightSyncStatus" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveGlandularSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTGrandularAndDuctalTissueRightSyncStatus" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveLymphNodesSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTLymphNodesRightSyncStatus" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveLesionsSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTLesionsRightSyncStatus" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveComparisonPriorSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTComparisonPriorSyncStatus" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveBreastDensityLeftSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTBreastDensityandImageLeftSyncStatus" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveNippleAreolaLeftSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTNippleAreolaSkinLeftSyncStatus" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveGlandularLeftSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTGrandularAndDuctalTissueLeftSyncStatus" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveLymphNodesLeftSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTLymphNodesLeftSyncStatus" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveLesionsLeftSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTLesionsLeftSyncStatus" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveComparisonPriorLeftSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTComparisonPriorLeftSyncStatus" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveBreastImplantReportTextSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTBreastImplantReportText" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveSymmetryReportTextSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTSymmetryReportText" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveBreastDensityReportTextSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTBreastDensityandImageRightReportText" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveNippleAreolaReportTextSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTNippleAreolaSkinRightReportText" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveLesionsReportTextTextSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTLesionsRightReportText" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveComparisonPriorReportTextSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTComparisonPriorReportText" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveGrandularAndDuctalTissueReportTextSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTGrandularAndDuctalTissueRightReportText" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveLymphNodesReportTextSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTLymphNodesRightReportText" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveBreastDensityReportTextLeftSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTBreastDensityandImageLeftReportText" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveNippleAreolaReportTextLeftSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTNippleAreolaSkinLeftReportText" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveLesionsReportTextLeftSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTLesionsLeftReportText" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveComparisonPriorReportTextLeftSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTComparisonPriorLeftReportText" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveGrandularAndDuctalTissueReportTextLeftSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTGrandularAndDuctalTissueLeftReportText" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateAutosaveLymphNodesReportTextLeftSyncSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTLymphNodesLeftReportText" = ?
+WHERE
+  "refAppointmentId" = ?
+  AND "refUserId" = ?
+`
+
+var UpdateReportAppointmentSQL = `
+UPDATE
+  appointment."refAppointments"
+SET
+  "refAppointmentComplete" = $1
+WHERE
+  "refAppointmentId" = $2
 `

@@ -37,7 +37,7 @@ type DoctorRegisterReq struct {
 	Specialization              string                   `json:"Specialization" mapstructure:"Specialization"`
 	NPI                         string                   `json:"npi" mapstructure:"npi"`
 	MedicalLicenseSecurity      []MedicalLicenseSecurity `json:"medical_license_security" binding:"required" mapstructure:"medical_license_security"`
-	LicenseFiles                []LicenseFiles           `json:"license_files" binding:"required" mapstructure:"license_files"`
+	LicenseFiles                []LicenseFiles           `json:"license_files" mapstructure:"license_files"`
 	MalpracticeInsuranceDetails []MalpracticeInsureance  `json:"malpracticeinsureance_files" mapstructure:"malpracticeinsureance_files"`
 	DigitalSignature            string                   `json:"digital_signature" mapstructure:"digital_signature"`
 	ScanCenterId                int                      `json:"refSCId" binding:"required"  mapstructure:"refSCId"`
@@ -131,7 +131,7 @@ type UpdateDoctorReq struct {
 	Specialization              string                              `json:"Specialization" mapstructure:"Specialization"`
 	NPI                         string                              `json:"npi" mapstructure:"npi"`
 	MedicalLicenseSecurity      []UpdateMedicalLicenseSecurityModel `json:"medical_license_security" binding:"required" mapstructure:"medical_license_security"`
-	LicenseFiles                []UpdateLicenseFiles                `json:"license_files" binding:"required" mapstructure:"license_files"`
+	LicenseFiles                []UpdateLicenseFiles                `json:"license_files" mapstructure:"license_files"`
 	MalpracticeInsuranceDetails []UpdateMalpracticeInsureanceFiles  `json:"malpracticeinsureance_files" mapstructure:"malpracticeinsureance_files"`
 	DigitalSignature            string                              `json:"digital_signature" mapstructure:"digital_signature"`
 	EaseQTReportAccess          bool                                `json:"easeQTReportAccess" binding:"required" mapstructure:"easeQTReportAccess"`

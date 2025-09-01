@@ -43,6 +43,20 @@ type Artificates struct {
 	Bothartifacts  int `json:"bothartifacts" gorm:"column:bothartifacts"`
 }
 
+type OverAllScancenterAnalaytics struct {
+	SCId                   int    `json:"refSCId" gorm:"column:refSCId"`
+	SCCustId               string `json:"refSCCustId" gorm:"column:refSCCustId"`
+	TotalCase              int    `json:"totalcase" gorm:"column:totalcase"`
+	TotalSForm             int    `json:"totalsform" gorm:"column:totalsform"`
+	TotalDaForm            int    `json:"totaldaform" gorm:"column:totaldaform"`
+	TotalDbForm            int    `json:"totaldbform" gorm:"column:totaldbform"`
+	TotalDcForm            int    `json:"totaldcform" gorm:"column:totaldcform"`
+	TechArtificatsLeft     int    `json:"techartificatsleft" gorm:"column:techartificatsleft"`
+	TechArtificateRight    int    `json:"techartificatsright" gorm:"column:techartificatsright"`
+	ReportArtificatesLeft  int    `json:"reportartificatsleft" gorm:"column:reportartificatsleft"`
+	ReportArtificatesRight int    `json:"reportartificatsright" gorm:"column:reportartificatsright"`
+}
+
 type AdminOverallAnalyticsResponse struct {
 	AdminScanCenterModel                     []AdminScanCenterModel
 	AdminOverallScanIndicatesAnalayticsModel []AdminOverallScanIndicatesAnalayticsModel
@@ -51,6 +65,7 @@ type AdminOverallAnalyticsResponse struct {
 	ImpressionModel                          []ImpressionModel
 	TechArtificats                           []Artificates
 	ReportArtificats                         []Artificates
+	OverAllScancenterAnalaytics              []OverAllScancenterAnalaytics
 }
 
 type ListScanAppointmentCountModel struct {
@@ -102,4 +117,22 @@ type OneUserReponse struct {
 	DurationBucketModel                      []DurationBucketModel
 	TechArtificats                           []Artificates
 	ReportArtificats                         []Artificates
+	OverAllAnalaytics                        []UsersOverAllAnalyticsModel
+}
+
+type UsersOverAllAnalyticsModel struct {
+	UserId                 int     `json:"refUserId" gorm:"column:refUserId"`
+	UserCustId             string  `json:"refUserCustId" gorm:"column:refUserCustId"`
+	TotalCase              int     `json:"totalcase" gorm:"column:totalcase"`
+	TotalSForm             int     `json:"totalsform" gorm:"column:totalsform"`
+	TotalDaForm            int     `json:"totaldaform" gorm:"column:totaldaform"`
+	TotalDbForm            int     `json:"totaldbform" gorm:"column:totaldbform"`
+	TotalDcForm            int     `json:"totaldcform" gorm:"column:totaldcform"`
+	TechArtificatsLeft     int     `json:"techartificatsleft" gorm:"column:techartificatsleft"`
+	TechArtificateRight    int     `json:"techartificatsright" gorm:"column:techartificatsright"`
+	ReportArtificatesLeft  int     `json:"reportartificatsleft" gorm:"column:reportartificatsleft"`
+	ReportArtificatesRight int     `json:"reportartificatsright" gorm:"column:reportartificatsright"`
+	TotalTiming            float64 `json:"totaltiming" gorm:"column:totaltiming"`
+	TotalReportCorrect     int     `json:"totalreportcorrect" gorm:"column:totalreportcorrect"`
+	TotalReportEdit        int     `json:"totalreportedit" gorm:"column:totalreportedit"`
 }

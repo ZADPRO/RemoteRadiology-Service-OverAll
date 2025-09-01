@@ -24,6 +24,7 @@ type ScanCenterModel struct {
 	Email               string `json:"refSCEmail" gorm:"column:refSCEmail"`
 	Website             string `json:"refSCWebsite" gorm:"column:refSCWebsite"`
 	Appointments        bool   `json:"refSCAppointments" gorm:"column:refSCAppointments"`
+	SCStatus            bool   `json:"refSCStatus" gorm:"column:refSCStatus"`
 }
 
 func (ScanCenterModel) TableName() string {
@@ -39,4 +40,5 @@ type UpdateScanCentertReq struct {
 	Telephone    string `json:"telephone" binding:"required" mapstructure:"telephone"`
 	Logo         string `json:"logo" binding:"required" mapstructure:"logo"`
 	Appointments bool   `json:"appointments" mapstructure:"appointments"`
+	Status       bool   `json:"status" mapstructure:"status"`
 }

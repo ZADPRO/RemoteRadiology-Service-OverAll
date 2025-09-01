@@ -21,6 +21,7 @@ func InitReportIntakeFormRoutes(router *gin.Engine) {
 	route.POST("/autosaveReport", accesstoken.JWTMiddleware(), controllers.AutosaveController())
 	route.POST("/updateRemarks", accesstoken.JWTMiddleware(), controllers.UpdateRemarksController())
 	route.POST("/uploadReportFormate", accesstoken.JWTMiddleware(), controllers.UploadReportFormateController())
+	route.POST("/deleteReportFormate", accesstoken.JWTMiddleware(), controllers.DeleteReportFormateController())
 	route.POST("/getReportFormate", accesstoken.JWTMiddleware(), controllers.GetReportFormateController())
 	route.POST("/listremark", accesstoken.JWTMiddleware(), controllers.ListRemarkController())
 	route.POST("/sendMail", accesstoken.JWTMiddleware(), controllers.SendMailReportController())
