@@ -15,4 +15,5 @@ func InitIntakeFormRoutes(router *gin.Engine) {
 	route.POST("/update", accesstoken.JWTMiddleware(), controllers.UpdateIntakeFormController())
 	route.POST("/getReportData", accesstoken.JWTMiddleware(), controllers.GetReportDataController())
 	route.POST("/getConsentData", accesstoken.JWTMiddleware(), controllers.GetConsentDataController())
+	route.POST("/allowoverride", accesstoken.JWTMiddleware(), controllers.AllowOverrideController())
 }

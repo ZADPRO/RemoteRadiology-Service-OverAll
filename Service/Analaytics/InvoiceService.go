@@ -299,3 +299,28 @@ func GetInvoiceHistoryService(db *gorm.DB, reqVal model.GetInvoiceHistoryReq, id
 
 	return invoiceHistory, invoiceHistoryTakenDate
 }
+
+func GetInvoiceOverAllHistoryService(db *gorm.DB, reqVal model.GetInvoiceOverAllHistoryReq, roleIdValue int) []model.InvoiceHistoryOverAll {
+	log := logger.InitLogger()
+
+	//Get OverAll Invoice
+	var AllInvoiceModel []model.InvoiceHistoryOverAll
+
+	var FromDate = ""
+	if len(reqVal.FromDate) > 0 {
+		FromDate = reqVal.FromDate + " 00:00:00"
+	}
+	var ToDate = ""
+	if len(reqVal.ToDate) > 0 {
+		ToDate = reqVal.ToDate + " 23:59:59"
+	}
+
+	AllInvoiceErr := db.Raw(query.GetInvoiceOverAllHistorySQL, roleIdValue, FromDate, ToDate).Scan(&AllInvoiceModel).Error
+	if AllInvoiceErr != nil {
+		log.Fatal(AllInvoiceErr.Error())
+		return []model.InvoiceHistoryOverAll{}
+	}
+
+	return AllInvoiceModel
+
+}

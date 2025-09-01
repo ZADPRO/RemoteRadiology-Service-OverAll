@@ -256,8 +256,6 @@ func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int, roleIdValue int
 			StaffAvailable[i].Username = hashdb.Decrypt(data.Username)
 		}
 
-		fmt.Println("##################", roleIdValue)
-
 		if roleIdValue == 1 || roleIdValue == 10 {
 			FinalStaffAvailable = StaffAvailable
 		} else if roleIdValue == 2 || roleIdValue == 3 || roleIdValue == 5 || roleIdValue == 8 {
@@ -269,6 +267,12 @@ func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int, roleIdValue int
 		} else if roleIdValue == 6 || roleIdValue == 7 {
 			for _, data := range StaffAvailable {
 				if data.RoleId == 10 || data.RoleId == 6 || data.RoleId == 7 {
+					FinalStaffAvailable = append(FinalStaffAvailable, data)
+				}
+			}
+		} else if roleIdValue == 9 {
+			for _, data := range StaffAvailable {
+				if data.RoleId == 10 || data.RoleId == 6 || data.RoleId == 7 || data.RoleId == 1 {
 					FinalStaffAvailable = append(FinalStaffAvailable, data)
 				}
 			}

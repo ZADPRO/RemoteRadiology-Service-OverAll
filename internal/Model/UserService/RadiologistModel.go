@@ -28,17 +28,17 @@ type RadiologistRegisterReq struct {
 	PhoneNoCountryCode     string                   `json:"phoneCountryCode" binding:"required" mapstructure:"phoneCountryCode"`
 	PhoneNo                string                   `json:"phone" binding:"required" mapstructure:"phone"`
 	Email                  string                   `json:"email" binding:"required" mapstructure:"email"`
-	MBBSRegisterNumber     string                   `json:"mbbs_register_number" binding:"required" mapstructure:"mbbs_register_number"`
-	MDRegisterNumber       string                   `json:"md_register_number" binding:"required" mapstructure:"md_register_number"`
-	Specialization         string                   `json:"specialization" binding:"required" mapstructure:"specialization"`
+	MBBSRegisterNumber     string                   `json:"mbbs_register_number" mapstructure:"mbbs_register_number"`
+	MDRegisterNumber       string                   `json:"md_register_number" mapstructure:"md_register_number"`
+	Specialization         string                   `json:"specialization" mapstructure:"specialization"`
 	Pan                    string                   `json:"pan" binding:"required" mapstructure:"pan"`
 	Aadhar                 string                   `json:"aadhar" binding:"required" mapstructure:"aadhar"`
 	DriversLicense         string                   `json:"drivers_license" mapstructure:"drivers_license"`
 	MedicalLicenseSecurity []MedicalLicenseSecurity `json:"medical_license_security" binding:"required" mapstructure:"medical_license_security"`
-	MalPracticeInsureance  []MalPracticeInsureance  `json:"malpracticeinsureance_files" binding:"required" mapstructure:"malpracticeinsureance_files"`
-	CVFiles                []CVFiles                `json:"cv_files" binding:"required" mapstructure:"cv_files"`
-	LicenseFiles           []LicenseFiles           `json:"license_files" binding:"required" mapstructure:"license_files"`
-	DigitalSignature       string                   `json:"digital_signature" binding:"required" mapstructure:"digital_signature"`
+	MalPracticeInsureance  []MalPracticeInsureance  `json:"malpracticeinsureance_files" mapstructure:"malpracticeinsureance_files"`
+	CVFiles                []CVFiles                `json:"cv_files" mapstructure:"cv_files"`
+	LicenseFiles           []LicenseFiles           `json:"license_files" mapstructure:"license_files"`
+	DigitalSignature       string                   `json:"digital_signature" mapstructure:"digital_signature"`
 }
 
 type CreateRadiologyModel struct {
@@ -141,17 +141,17 @@ type UpdateRadiologistReq struct {
 	PhoneNoCountryCode          string                              `json:"phoneCountryCode" binding:"required" mapstructure:"phoneCountryCode"`
 	PhoneNo                     string                              `json:"phone" binding:"required" mapstructure:"phone"`
 	Email                       string                              `json:"email" binding:"required" mapstructure:"email"`
-	MBBSRegisterNumber          string                              `json:"mbbs_register_number" binding:"required" mapstructure:"mbbs_register_number"`
-	MDRegisterNumber            string                              `json:"md_register_number" binding:"required" mapstructure:"md_register_number"`
-	Specialization              string                              `json:"specialization" binding:"required" mapstructure:"specialization"`
+	MBBSRegisterNumber          string                              `json:"mbbs_register_number" mapstructure:"mbbs_register_number"`
+	MDRegisterNumber            string                              `json:"md_register_number" mapstructure:"md_register_number"`
+	Specialization              string                              `json:"specialization" mapstructure:"specialization"`
 	Pan                         string                              `json:"pan" binding:"required" mapstructure:"pan"`
 	Aadhar                      string                              `json:"aadhar" binding:"required" mapstructure:"aadhar"`
-	DriversLicense              string                              `json:"drivers_license" binding:"required" mapstructure:"drivers_license"`
-	DigitalSignature            string                              `json:"digital_signature" binding:"required" mapstructure:"digital_signature"`
-	MedicalLicenseSecurity      []UpdateMedicalLicenseSecurityModel `json:"medical_license_security" binding:"required" mapstructure:"medical_license_security"`
-	MalpracticeInsuranceDetails []UpdateMalpracticeInsureanceFiles  `json:"malpracticeinsureance_files" binding:"required" mapstructure:"malpracticeinsureance_files"`
-	CVFiles                     []UpdateCVFiles                     `json:"cv_files" binding:"required" mapstructure:"cv_files"`
-	LicenseFiles                []UpdateLicenseFiles                `json:"license_files" binding:"required" mapstructure:"license_files"`
+	DriversLicense              string                              `json:"drivers_license" mapstructure:"drivers_license"`
+	DigitalSignature            string                              `json:"digital_signature" mapstructure:"digital_signature"`
+	MedicalLicenseSecurity      []UpdateMedicalLicenseSecurityModel `json:"medical_license_security" mapstructure:"medical_license_security"`
+	MalpracticeInsuranceDetails []UpdateMalpracticeInsureanceFiles  `json:"malpracticeinsureance_files" mapstructure:"malpracticeinsureance_files"`
+	CVFiles                     []UpdateCVFiles                     `json:"cv_files" mapstructure:"cv_files"`
+	LicenseFiles                []UpdateLicenseFiles                `json:"license_files" mapstructure:"license_files"`
 	Status                      bool                                `json:"status" mapstructure:"status"`
 }
 

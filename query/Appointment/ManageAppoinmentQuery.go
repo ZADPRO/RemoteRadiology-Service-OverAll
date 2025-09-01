@@ -23,7 +23,23 @@ WHERE
 
 var ViewPatientHistorySQL = `
 SELECT
-  *
+ DISTINCT
+  ON (ra."refAppointmentId") COALESCE(
+    (
+      SELECT
+        "refApprovedStatus"
+      FROM
+        notes."refOverRide" rrd
+      WHERE
+        rrd."refAppointmentId" = ra."refAppointmentId"
+      ORDER BY
+        rrd."refOVId" DESC -- pick latest if multiple
+      LIMIT
+        1
+    ),
+    'success'
+  ) AS "refOverrideStatus",
+  ra.*
 FROM
   appointment."refAppointments" ra
   JOIN public."ScanCenter" sc ON sc."refSCId" = ra."refSCId"
@@ -33,6 +49,22 @@ WHERE
 
 var ViewTechnicianPatientQueueSQL = `
 SELECT
+DISTINCT
+  ON (ra."refAppointmentId") COALESCE(
+    (
+      SELECT
+        "refApprovedStatus"
+      FROM
+        notes."refOverRide" rrd
+      WHERE
+        rrd."refAppointmentId" = ra."refAppointmentId"
+      ORDER BY
+        rrd."refOVId" DESC -- pick latest if multiple
+      LIMIT
+        1
+    ),
+    'success'
+  ) AS "refOverrideStatus",
   u."refUserCustId",
   u."refUserFirstName",
   u."refUserId",
@@ -60,6 +92,22 @@ WHERE
 
 var ViewAllPatientQueueSQL = `
 SELECT
+DISTINCT
+  ON (ra."refAppointmentId") COALESCE(
+    (
+      SELECT
+        "refApprovedStatus"
+      FROM
+        notes."refOverRide" rrd
+      WHERE
+        rrd."refAppointmentId" = ra."refAppointmentId"
+      ORDER BY
+        rrd."refOVId" DESC -- pick latest if multiple
+      LIMIT
+        1
+    ),
+    'success'
+  ) AS "refOverrideStatus",
   u."refUserCustId",
   u."refUserFirstName",
   u."refUserId",

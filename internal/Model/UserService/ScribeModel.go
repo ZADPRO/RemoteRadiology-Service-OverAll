@@ -11,7 +11,7 @@ type ScribeRegisterReq struct {
 	DriversLicense       string                      `json:"drivers_license" binding:"required" mapstructure:"drivers_license"`
 	Pan                  string                      `json:"pan" binding:"required" mapstructure:"pan"`
 	Aadhar               string                      `json:"aadhar" binding:"required" mapstructure:"aadhar"`
-	EducationCertificate []EducationCertificateFiles `json:"education_certificate" binding:"required" mapstructure:"education_certificate"`
+	EducationCertificate []EducationCertificateFiles `json:"education_certificate" mapstructure:"education_certificate"`
 }
 
 type CreateScribeDomainModel struct {
@@ -55,7 +55,7 @@ type UpdateScribeReq struct {
 	Pan                  string                            `json:"pan" binding:"required" mapstructure:"pan"`
 	Aadhar               string                            `json:"aadhar" binding:"required" mapstructure:"aadhar"`
 	DriversLicense       string                            `json:"drivers_license" binding:"required" mapstructure:"drivers_license"`
-	EducationCertificate []UpdateEducationCertificateFiles `json:"education_certificate" binding:"required" mapstructure:"education_certificate"`
+	EducationCertificate []UpdateEducationCertificateFiles `json:"education_certificate" mapstructure:"education_certificate"`
 	Status               bool                              `json:"status" binding:"required" mapstructure:"status"`
 }
 

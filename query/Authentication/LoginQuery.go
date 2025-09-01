@@ -2,6 +2,7 @@ package query
 
 var LoginAdminSQL = `
 SELECT
+  sc."refSCStatus",
   u."refUserId",
   u."refUserCustId",
   u."refRTId",
@@ -18,11 +19,15 @@ FROM
   JOIN userdomain."refAuthDomain" rad ON rad."refUserId" = u."refUserId"
   JOIN userdomain."refCommunicationDomain" rcd ON rcd."refUserId" = u."refUserId"
   JOIN public."RoleType" rt ON rt."refRTId" = u."refRTId"
+  FULL JOIN map."refScanCenterMap" rscm ON rscm."refUserId" = u."refUserId"
+  FULL JOIN public."ScanCenter" sc ON sc."refSCId" = rscm."refSCId"
 WHERE
-  (
-    rcd."refCODOEmail" = $1
-  )
-  AND u."refUserStatus" = true;
+  (rcd."refCODOEmail" = $1)
+  AND u."refUserStatus" = true
+  AND (
+    sc."refSCStatus" IS NULL
+    OR sc."refSCStatus" = true
+  );
 `
 
 var DeleteOTPSQL = `

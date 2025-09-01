@@ -14,4 +14,5 @@ func InitInvoiceRoutes(router *gin.Engine) {
 	route.POST("/getInvoiceData", accesstoken.JWTMiddleware(), controllers.GetInvoiceDataController())
 	route.POST("/generteInvoice", accesstoken.JWTMiddleware(), controllers.GenerateInvoiceDataController())
 	route.POST("/getInvoiceHistory", accesstoken.JWTMiddleware(), controllers.GetInvoiceHistoryController())
+	route.POST("/getOverallInvoiceHistory", accesstoken.JWTMiddleware(), controllers.GetInvoiceOverAllHistoryController())
 }

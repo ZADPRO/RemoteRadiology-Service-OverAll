@@ -97,6 +97,11 @@ type GetViewReportReq struct {
 	AppointmentId []int `json:"appintmentId" binding:"required"  mapstructure:"appintmentId"`
 }
 
+type GetOverRideReportReq struct {
+	AppointmentId int `json:"appintmentId" binding:"required"  mapstructure:"appintmentId"`
+}
+
+
 type GetViewConsentResponse struct {
 	AppointmentId      int    `json:"refAppointmentId" gorm:"column:refAppointmentId"`
 	AppointmentConsent string `json:"refAppointmentConsent" gorm:"column:refAppointmentConsent"`

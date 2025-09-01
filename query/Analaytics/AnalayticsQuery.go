@@ -88,6 +88,15 @@ FROM (
 ) AS stats;
 `
 
+var FindSCIdSQL = `
+SELECT
+  "refSCId" as "ScancenterId"
+FROM
+  map."refScanCenterMap"
+WHERE
+  "refUserId" = $1
+`
+
 var GetAllScanCenter = `
 SELECT
   *
@@ -249,8 +258,17 @@ SELECT
 FROM
   notes."refReportsHistory" rrh
 WHERE
-  rrh."refRHHandledUserId" = ?
+  rrh."refRHHandledUserId" = $1
   AND rrh."refRHHandleEndTime" IS NOT NULL
+  AND rrh."refRHHandleStartTime" IS NOT NULL
+  AND TO_TIMESTAMP(
+    rrh."refRHHandleStartTime",
+    'YYYY-MM-DD HH24:MI:SS'
+  ) >= $2
+  AND TO_TIMESTAMP(
+    rrh."refRHHandleStartTime",
+    'YYYY-MM-DD HH24:MI:SS'
+  ) <= $3
 GROUP BY
   rrh."refRHHandledUserId";
 `
@@ -342,12 +360,15 @@ WITH
       latest_report_history rrh
       JOIN appointment."refAppointments" ra
         ON ra."refAppointmentId" = rrh."refAppointmentId"
+      JOIN public."Users" rrhu 
+        ON rrh."refRHHandledUserId" = rrhu."refUserId"
     WHERE
       ra."refAppointmentDate" >= ?
-      AND ra."refAppointmentDate" <= ? 
+      AND ra."refAppointmentDate" <= ?
       AND (
         ? = 0 OR ra."refSCId" = ?
       )
+      AND ( ? = FALSE OR rrhu."refRTId" IN (1, 6, 7, 10) )
     GROUP BY
       ra."refAppointmentImpression"
   ),
@@ -368,7 +389,8 @@ SELECT
   COALESCE(ac.count, 0) AS count
 FROM
   expected_impressions ei
-  LEFT JOIN actual_counts ac ON ei.impression = ac.impression
+  LEFT JOIN actual_counts ac 
+    ON ei.impression = ac.impression
 ORDER BY
   ei.impression;
 `
@@ -637,3 +659,451 @@ FROM (
 JOIN appointment."refAppointments" ra 
   ON ra."refAppointmentId" = uniq."refAppointmentId";
 `
+
+var TotalUserCountAnalaytics6monthSQL = `
+WITH
+  months AS (
+    SELECT
+      TO_CHAR(date_trunc('month', CURRENT_DATE) - INTERVAL '1 month' * n, 'YYYY-MM') AS month,
+      TO_CHAR(date_trunc('month', CURRENT_DATE) - INTERVAL '1 month' * n, 'Month') AS month_name
+    FROM
+      generate_series(0, 5) AS n
+  ),
+  appointment_counts AS (
+    SELECT
+      TO_CHAR(TO_TIMESTAMP("refRHHandleStartTime", 'YYYY-MM-DD HH24:MI:SS'), 'YYYY-MM') AS month,
+      COUNT(DISTINCT "refAppointmentId") AS total
+    FROM
+      notes."refReportsHistory"
+    WHERE
+      TO_TIMESTAMP("refRHHandleStartTime", 'YYYY-MM-DD HH24:MI:SS') >= date_trunc('month', CURRENT_DATE) - INTERVAL '6 months'
+    GROUP BY
+      month
+  )
+SELECT
+  m.month,
+  TRIM(m.month_name) AS month_name,
+  COALESCE(a.total, 0) AS total_appointments
+FROM
+  months m
+  LEFT JOIN appointment_counts a ON m.month = a.month
+ORDER BY
+  m.month;
+`
+
+var GetUsers6MonthTotalCountSQL = `
+WITH
+  months AS (
+    SELECT
+      TO_CHAR(
+        date_trunc('month', CURRENT_DATE) - INTERVAL '1 month' * n,
+        'YYYY-MM'
+      ) AS month,
+      TO_CHAR(
+        date_trunc('month', CURRENT_DATE) - INTERVAL '1 month' * n,
+        'Month'
+      ) AS month_name,
+      date_trunc('month', CURRENT_DATE) - INTERVAL '1 month' * n AS month_start,
+      (
+        date_trunc('month', CURRENT_DATE) - INTERVAL '1 month' * n + INTERVAL '1 month - 1 day'
+      )::date AS month_end
+    FROM
+      generate_series(0, 5) AS n
+  ),
+  appointment_counts AS (
+    SELECT
+      TO_CHAR(
+        TO_TIMESTAMP(a."refAppointmentDate", 'YYYY-MM-DD HH24:MI:SS'),
+        'YYYY-MM'
+      ) AS month,
+      COUNT(DISTINCT a."refAppointmentId") AS total,
+      COUNT(
+        CASE
+          WHEN a."refCategoryId" = 1 THEN 1
+        END
+      ) AS "SForm",
+      COUNT(
+        CASE
+          WHEN a."refCategoryId" = 2 THEN 1
+        END
+      ) AS "DaForm",
+      COUNT(
+        CASE
+          WHEN a."refCategoryId" = 3 THEN 1
+        END
+      ) AS "DbForm",
+      COUNT(
+        CASE
+          WHEN a."refCategoryId" = 4 THEN 1
+        END
+      ) AS "DcForm"
+    FROM
+      appointment."refAppointments" a
+    WHERE
+      TO_TIMESTAMP(a."refAppointmentDate", 'YYYY-MM-DD HH24:MI:SS')
+        >= date_trunc('month', CURRENT_DATE) - INTERVAL '6 months'
+      AND (
+        $1 = 0
+        OR a."refSCId" = $1
+      )
+    GROUP BY
+      month
+  )
+SELECT
+  m.month,
+  TRIM(m.month_name) AS month_name,
+  COALESCE(a.total, 0) AS total_appointments,
+  COALESCE(a."SForm", 0) AS "SForm",
+  COALESCE(a."DaForm", 0) AS "DaForm",
+  COALESCE(a."DbForm", 0) AS "DbForm",
+  COALESCE(a."DcForm", 0) AS "DcForm"
+FROM
+  months m
+  LEFT JOIN appointment_counts a ON m.month = a.month
+ORDER BY
+  m.month;
+`
+
+var TotoalUserAnalayticsSQL = `
+SELECT
+  u."refUserId",
+  u."refUserCustId",
+  (
+    SELECT
+      COUNT(DISTINCT rrh."refAppointmentId")
+    FROM
+      notes."refReportsHistory" rrh
+    WHERE
+      rrh."refRHHandledUserId" = u."refUserId"
+      AND rrh."refRHHandleStartTime" != ''
+      AND rrh."refRHHandleStartTime" IS NOT NULL
+      AND rrh."refRHHandleStartTime"::timestamp >= $1
+      AND rrh."refRHHandleStartTime"::timestamp <= $2
+  ) AS "totalcase",
+  (
+    SELECT
+      COUNT(
+        DISTINCT CASE
+          WHEN ra."refCategoryId" = 1 THEN rrh."refAppointmentId"
+        END
+      ) AS category_count
+    FROM
+      notes."refReportsHistory" rrh
+      JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+    WHERE
+      rrh."refRHHandledUserId" = u."refUserId"
+      AND rrh."refRHHandleStartTime" != ''
+      AND rrh."refRHHandleStartTime" IS NOT NULL
+      AND rrh."refRHHandleStartTime"::timestamp >= $1
+      AND rrh."refRHHandleStartTime"::timestamp <= $2
+  ) AS "totalsform",
+  (
+    SELECT
+      COUNT(
+        DISTINCT CASE
+          WHEN ra."refCategoryId" = 2 THEN rrh."refAppointmentId"
+        END
+      ) AS category_count
+    FROM
+      notes."refReportsHistory" rrh
+      JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+    WHERE
+      rrh."refRHHandledUserId" = u."refUserId"
+      AND rrh."refRHHandleStartTime" != ''
+      AND rrh."refRHHandleStartTime" IS NOT NULL
+      AND rrh."refRHHandleStartTime"::timestamp >= $1
+      AND rrh."refRHHandleStartTime"::timestamp <= $2
+  ) AS "totaldaform",
+  (
+    SELECT
+      COUNT(
+        DISTINCT CASE
+          WHEN ra."refCategoryId" = 3 THEN rrh."refAppointmentId"
+        END
+      ) AS category_count
+    FROM
+      notes."refReportsHistory" rrh
+      JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+    WHERE
+      rrh."refRHHandledUserId" = u."refUserId"
+      AND rrh."refRHHandleStartTime" != ''
+      AND rrh."refRHHandleStartTime" IS NOT NULL
+      AND rrh."refRHHandleStartTime"::timestamp >= $1
+      AND rrh."refRHHandleStartTime"::timestamp <= $2
+  ) AS "totaldaform",
+  (
+    SELECT
+      COUNT(
+        DISTINCT CASE
+          WHEN ra."refCategoryId" = 4 THEN rrh."refAppointmentId"
+        END
+      ) AS category_count
+    FROM
+      notes."refReportsHistory" rrh
+      JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+    WHERE
+      rrh."refRHHandledUserId" = u."refUserId"
+      AND rrh."refRHHandleStartTime" != ''
+      AND rrh."refRHHandleStartTime" IS NOT NULL
+      AND rrh."refRHHandleStartTime"::timestamp >= $1
+      AND rrh."refRHHandleStartTime"::timestamp <= $2
+  ) AS "totaldcform",
+  (
+    SELECT
+      COUNT(
+        DISTINCT CASE
+          WHEN ra."refAppointmentTechArtifactsLeft" = true THEN rrh."refAppointmentId"
+        END
+      ) AS category_count
+    FROM
+      notes."refReportsHistory" rrh
+      JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+    WHERE
+      rrh."refRHHandledUserId" = u."refUserId"
+      AND rrh."refRHHandleStartTime" != ''
+      AND rrh."refRHHandleStartTime" IS NOT NULL
+      AND rrh."refRHHandleStartTime"::timestamp >= $1
+      AND rrh."refRHHandleStartTime"::timestamp <= $2
+  ) AS "techartificatsleft",
+  (
+    SELECT
+      COUNT(
+        DISTINCT CASE
+          WHEN ra."refAppointmentTechArtifactsRight" = true THEN rrh."refAppointmentId"
+        END
+      ) AS category_count
+    FROM
+      notes."refReportsHistory" rrh
+      JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+    WHERE
+      rrh."refRHHandledUserId" = u."refUserId"
+      AND rrh."refRHHandleStartTime" != ''
+      AND rrh."refRHHandleStartTime" IS NOT NULL
+      AND rrh."refRHHandleStartTime"::timestamp >= $1
+      AND rrh."refRHHandleStartTime"::timestamp <= $2
+  ) AS "techartificatsright",
+  (
+    SELECT
+      COUNT(
+        DISTINCT CASE
+          WHEN ra."refAppointmentReportArtifactsLeft" = true THEN rrh."refAppointmentId"
+        END
+      ) AS category_count
+    FROM
+      notes."refReportsHistory" rrh
+      JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+    WHERE
+      rrh."refRHHandledUserId" = u."refUserId"
+      AND rrh."refRHHandleStartTime" != ''
+      AND rrh."refRHHandleStartTime" IS NOT NULL
+      AND rrh."refRHHandleStartTime"::timestamp >= $1
+      AND rrh."refRHHandleStartTime"::timestamp <= $2
+  ) AS "reportartificatsleft",
+  (
+    SELECT
+      COUNT(
+        DISTINCT CASE
+          WHEN ra."refAppointmentReportArtifactsRight" = true THEN rrh."refAppointmentId"
+        END
+      ) AS category_count
+    FROM
+      notes."refReportsHistory" rrh
+      JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+    WHERE
+      rrh."refRHHandledUserId" = u."refUserId"
+      AND rrh."refRHHandleStartTime" != ''
+      AND rrh."refRHHandleStartTime" IS NOT NULL
+      AND rrh."refRHHandleStartTime"::timestamp >= $1
+      AND rrh."refRHHandleStartTime"::timestamp <= $2
+  ) AS "reportartificatsright",
+  (
+    SELECT
+      ROUND(
+        SUM(
+          EXTRACT(
+            EPOCH
+            FROM
+              (
+                TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS') - TO_TIMESTAMP(
+                  rrh."refRHHandleStartTime",
+                  'YYYY-MM-DD HH24:MI:SS'
+                )
+              )
+          )
+        ) / 3600,
+        2
+      ) AS total_hours
+    FROM
+      notes."refReportsHistory" rrh
+    WHERE
+      rrh."refRHHandledUserId" = u."refUserId"
+      AND rrh."refRHHandleEndTime" IS NOT NULL
+      AND rrh."refRHHandleStartTime" != ''
+      AND rrh."refRHHandleStartTime" IS NOT NULL
+      AND rrh."refRHHandleStartTime"::timestamp >= $1
+      AND rrh."refRHHandleStartTime"::timestamp <= $2
+    GROUP BY
+      rrh."refRHHandledUserId"
+  ) AS "totaltiming",
+  (
+    SELECT
+      SUM(COALESCE("refRHHandleCorrect", 0)) AS "totalCorrect"
+    FROM
+      notes."refReportsHistory" rrh
+    WHERE
+      rrh."refRHHandledUserId" = u."refUserId"
+      AND rrh."refRHHandleStartTime" != ''
+      AND rrh."refRHHandleStartTime" IS NOT NULL
+      AND rrh."refRHHandleStartTime"::timestamp >= $1
+      AND rrh."refRHHandleStartTime"::timestamp <= $2
+  ) AS "totalreportcorrect",
+  (
+    SELECT
+      SUM(COALESCE("refRHHandleEdit", 0)) AS "totalCorrect"
+    FROM
+      notes."refReportsHistory" rrh
+    WHERE
+      rrh."refRHHandledUserId" = u."refUserId"
+      AND rrh."refRHHandleStartTime" != ''
+      AND rrh."refRHHandleStartTime" IS NOT NULL
+      AND rrh."refRHHandleStartTime"::timestamp >= $1
+      AND rrh."refRHHandleStartTime"::timestamp <= $2
+  ) AS "totalreportedit"
+FROM
+  public."Users" u
+  FULL JOIN map."refScanCenterMap" rscm ON rscm."refUserId" = u."refUserId"
+WHERE
+  u."refRTId" NOT IN (3, 4, 9)
+   AND (
+    $3 = 0
+    OR rscm."refSCId" = $3
+  )
+ORDER BY
+  u."refUserId";
+  `
+
+  var GetOverAllScanCenterList = `
+  SELECT
+  sc."refSCId",
+  sc."refSCCustId",
+  (
+    SELECT
+      COUNT(DISTINCT ra."refAppointmentId")
+    FROM
+      appointment."refAppointments" ra
+    WHERE
+      ra."refAppointmentDate"::timestamp >= $1
+      AND ra."refAppointmentDate"::timestamp <= $2
+  ) AS "totalcase",
+  (
+    SELECT
+      COUNT(
+        DISTINCT CASE
+          WHEN ra."refCategoryId" = 1 THEN ra."refAppointmentId"
+        END
+      ) AS category_count
+    FROM
+      appointment."refAppointments" ra
+    WHERE
+      ra."refAppointmentDate"::timestamp >= $1
+      AND ra."refAppointmentDate"::timestamp <= $2
+  ) AS "totalsform",
+  (
+    SELECT
+      COUNT(
+        DISTINCT CASE
+          WHEN ra."refCategoryId" = 2 THEN ra."refAppointmentId"
+        END
+      ) AS category_count
+    FROM
+      appointment."refAppointments" ra
+    WHERE
+      ra."refAppointmentDate"::timestamp >= $1
+      AND ra."refAppointmentDate"::timestamp <= $2
+  ) AS "totaldaform",
+  (
+    SELECT
+      COUNT(
+        DISTINCT CASE
+          WHEN ra."refCategoryId" = 3 THEN ra."refAppointmentId"
+        END
+      ) AS category_count
+    FROM
+      appointment."refAppointments" ra
+    WHERE
+      ra."refAppointmentDate"::timestamp >= $1
+      AND ra."refAppointmentDate"::timestamp <= $2
+  ) AS "totaldbform",
+  (
+    SELECT
+      COUNT(
+        DISTINCT CASE
+          WHEN ra."refCategoryId" = 4 THEN ra."refAppointmentId"
+        END
+      ) AS category_count
+    FROM
+      appointment."refAppointments" ra
+    WHERE
+      ra."refAppointmentDate"::timestamp >= $1
+      AND ra."refAppointmentDate"::timestamp <= $2
+  ) AS "totaldcform",
+  (
+    SELECT
+      COUNT(
+        DISTINCT CASE
+          WHEN ra."refAppointmentTechArtifactsLeft" = true THEN ra."refAppointmentId"
+        END
+      ) AS category_count
+    FROM
+      appointment."refAppointments" ra
+    WHERE
+      ra."refAppointmentDate"::timestamp >= $1
+      AND ra."refAppointmentDate"::timestamp <= $2
+  ) AS "techartificatsleft",
+  (
+    SELECT
+      COUNT(
+        DISTINCT CASE
+          WHEN ra."refAppointmentTechArtifactsRight" = true THEN ra."refAppointmentId"
+        END
+      ) AS category_count
+    FROM
+      appointment."refAppointments" ra
+    WHERE
+      ra."refAppointmentDate"::timestamp >= $1
+      AND ra."refAppointmentDate"::timestamp <= $2
+  ) AS "techartificatsright",
+  (
+    SELECT
+      COUNT(
+        DISTINCT CASE
+          WHEN ra."refAppointmentReportArtifactsLeft" = true THEN ra."refAppointmentId"
+        END
+      ) AS category_count
+    FROM
+      appointment."refAppointments" ra
+    WHERE
+      ra."refAppointmentDate"::timestamp >= $1
+      AND ra."refAppointmentDate"::timestamp <= $2
+  ) AS "reportartificatsleft",
+  (
+    SELECT
+      COUNT(
+        DISTINCT CASE
+          WHEN ra."refAppointmentReportArtifactsRight" = true THEN ra."refAppointmentId"
+        END
+      ) AS category_count
+    FROM
+      appointment."refAppointments" ra
+    WHERE
+      ra."refAppointmentDate"::timestamp >= $1
+      AND ra."refAppointmentDate"::timestamp <= $2
+  ) AS "reportartificatsright"
+FROM
+  public."ScanCenter" sc
+WHERE
+  (
+    $3 = 0
+    OR sc."refSCId" = $3
+  )
+  `

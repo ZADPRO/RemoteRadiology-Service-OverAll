@@ -121,6 +121,52 @@ SELECT
 FROM generate_series(1, 133) gs;
 `
 
+var InsertNewReportTextContentSQL = `
+INSERT INTO notes."refReportsTextContent" (
+    "refUserId",
+    "refAppointmentId",
+    "refRTCreatedAt",
+    "refRTCreatedBy",
+    "refRTSyncStatus",
+    "refRTPatientHistorySyncStatus",
+    "refRTBreastImplantSyncStatus",
+    "refRTSymmetrySyncStatus",
+    "refRTBreastDensityandImageRightSyncStatus",
+    "refRTNippleAreolaSkinRightSyncStatus",
+    "refRTLesionsRightSyncStatus",
+    "refRTComparisonPriorSyncStatus",
+    "refRTGrandularAndDuctalTissueRightSyncStatus",
+    "refRTLymphNodesRightSyncStatus",
+    "refRTBreastDensityandImageLeftSyncStatus",
+    "refRTNippleAreolaSkinLeftSyncStatus",
+    "refRTLesionsLeftSyncStatus",
+    "refRTComparisonPriorLeftSyncStatus",
+    "refRTGrandularAndDuctalTissueLeftSyncStatus",
+    "refRTLymphNodesLeftSyncStatus"
+) VALUES (
+    $1,
+    $2,
+    $3,
+    $4,
+    TRUE, -- refRTSyncStatus
+    TRUE, -- refRTPatientHistorySyncStatus
+    TRUE, -- refRTBreastImplantSyncStatus
+    TRUE, -- refRTSymmetrySyncStatus
+    TRUE, -- refRTBreastDensityandImageRightSyncStatus
+    TRUE, -- refRTNippleAreolaSkinRightSyncStatus
+    TRUE, -- refRTLesionsRightSyncStatus
+    TRUE, -- refRTComparisonPriorSyncStatus
+    TRUE, -- refRTGrandularAndDuctalTissueRightSyncStatus
+    TRUE, -- refRTLymphNodesRightSyncStatus
+    TRUE, -- refRTBreastDensityandImageLeftSyncStatus
+    TRUE, -- refRTNippleAreolaSkinLeftSyncStatus
+    TRUE, -- refRTLesionsLeftSyncStatus
+    TRUE, -- refRTComparisonPriorLeftSyncStatus
+    TRUE, -- refRTGrandularAndDuctalTissueLeftSyncStatus
+    TRUE -- refRTLymphNodesLeftSyncStatus
+)
+`
+
 var UpdateIntakeDataSQL = `
 UPDATE
   notes."refIntakeForm"
@@ -167,4 +213,15 @@ FROM
   appointment."refAppointments"
 WHERE
   "refAppointmentId" = ANY ($1)
+`
+
+var UpdateOverrideSQL = `
+UPDATE
+  notes."refOverRide"
+SET
+  "refApprovedStatus" = $1,
+  "refApprovedBy" = $2,
+  "refApprovedAt" = $3
+WHERE
+  "refAppointmentId" = $4
 `

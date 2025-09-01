@@ -5,6 +5,7 @@ import (
 	logger "AuthenticationService/internal/Helper/Logger"
 	model "AuthenticationService/internal/Model/Analaytics"
 	query "AuthenticationService/query/Analaytics"
+	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -65,9 +66,16 @@ func AdminOverallOneAnalayticsService(db *gorm.DB, reqVal model.AdminOverallOneA
 			return model.AdminOverallAnalyticsResponse{}
 		}
 	}
+	fmt.Println("**********", reqVal.SCId, "**********")
+
+	var adminStatus = true
+
+	if roleIdValue == 9 {
+		adminStatus = false
+	}
 
 	//Impression and Recommentation
-	ImpressionNRecommentationErr := db.Raw(query.ImpressionNRecommentationScanCenterSQL, reqVal.StartDate, reqVal.EndDate, reqVal.SCId, reqVal.SCId).Scan(&response.ImpressionModel).Error
+	ImpressionNRecommentationErr := db.Raw(query.ImpressionNRecommentationScanCenterSQL, reqVal.StartDate, reqVal.EndDate, reqVal.SCId, reqVal.SCId, adminStatus).Scan(&response.ImpressionModel).Error
 	if ImpressionNRecommentationErr != nil {
 		log.Fatal(ImpressionNRecommentationErr.Error())
 		return model.AdminOverallAnalyticsResponse{}
@@ -84,6 +92,13 @@ func AdminOverallOneAnalayticsService(db *gorm.DB, reqVal model.AdminOverallOneA
 	ReportArtificatsErr := db.Raw(query.ReportArtificatsAll, reqVal.SCId, reqVal.StartDate, reqVal.EndDate).Scan(&response.ReportArtificats).Error
 	if ReportArtificatsErr != nil {
 		log.Fatal(ReportArtificatsErr.Error())
+		return model.AdminOverallAnalyticsResponse{}
+	}
+
+	//GetOverAllScanCenterList
+	OverAllAnalayticsScanCenterListErr := db.Raw(query.GetOverAllScanCenterList, reqVal.StartDate, reqVal.EndDate, reqVal.SCId).Scan(&response.OverAllScancenterAnalaytics).Error
+	if OverAllAnalayticsScanCenterListErr != nil {
+		log.Fatal(OverAllAnalayticsScanCenterListErr.Error())
 		return model.AdminOverallAnalyticsResponse{}
 	}
 
@@ -110,7 +125,7 @@ func UserAnalaytics(db *gorm.DB, reqVal model.OneUserReq, UserId int, roleIdValu
 	}
 
 	//User Worked Timing
-	UserWorkedTimingErr := db.Raw(query.UserWorkedTimingSQL, UserId).Scan(&response.UserAccessTimingModel).Error
+	UserWorkedTimingErr := db.Raw(query.UserWorkedTimingSQL, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.UserAccessTimingModel).Error
 	if UserWorkedTimingErr != nil {
 		log.Fatal(UserWorkedTimingErr.Error())
 		return model.OneUserReponse{}
@@ -170,11 +185,54 @@ func UserAnalaytics(db *gorm.DB, reqVal model.OneUserReq, UserId int, roleIdValu
 }
 
 func OneUserService(db *gorm.DB, reqVal model.OneUserReq, idValue int, roleIdValue int) model.OneUserReponse {
-	if roleIdValue == 1 || roleIdValue == 9 || roleIdValue == 3 {
-		response := UserAnalaytics(db, reqVal, reqVal.UserId, roleIdValue)
+	log := logger.InitLogger()
+	if reqVal.UserId == 0 {
+
+		var response model.OneUserReponse
+
+		if roleIdValue == 1 || roleIdValue == 9 || roleIdValue == 3 {
+
+			var ScancenterId = 0
+
+			if roleIdValue == 3 {
+				var findSCIdErr = db.Raw(query.FindSCIdSQL, reqVal.UserId).Scan(&ScancenterId).Error
+				if findSCIdErr != nil {
+					log.Fatal(findSCIdErr.Error())
+					return model.OneUserReponse{}
+				}
+			}
+
+			//6 Months Analaytics
+			AdminOverallAnalayticsErr := db.Raw(query.GetUsers6MonthTotalCountSQL, ScancenterId).Scan(&response.AdminScanCenterModel).Error
+			if AdminOverallAnalayticsErr != nil {
+				log.Fatal(AdminOverallAnalayticsErr.Error())
+				return model.OneUserReponse{}
+			}
+
+			//Particualr Month Scan Indications
+			AdminOverallScanIndicatesAnalayticsErr := db.Raw(query.AdminOverallScanIndicatesAnalayticsSQL, reqVal.StartDate, reqVal.EndDate, ScancenterId, ScancenterId).Scan(&response.AdminOverallScanIndicatesAnalayticsModel).Error
+			if AdminOverallScanIndicatesAnalayticsErr != nil {
+				log.Fatal(AdminOverallScanIndicatesAnalayticsErr.Error())
+				return model.OneUserReponse{}
+			}
+
+			//OverAllUserList
+			OverAllUsersListErr := db.Raw(query.TotoalUserAnalayticsSQL, reqVal.StartDate, reqVal.EndDate, ScancenterId).Scan(&response.OverAllAnalaytics).Error
+			if OverAllUsersListErr != nil {
+				log.Fatal(OverAllUsersListErr.Error())
+				return model.OneUserReponse{}
+			}
+
+		}
 		return response
+
 	} else {
-		response := UserAnalaytics(db, reqVal, idValue, roleIdValue)
-		return response
+		if roleIdValue == 1 || roleIdValue == 9 || roleIdValue == 3 {
+			response := UserAnalaytics(db, reqVal, reqVal.UserId, roleIdValue)
+			return response
+		} else {
+			response := UserAnalaytics(db, reqVal, idValue, roleIdValue)
+			return response
+		}
 	}
 }
