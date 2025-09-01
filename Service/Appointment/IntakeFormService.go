@@ -31,13 +31,25 @@ func AddIntakeFormService(db *gorm.DB, reqVal model.AddIntakeFormReq, idValue in
 		}
 	}()
 
-	var allChangeLogs []any
+	// var allChangeLogs []any
 
-	for i, answer := range reqVal.Answers {
-		reqVal.Answers[i].Answer = hashdb.Encrypt(answer.Answer)
+	for _, answer := range reqVal.Answers {
+
+		PrevData := []model.GetViewIntakeData{}
+		errPrev := tx.Raw(query.GetIntakeAppointmentDataSQL, reqVal.AppointmentId, answer.QuestionId).Scan(&PrevData).Error
+		if errPrev != nil {
+			log.Printf("ERROR: Failed to Get Intake: %v\n", errPrev)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again"
+		}
+
+		value := ""
+		if len(PrevData) != 0 {
+			value = hashdb.Decrypt(PrevData[0].Answer)
+		}
 
 		oldData := map[string]interface{}{
-			fmt.Sprintf("%d", answer.QuestionId): "",
+			fmt.Sprintf("%d", answer.QuestionId): value,
 		}
 
 		updatedData := map[string]interface{}{
@@ -46,58 +58,100 @@ func AddIntakeFormService(db *gorm.DB, reqVal model.AddIntakeFormReq, idValue in
 
 		ChangesData := helper.GetChanges(updatedData, oldData)
 
-		if len(ChangesData) > 0 {
-			var ChangesDataJSON []byte
-			var errChange error
-			ChangesDataJSON, errChange = json.Marshal(ChangesData)
-			if errChange != nil {
-				// Corrected log message
-				log.Printf("ERROR: Failed to marshal ChangesData to JSON: %v\n", errChange)
+		if len(PrevData) == 0 {
+			//Inserting New Question
+			InsertIntakeErr := tx.Exec(
+				query.InsertIntakeSQL,
+				idValue,
+				reqVal.AppointmentId,
+				answer.QuestionId,
+				hashdb.Encrypt(answer.Answer),
+				timeZone.GetPacificTime(),
+				idValue,
+			).Error
+			if InsertIntakeErr != nil {
+				log.Printf("ERROR: Failed to InsertIntake: %v\n", InsertIntakeErr)
 				tx.Rollback()
 				return false, "Something went wrong, Try Again"
 			}
+		} else {
+			if len(ChangesData) > 0 {
+				var ChangesDataJSON []byte
+				var errChange error
+				ChangesDataJSON, errChange = json.Marshal(ChangesData)
+				if errChange != nil {
+					// Corrected log message
+					log.Printf("ERROR: Failed to marshal ChangesData to JSON: %v\n", errChange)
+					tx.Rollback()
+					return false, "Something went wrong, Try Again"
+				}
 
-			allChangeLogs = append(allChangeLogs, hashdb.Encrypt(string(ChangesDataJSON)))
+				transData := 24
 
+				errTrans := tx.Exec(query.InsertTransactionDataSQL, int(transData), int(idValue), int(idValue), string(ChangesDataJSON)).Error
+				if errTrans != nil {
+					log.Printf("ERROR: Failed to Transaction History: %v\n", errTrans)
+					tx.Rollback()
+					return false, "Something went wrong, Try Again"
+				}
+
+				fmt.Println("Updateing the Intake Data", string(ChangesDataJSON))
+				updatedIntakeErr := tx.Exec(
+					query.UpdateCreateIntakeDataSQL,
+					hashdb.Encrypt(answer.Answer),
+					idValue,
+					timeZone.GetPacificTime(),
+					reqVal.AppointmentId,
+					answer.QuestionId,
+				).Error
+
+				if updatedIntakeErr != nil {
+					log.Printf("ERROR: Failed to UpdatedIntake: %v\n", updatedIntakeErr)
+					tx.Rollback()
+					return false, "Something went wrong, Try Again"
+				}
+
+			}
 		}
+
 	}
 
-	finalJSON, err := json.Marshal(allChangeLogs)
-	if err != nil {
-		log.Printf("ERROR: Failed to marshal allChangeLogs: %v\n", err)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again"
-	}
+	// finalJSON, err := json.Marshal(allChangeLogs)
+	// if err != nil {
+	// 	log.Printf("ERROR: Failed to marshal allChangeLogs: %v\n", err)
+	// 	tx.Rollback()
+	// 	return false, "Something went wrong, Try Again"
+	// }
 
-	transData := 23
+	// transData := 23
 
-	errTrans := tx.Exec(query.InsertTransactionDataSQL, int(transData), int(idValue), int(idValue), string(finalJSON)).Error
-	if errTrans != nil {
-		log.Printf("ERROR: Failed to Transaction History: %v\n", errTrans)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again"
-	}
+	// errTrans := tx.Exec(query.InsertTransactionDataSQL, int(transData), int(idValue), int(idValue), string(finalJSON)).Error
+	// if errTrans != nil {
+	// 	log.Printf("ERROR: Failed to Transaction History: %v\n", errTrans)
+	// 	tx.Rollback()
+	// 	return false, "Something went wrong, Try Again"
+	// }
 
-	jsonAnswers, err := json.Marshal(reqVal.Answers)
-	if err != nil {
-		log.Printf("ERROR: Failed to marshal answers: %v\n", err)
-		tx.Rollback()
-		return false, "Invalid input format"
-	}
+	// jsonAnswers, err := json.Marshal(reqVal.Answers)
+	// if err != nil {
+	// 	log.Printf("ERROR: Failed to marshal answers: %v\n", err)
+	// 	tx.Rollback()
+	// 	return false, "Invalid input format"
+	// }
 
-	InsertAnswer := tx.Exec(
-		query.InsertAnswerSQL,
-		idValue,
-		reqVal.AppointmentId,
-		idValue,
-		timeZone.GetPacificTime(),
-		string(jsonAnswers),
-	).Error
-	if InsertAnswer != nil {
-		log.Printf("ERROR: Failed to Insert Answers: %v\n", InsertAnswer)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again"
-	}
+	// InsertAnswer := tx.Exec(
+	// 	query.InsertAnswerSQL,
+	// 	idValue,
+	// 	reqVal.AppointmentId,
+	// 	idValue,
+	// 	timeZone.GetPacificTime(),
+	// 	string(jsonAnswers),
+	// ).Error
+	// if InsertAnswer != nil {
+	// 	log.Printf("ERROR: Failed to Insert Answers: %v\n", InsertAnswer)
+	// 	tx.Rollback()
+	// 	return false, "Something went wrong, Try Again"
+	// }
 
 	UpdateAppointmenterr := tx.Exec(
 		query.UpdateAppointment,
@@ -111,50 +165,31 @@ func AddIntakeFormService(db *gorm.DB, reqVal model.AddIntakeFormReq, idValue in
 		return false, "Something went wrong, Try Again"
 	}
 
-	var UpdateAppointmentStatus = "technologistformfill"
-	var oversideStatus = "success"
+	var CheckOverride []model.OverrideRequestModel
 
-	if reqVal.OverrideRequest {
-		UpdateAppointmentStatus = "noteligible"
-		oversideStatus = "pending"
-	}
-	override := model.OverrideRequestModel{
-		UserId:         idValue,
-		AppointmentId:  reqVal.AppointmentId,
-		ApprovedStatus: oversideStatus,
-	}
-
-	overrideerr := db.Create(&override).Error
-	if overrideerr != nil {
-		log.Error("LoginService INSERT ERROR at Trnasaction: " + overrideerr.Error())
-		return false, "Something went wrong, Try Again"
-	}
-
-	UpdateAppointmentStatuserr := tx.Exec(
-		query.UpdateAppointmentStatus,
-		UpdateAppointmentStatus,
-		reqVal.AppointmentId,
-	).Error
-	if UpdateAppointmentStatuserr != nil {
-		log.Printf("ERROR: Failed to Update Appointment Status: %v\n", UpdateAppointmentStatuserr)
+	var CheckOverrideErr = tx.Raw(query.CheckOverride, reqVal.AppointmentId).Scan(&CheckOverride).Error
+	if CheckOverrideErr != nil {
+		log.Printf("ERROR: Failed to Check Override: %v\n", CheckOverrideErr)
 		tx.Rollback()
 		return false, "Something went wrong, Try Again"
 	}
 
-	if reqVal.OverrideRequest {
-		history := model.RefTransHistory{
-			TransTypeId: 23,
-			THData:      "Applied Override Request",
-			UserId:      idValue,
-			THActionBy:  idValue,
-		}
+	var UpdateAppointmentStatus = "technologistformfill"
+	var oversideStatus = "success"
 
-		errhistory := db.Create(&history).Error
-		if errhistory != nil {
-			log.Error("LoginService INSERT ERROR at Trnasaction: " + errhistory.Error())
+	if len(CheckOverride) == 1 && CheckOverride[0].ApprovedStatus == "approved" {
+
+		UpdateAppointmentStatuserr := tx.Exec(
+			query.UpdateAppointmentStatus,
+			UpdateAppointmentStatus,
+			reqVal.AppointmentId,
+		).Error
+		if UpdateAppointmentStatuserr != nil {
+			log.Printf("ERROR: Failed to Update Appointment Status: %v\n", UpdateAppointmentStatuserr)
+			tx.Rollback()
 			return false, "Something went wrong, Try Again"
 		}
-	} else {
+
 		history := model.RefTransHistory{
 			TransTypeId: 23,
 			THData:      "Intake Form Created Successfully",
@@ -167,19 +202,77 @@ func AddIntakeFormService(db *gorm.DB, reqVal model.AddIntakeFormReq, idValue in
 			log.Error("LoginService INSERT ERROR at Trnasaction: " + errhistory.Error())
 			return false, "Something went wrong, Try Again"
 		}
-	}
 
-	reportStatus := model.RefTransHistory{
-		TransTypeId: 25,
-		THData:      "Patient Intake Filled Successfully",
-		UserId:      idValue,
-		THActionBy:  idValue,
-	}
+	} else {
 
-	errreportStatus := db.Create(&reportStatus).Error
-	if errreportStatus != nil {
-		log.Error("errreportStatus INSERT ERROR at Trnasaction: " + errreportStatus.Error())
-		return false, "Something went wrong, Try Again"
+		if reqVal.OverrideRequest {
+			UpdateAppointmentStatus = "noteligible"
+			oversideStatus = "pending"
+		}
+		override := model.OverrideRequestModel{
+			UserId:         idValue,
+			AppointmentId:  reqVal.AppointmentId,
+			ApprovedStatus: oversideStatus,
+		}
+
+		overrideerr := db.Create(&override).Error
+		if overrideerr != nil {
+			log.Error("LoginService INSERT ERROR at Trnasaction: " + overrideerr.Error())
+			return false, "Something went wrong, Try Again"
+		}
+
+		UpdateAppointmentStatuserr := tx.Exec(
+			query.UpdateAppointmentStatus,
+			UpdateAppointmentStatus,
+			reqVal.AppointmentId,
+		).Error
+		if UpdateAppointmentStatuserr != nil {
+			log.Printf("ERROR: Failed to Update Appointment Status: %v\n", UpdateAppointmentStatuserr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again"
+		}
+
+		if reqVal.OverrideRequest {
+			history := model.RefTransHistory{
+				TransTypeId: 23,
+				THData:      "Applied Override Request",
+				UserId:      idValue,
+				THActionBy:  idValue,
+			}
+
+			errhistory := db.Create(&history).Error
+			if errhistory != nil {
+				log.Error("LoginService INSERT ERROR at Trnasaction: " + errhistory.Error())
+				return false, "Something went wrong, Try Again"
+			}
+		} else {
+			history := model.RefTransHistory{
+				TransTypeId: 23,
+				THData:      "Intake Form Created Successfully",
+				UserId:      idValue,
+				THActionBy:  idValue,
+			}
+
+			errhistory := db.Create(&history).Error
+			if errhistory != nil {
+				log.Error("LoginService INSERT ERROR at Trnasaction: " + errhistory.Error())
+				return false, "Something went wrong, Try Again"
+			}
+		}
+
+		reportStatus := model.RefTransHistory{
+			TransTypeId: 25,
+			THData:      "Patient Intake Filled Successfully",
+			UserId:      idValue,
+			THActionBy:  idValue,
+		}
+
+		errreportStatus := db.Create(&reportStatus).Error
+		if errreportStatus != nil {
+			log.Error("errreportStatus INSERT ERROR at Trnasaction: " + errreportStatus.Error())
+			return false, "Something went wrong, Try Again"
+		}
+
 	}
 
 	if err := tx.Commit().Error; err != nil {
@@ -349,7 +442,7 @@ func UpdateIntakeFormService(db *gorm.DB, reqVal model.UpdateIntakeFormReq, idVa
 		PrevData := model.GetViewIntakeData{}
 		errPrev := tx.Raw(query.GetIntakeDataSQL, answer.ITFId).Scan(&PrevData).Error
 		if errPrev != nil {
-			log.Printf("ERROR: Failed to Get Intake: %v\n", PrevData)
+			log.Printf("ERROR: Failed to Get Intake: %v\n", errPrev)
 			tx.Rollback()
 			return false, "Something went wrong, Try Again"
 		}

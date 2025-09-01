@@ -91,6 +91,16 @@ WHERE
   "refITFId" = ?
 `
 
+var GetIntakeAppointmentDataSQL = `
+SELECT
+  *
+FROM
+  notes."refIntakeForm"
+WHERE
+  "refAppointmentId" = $1
+  AND "refITFQId" = $2
+`
+
 var InsertTransactionDataSQL = `
 WITH input_data AS (
   SELECT
@@ -167,6 +177,32 @@ INSERT INTO notes."refReportsTextContent" (
 )
 `
 
+var UpdateCreateIntakeDataSQL = `
+UPDATE
+  notes."refIntakeForm"
+SET
+  "refITFAnswer" = $1,
+  "refITFUpdatedBy" = $2,                
+  "refITFUpdatedAt" = $3        
+WHERE
+"refAppointmentId" = $4
+  AND "refITFQId" = $5                
+`
+
+var InsertIntakeSQL = `
+INSERT INTO
+  notes."refIntakeForm" (
+    "refUserId",
+    "refAppointmentId",
+    "refITFQId",
+    "refITFAnswer",
+    "refITFCreatedAt",
+    "refITFCreatedBy"
+  )
+VALUES
+  ($1, $2, $3, $4, $5, $6)
+`
+
 var UpdateIntakeDataSQL = `
 UPDATE
   notes."refIntakeForm"
@@ -224,4 +260,13 @@ SET
   "refApprovedAt" = $3
 WHERE
   "refAppointmentId" = $4
+`
+
+var CheckOverride = `
+SELECT
+  *
+FROM
+  notes."refOverRide"
+WHERE
+  "refAppointmentId" = $1
 `
