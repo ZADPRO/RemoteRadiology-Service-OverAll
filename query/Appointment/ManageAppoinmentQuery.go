@@ -39,7 +39,8 @@ SELECT
     ),
     'success'
   ) AS "refOverrideStatus",
-  ra.*
+  ra.*,
+  sc.*
 FROM
   appointment."refAppointments" ra
   JOIN public."ScanCenter" sc ON sc."refSCId" = ra."refSCId"
