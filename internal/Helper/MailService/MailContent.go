@@ -219,7 +219,7 @@ func RegisterationMailContent(userName string) string {
           We’re excited to have you on board. You can now log in using your
           registered email and the password you created.
         </p>
-        <a href="https://easeqt.brightoncloudtech.com/" class="button">Login Now</a>
+        <a href="https://easeqtremote.brightoncloudtech.com/" class="button">Login Now</a>
         <p>If you didn’t register with us, please ignore this email.</p>
       </div>
       <div class="footer">
@@ -412,7 +412,7 @@ func RegistrationMailContent(userName, patientID, gmail, password string, role s
           </p>
           <p><strong>Password:</strong> ` + html.EscapeString(password) + `</p>
         </div>
-        <a href="https://easeqt.brightoncloudtech.com/" class="button"
+        <a href="https://easeqtremote.brightoncloudtech.com/" class="button"
           >Login to Dashboard</a
         >
         <p style="margin-top: 20px">
@@ -528,7 +528,7 @@ func PatientReportSignOff(userName string, patientID string, AppintmentDate stri
 
         <p>To access your report, please log in with your credentials:</p>
         
-        <a href="https://easeqt.brightoncloudtech.com/" class="button">
+        <a href="https://easeqtremote.brightoncloudtech.com/" class="button">
           Login to View Report
         </a>
         
@@ -651,7 +651,7 @@ func ManagerReportSignOff(patientName string, patientID string, appointmentDate 
         </div>
 
         <div style="text-align: center; margin: 25px 0;">
-          <a href="https://easeqt.brightoncloudtech.com/" class="button">
+          <a href="https://easeqtremote.brightoncloudtech.com/" class="button">
             Login
           </a>
         </div>
