@@ -44,17 +44,31 @@ type Artificates struct {
 }
 
 type OverAllScancenterAnalaytics struct {
-	SCId                   int    `json:"refSCId" gorm:"column:refSCId"`
-	SCCustId               string `json:"refSCCustId" gorm:"column:refSCCustId"`
-	TotalCase              int    `json:"totalcase" gorm:"column:totalcase"`
-	TotalSForm             int    `json:"totalsform" gorm:"column:totalsform"`
-	TotalDaForm            int    `json:"totaldaform" gorm:"column:totaldaform"`
-	TotalDbForm            int    `json:"totaldbform" gorm:"column:totaldbform"`
-	TotalDcForm            int    `json:"totaldcform" gorm:"column:totaldcform"`
-	TechArtificatsLeft     int    `json:"techartificatsleft" gorm:"column:techartificatsleft"`
-	TechArtificateRight    int    `json:"techartificatsright" gorm:"column:techartificatsright"`
-	ReportArtificatesLeft  int    `json:"reportartificatsleft" gorm:"column:reportartificatsleft"`
-	ReportArtificatesRight int    `json:"reportartificatsright" gorm:"column:reportartificatsright"`
+	SCId                     int    `json:"refSCId" gorm:"column:refSCId"`
+	SCCustId                 string `json:"refSCCustId" gorm:"column:refSCCustId"`
+	TotalCase                int    `json:"totalcase" gorm:"column:totalcase"`
+	TotalSForm               int    `json:"totalsform" gorm:"column:totalsform"`
+	TotalDaForm              int    `json:"totaldaform" gorm:"column:totaldaform"`
+	TotalDbForm              int    `json:"totaldbform" gorm:"column:totaldbform"`
+	TotalDcForm              int    `json:"totaldcform" gorm:"column:totaldcform"`
+	TechArtificatsLeft       int    `json:"techartificatsleft" gorm:"column:techartificatsleft"`
+	TechArtificateRight      int    `json:"techartificatsright" gorm:"column:techartificatsright"`
+	ReportArtificatesLeft    int    `json:"reportartificatsleft" gorm:"column:reportartificatsleft"`
+	ReportArtificatesRight   int    `json:"reportartificatsright" gorm:"column:reportartificatsright"`
+	Leftannualscreening      int    `json:"leftannualscreening" gorm:"column:leftannualscreening"`
+	Leftusgsfu               int    `json:"leftusgsfu" gorm:"column:leftusgsfu"`
+	LeftBiopsy               int    `json:"leftBiopsy" gorm:"column:leftBiopsy"`
+	LeftBreastradiologist    int    `json:"leftBreastradiologist" gorm:"column:leftBreastradiologist"`
+	LeftClinicalCorrelation  int    `json:"leftClinicalCorrelation" gorm:"column:leftClinicalCorrelation"`
+	LeftOncoConsult          int    `json:"leftOncoConsult" gorm:"column:leftOncoConsult"`
+	LeftRedo                 int    `json:"leftRedo" gorm:"column:leftRedo"`
+	Rightannualscreening     int    `json:"rightannualscreening" gorm:"column:rightannualscreening"`
+	Rightusgsfu              int    `json:"rightusgsfu" gorm:"column:rightusgsfu"`
+	RightBiopsy              int    `json:"rightBiopsy" gorm:"column:rightBiopsy"`
+	RightBreastradiologist   int    `json:"rightBreastradiologist" gorm:"column:rightBreastradiologist"`
+	RightClinicalCorrelation int    `json:"rightClinicalCorrelation" gorm:"column:rightClinicalCorrelation"`
+	RightOncoConsult         int    `json:"rightOncoConsult" gorm:"column:rightOncoConsult"`
+	RightRedo                int    `json:"rightRedo" gorm:"column:rightRedo"`
 }
 
 type AdminOverallAnalyticsResponse struct {
@@ -62,7 +76,8 @@ type AdminOverallAnalyticsResponse struct {
 	AdminOverallScanIndicatesAnalayticsModel []AdminOverallScanIndicatesAnalayticsModel
 	GetAllScaCenter                          []GetAllScaCenter
 	UserListIdsData                          []UserListIdsData
-	ImpressionModel                          []ImpressionModel
+	RightRecommendation                      []RecommendationUserSQL
+	LeftRecommendation                       []RecommendationUserSQL
 	TechArtificats                           []Artificates
 	ReportArtificats                         []Artificates
 	OverAllScancenterAnalaytics              []OverAllScancenterAnalaytics
@@ -94,6 +109,11 @@ type TotalCorrectEditModel struct {
 	TotalEdit    int `json:"totalEdit" gorm:"column:totalEdit"`
 }
 
+type RecommendationUserSQL struct {
+	GroupName  string `json:"group_name" gorm:"column:group_name"`
+	TotalCount string `json:"total_count" gorm:"column:total_count"`
+}
+
 type ImpressionModel struct {
 	Impression string `json:"impression" gorm:"column:impression"`
 	Count      int    `json:"count" gorm:"column:count"`
@@ -113,7 +133,8 @@ type OneUserReponse struct {
 	UserAccessTimingModel                    []UserAccessTimingModel
 	ListScanAppointmentCountModel            []ListScanAppointmentCountModel
 	TotalCorrectEdit                         []TotalCorrectEditModel
-	ImpressionModel                          []ImpressionModel
+	LeftRecommendation                       []RecommendationUserSQL
+	RightRecommendation                      []RecommendationUserSQL
 	DurationBucketModel                      []DurationBucketModel
 	TechArtificats                           []Artificates
 	ReportArtificats                         []Artificates
@@ -121,18 +142,32 @@ type OneUserReponse struct {
 }
 
 type UsersOverAllAnalyticsModel struct {
-	UserId                 int     `json:"refUserId" gorm:"column:refUserId"`
-	UserCustId             string  `json:"refUserCustId" gorm:"column:refUserCustId"`
-	TotalCase              int     `json:"totalcase" gorm:"column:totalcase"`
-	TotalSForm             int     `json:"totalsform" gorm:"column:totalsform"`
-	TotalDaForm            int     `json:"totaldaform" gorm:"column:totaldaform"`
-	TotalDbForm            int     `json:"totaldbform" gorm:"column:totaldbform"`
-	TotalDcForm            int     `json:"totaldcform" gorm:"column:totaldcform"`
-	TechArtificatsLeft     int     `json:"techartificatsleft" gorm:"column:techartificatsleft"`
-	TechArtificateRight    int     `json:"techartificatsright" gorm:"column:techartificatsright"`
-	ReportArtificatesLeft  int     `json:"reportartificatsleft" gorm:"column:reportartificatsleft"`
-	ReportArtificatesRight int     `json:"reportartificatsright" gorm:"column:reportartificatsright"`
-	TotalTiming            float64 `json:"totaltiming" gorm:"column:totaltiming"`
-	TotalReportCorrect     int     `json:"totalreportcorrect" gorm:"column:totalreportcorrect"`
-	TotalReportEdit        int     `json:"totalreportedit" gorm:"column:totalreportedit"`
+	UserId                   int     `json:"refUserId" gorm:"column:refUserId"`
+	UserCustId               string  `json:"refUserCustId" gorm:"column:refUserCustId"`
+	TotalCase                int     `json:"totalcase" gorm:"column:totalcase"`
+	TotalSForm               int     `json:"totalsform" gorm:"column:totalsform"`
+	TotalDaForm              int     `json:"totaldaform" gorm:"column:totaldaform"`
+	TotalDbForm              int     `json:"totaldbform" gorm:"column:totaldbform"`
+	TotalDcForm              int     `json:"totaldcform" gorm:"column:totaldcform"`
+	TechArtificatsLeft       int     `json:"techartificatsleft" gorm:"column:techartificatsleft"`
+	TechArtificateRight      int     `json:"techartificatsright" gorm:"column:techartificatsright"`
+	ReportArtificatesLeft    int     `json:"reportartificatsleft" gorm:"column:reportartificatsleft"`
+	ReportArtificatesRight   int     `json:"reportartificatsright" gorm:"column:reportartificatsright"`
+	TotalTiming              float64 `json:"totaltiming" gorm:"column:totaltiming"`
+	TotalReportCorrect       int     `json:"totalreportcorrect" gorm:"column:totalreportcorrect"`
+	TotalReportEdit          int     `json:"totalreportedit" gorm:"column:totalreportedit"`
+	Leftannualscreening      int     `json:"leftannualscreening" gorm:"column:leftannualscreening"`
+	Leftusgsfu               int     `json:"leftusgsfu" gorm:"column:leftusgsfu"`
+	LeftBiopsy               int     `json:"leftBiopsy" gorm:"column:leftBiopsy"`
+	LeftBreastradiologist    int     `json:"leftBreastradiologist" gorm:"column:leftBreastradiologist"`
+	LeftClinicalCorrelation  int     `json:"leftClinicalCorrelation" gorm:"column:leftClinicalCorrelation"`
+	LeftOncoConsult          int     `json:"leftOncoConsult" gorm:"column:leftOncoConsult"`
+	LeftRedo                 int     `json:"leftRedo" gorm:"column:leftRedo"`
+	Rightannualscreening     int     `json:"rightannualscreening" gorm:"column:rightannualscreening"`
+	Rightusgsfu              int     `json:"rightusgsfu" gorm:"column:rightusgsfu"`
+	RightBiopsy              int     `json:"rightBiopsy" gorm:"column:rightBiopsy"`
+	RightBreastradiologist   int     `json:"rightBreastradiologist" gorm:"column:rightBreastradiologist"`
+	RightClinicalCorrelation int     `json:"rightClinicalCorrelation" gorm:"column:rightClinicalCorrelation"`
+	RightOncoConsult         int     `json:"rightOncoConsult" gorm:"column:rightOncoConsult"`
+	RightRedo                int     `json:"rightRedo" gorm:"column:rightRedo"`
 }

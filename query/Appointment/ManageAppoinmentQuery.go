@@ -46,6 +46,7 @@ FROM
   JOIN public."ScanCenter" sc ON sc."refSCId" = ra."refSCId"
 WHERE
   ra."refUserId" = ?
+  AND ra."refAppointmentStatus" = true
 `
 
 var ViewTechnicianPatientQueueSQL = `

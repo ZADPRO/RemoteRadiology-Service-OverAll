@@ -270,3 +270,16 @@ FROM
 WHERE
   "refAppointmentId" = $1
 `
+
+var ReportHistorySQL = `
+INSERT INTO notes."refReportsHistory" (
+  "refUserId",
+  "refAppointmentId",
+  "refRHHandledUserId",
+  "refRHHandleStartTime",
+  "refRHHandleEndTime",
+  "refRHHandleStatus"
+) VALUES (
+  $1, $2, $3, $4, $5, $6
+);
+`

@@ -11,11 +11,12 @@ type AnswersReqModel struct {
 }
 
 type AddIntakeFormReq struct {
-	CategoryId      int               `json:"categoryId" mapstructure:"categoryId"`
-	AppointmentId   int               `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
-	Answers         []AnswersReqModel `json:"answers" binding:"required" mapstructure:"answers"`
-	Consent         string            `json:"consent" binding:"required" mapstructure:"consent"`
-	OverrideRequest bool              `json:"overriderequest" mapstructure:"overriderequest"`
+	CategoryId             int               `json:"categoryId" mapstructure:"categoryId"`
+	AppointmentId          int               `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
+	Answers                []AnswersReqModel `json:"answers" binding:"required" mapstructure:"answers"`
+	Consent                string            `json:"consent" binding:"required" mapstructure:"consent"`
+	OverrideRequest        bool              `json:"overriderequest" mapstructure:"overriderequest"`
+	PatientIntakeStartTime string            `json:"patientIntakeStartTime" mapstructure:"patientIntakeStartTime"`
 }
 
 func (RefTransHistory) TableName() string {
@@ -100,7 +101,6 @@ type GetViewReportReq struct {
 type GetOverRideReportReq struct {
 	AppointmentId int `json:"appintmentId" binding:"required"  mapstructure:"appintmentId"`
 }
-
 
 type GetViewConsentResponse struct {
 	AppointmentId      int    `json:"refAppointmentId" gorm:"column:refAppointmentId"`

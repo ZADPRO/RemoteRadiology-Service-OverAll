@@ -537,6 +537,438 @@ ORDER BY
 //   ) AS subquery;
 // `
 
+var LeftRecommendationScancenterSQL = `
+WITH
+  latest_report_history AS (
+    SELECT
+      *
+    FROM
+      (
+        SELECT
+          *,
+          ROW_NUMBER() OVER (
+            PARTITION BY
+              "refAppointmentId"
+            ORDER BY
+              "refRHId" DESC
+          ) AS rn
+        FROM
+          notes."refReportsHistory"
+      ) sub
+    WHERE
+      rn = 1
+  ),
+  groups AS (
+    SELECT
+      'Annual Screening' AS group_name
+    UNION ALL
+    SELECT
+      'USG/ SFU'
+    UNION ALL
+    SELECT
+      'Biopsy'
+    UNION ALL
+    SELECT
+      'Breast radiologist'
+    UNION ALL
+    SELECT
+      'Clinical Correlation'
+    UNION ALL
+    SELECT
+      'Onco Consult'
+    UNION ALL
+    SELECT
+      'Redo'
+  ),
+  counts AS (
+    SELECT
+      CASE
+        WHEN ra."refAppointmentRecommendation" IN ('1', '1a', '7', '10') THEN 'Annual Screening'
+        WHEN ra."refAppointmentRecommendation" IN (
+          '2',
+          '2a',
+          '3',
+          '3a',
+          '3b',
+          '3g',
+          '4h',
+          '4i1',
+          '4i2',
+          '4k'
+        ) THEN 'USG/ SFU'
+        WHEN ra."refAppointmentRecommendation" IN ('4g', '4n', '5', '5a', '6e') THEN 'Biopsy'
+        WHEN ra."refAppointmentRecommendation" IN ('4a', '4c', '4d', '4e', '4j', '6d', '6g', '10a') THEN 'Breast radiologist'
+        WHEN ra."refAppointmentRecommendation" IN (
+          '3c',
+          '3d',
+          '3e',
+          '3f',
+          '4',
+          '4b',
+          '4f',
+          '4l',
+          '4m',
+          '6',
+          '6a',
+          '6f',
+          '6h',
+          '7a',
+          '7b',
+          '7c',
+          '7d',
+          '7e',
+          '8',
+          '8a'
+        ) THEN 'Clinical Correlation'
+        WHEN ra."refAppointmentRecommendation" IN ('6b', '6c') THEN 'Onco Consult'
+        WHEN ra."refAppointmentRecommendation" = '0' THEN 'Redo'
+      END AS group_name,
+      COUNT(*) AS total_count
+    FROM
+      latest_report_history rrh
+      JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+      JOIN public."Users" rrhu ON rrh."refRHHandledUserId" = rrhu."refUserId"
+    WHERE
+      rrh."refRHHandleStartTime" >= $1
+      AND rrh."refRHHandleStartTime" <= $2
+      AND (
+        $3 = 0
+        OR ra."refSCId" = $3
+      ) -- scan center filter
+      AND (
+        $4 = FALSE
+        OR rrhu."refRTId" IN (1, 6, 7, 10)
+      ) -- user role filter
+      AND rrh."refRHHandleStartTime" IS NOT NULL
+      AND rrh."refRHHandleEndTime" IS NOT NULL
+    GROUP BY
+      group_name
+  )
+SELECT
+  g.group_name,
+  COALESCE(c.total_count, 0) AS total_count
+FROM
+  groups g
+  LEFT JOIN counts c ON g.group_name = c.group_name
+ORDER BY
+  g.group_name;
+`
+
+var RightRecommendationScancenterSQL = `
+WITH
+  latest_report_history AS (
+    SELECT
+      *
+    FROM
+      (
+        SELECT
+          *,
+          ROW_NUMBER() OVER (
+            PARTITION BY
+              "refAppointmentId"
+            ORDER BY
+              "refRHId" DESC
+          ) AS rn
+        FROM
+          notes."refReportsHistory"
+      ) sub
+    WHERE
+      rn = 1
+  ),
+  groups AS (
+    SELECT
+      'Annual Screening' AS group_name
+    UNION ALL
+    SELECT
+      'USG/ SFU'
+    UNION ALL
+    SELECT
+      'Biopsy'
+    UNION ALL
+    SELECT
+      'Breast radiologist'
+    UNION ALL
+    SELECT
+      'Clinical Correlation'
+    UNION ALL
+    SELECT
+      'Onco Consult'
+    UNION ALL
+    SELECT
+      'Redo'
+  ),
+  counts AS (
+    SELECT
+      CASE
+        WHEN ra."refAppointmentRecommendationRight" IN ('1', '1a', '7', '10') THEN 'Annual Screening'
+        WHEN ra."refAppointmentRecommendationRight" IN (
+          '2',
+          '2a',
+          '3',
+          '3a',
+          '3b',
+          '3g',
+          '4h',
+          '4i1',
+          '4i2',
+          '4k'
+        ) THEN 'USG/ SFU'
+        WHEN ra."refAppointmentRecommendationRight" IN ('4g', '4n', '5', '5a', '6e') THEN 'Biopsy'
+        WHEN ra."refAppointmentRecommendationRight" IN ('4a', '4c', '4d', '4e', '4j', '6d', '6g', '10a') THEN 'Breast radiologist'
+        WHEN ra."refAppointmentRecommendationRight" IN (
+          '3c',
+          '3d',
+          '3e',
+          '3f',
+          '4',
+          '4b',
+          '4f',
+          '4l',
+          '4m',
+          '6',
+          '6a',
+          '6f',
+          '6h',
+          '7a',
+          '7b',
+          '7c',
+          '7d',
+          '7e',
+          '8',
+          '8a'
+        ) THEN 'Clinical Correlation'
+        WHEN ra."refAppointmentRecommendationRight" IN ('6b', '6c') THEN 'Onco Consult'
+        WHEN ra."refAppointmentRecommendationRight" = '0' THEN 'Redo'
+      END AS group_name,
+      COUNT(*) AS total_count
+    FROM
+      latest_report_history rrh
+      JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+      JOIN public."Users" rrhu ON rrh."refRHHandledUserId" = rrhu."refUserId"
+    WHERE
+      rrh."refRHHandleStartTime" >= $1
+      AND rrh."refRHHandleStartTime" <= $2
+      AND (
+        $3 = 0
+        OR ra."refSCId" = $3
+      ) -- scan center filter
+      AND (
+        $4 = FALSE
+        OR rrhu."refRTId" IN (1, 6, 7, 10)
+      ) -- user role filter
+      AND rrh."refRHHandleStartTime" IS NOT NULL
+      AND rrh."refRHHandleEndTime" IS NOT NULL
+    GROUP BY
+      group_name
+  )
+SELECT
+  g.group_name,
+  COALESCE(c.total_count, 0) AS total_count
+FROM
+  groups g
+  LEFT JOIN counts c ON g.group_name = c.group_name
+ORDER BY
+  g.group_name;
+`
+
+var LeftRecommendationUserSQL = `
+WITH
+  groups AS (
+    SELECT
+      'Annual Screening' AS group_name
+    UNION ALL
+    SELECT
+      'USG/ SFU'
+    UNION ALL
+    SELECT
+      'Biopsy'
+    UNION ALL
+    SELECT
+      'Breast radiologist'
+    UNION ALL
+    SELECT
+      'Clinical Correlation'
+    UNION ALL
+    SELECT
+      'Onco Consult'
+    UNION ALL
+    SELECT
+      'Redo'
+  ),
+  counts AS (
+    SELECT
+      CASE
+        WHEN t."refAppointmentRecommendation" IN ('1', '1a', '7', '10') THEN 'Annual Screening'
+        WHEN t."refAppointmentRecommendation" IN (
+          '2',
+          '2a',
+          '3',
+          '3a',
+          '3b',
+          '3g',
+          '4h',
+          '4i1',
+          '4i2',
+          '4k'
+        ) THEN 'USG/ SFU'
+        WHEN t."refAppointmentRecommendation" IN ('4g', '4n', '5', '5a', '6e') THEN 'Biopsy'
+        WHEN t."refAppointmentRecommendation" IN ('4a', '4c', '4d', '4e', '4j', '6d', '6g', '10a') THEN 'Breast radiologist'
+        WHEN t."refAppointmentRecommendation" IN (
+          '3c',
+          '3d',
+          '3e',
+          '3f',
+          '4',
+          '4b',
+          '4f',
+          '4l',
+          '4m',
+          '6',
+          '6a',
+          '6f',
+          '6h',
+          '7a',
+          '7b',
+          '7c',
+          '7d',
+          '7e',
+          '8',
+          '8a'
+        ) THEN 'Clinical Correlation'
+        WHEN t."refAppointmentRecommendation" IN ('6b', '6c') THEN 'Onco Consult'
+        WHEN t."refAppointmentRecommendation" = '0' THEN 'Redo'
+        -- ELSE 'Other'
+      END AS group_name,
+      COUNT(*) AS total_count
+    FROM
+      (
+        SELECT DISTINCT
+          ON (rrh."refAppointmentId") ra."refAppointmentRecommendation"
+        FROM
+          notes."refReportsHistory" rrh
+          JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+        WHERE
+          rrh."refRHHandledUserId" = $1
+          AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleEndTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime" >= $2
+          AND rrh."refRHHandleStartTime" <= $3
+        ORDER BY
+          rrh."refAppointmentId",
+          rrh."refRHHandleStartTime" DESC
+      ) t
+    GROUP BY
+      group_name
+  )
+SELECT
+  g.group_name,
+  COALESCE(c.total_count, 0) AS total_count
+FROM
+  groups g
+  LEFT JOIN counts c ON g.group_name = c.group_name
+ORDER BY
+  g.group_name;
+`
+
+var RightRecommendationUserSQL = `
+WITH
+  groups AS (
+    SELECT
+      'Annual Screening' AS group_name
+    UNION ALL
+    SELECT
+      'USG/ SFU'
+    UNION ALL
+    SELECT
+      'Biopsy'
+    UNION ALL
+    SELECT
+      'Breast radiologist'
+    UNION ALL
+    SELECT
+      'Clinical Correlation'
+    UNION ALL
+    SELECT
+      'Onco Consult'
+    UNION ALL
+    SELECT
+      'Redo'
+  ),
+  counts AS (
+    SELECT
+      CASE
+        WHEN t."refAppointmentRecommendationRight" IN ('1', '1a', '7', '10') THEN 'Annual Screening'
+        WHEN t."refAppointmentRecommendationRight" IN (
+          '2',
+          '2a',
+          '3',
+          '3a',
+          '3b',
+          '3g',
+          '4h',
+          '4i1',
+          '4i2',
+          '4k'
+        ) THEN 'USG/ SFU'
+        WHEN t."refAppointmentRecommendationRight" IN ('4g', '4n', '5', '5a', '6e') THEN 'Biopsy'
+        WHEN t."refAppointmentRecommendationRight" IN ('4a', '4c', '4d', '4e', '4j', '6d', '6g', '10a') THEN 'Breast radiologist'
+        WHEN t."refAppointmentRecommendationRight" IN (
+          '3c',
+          '3d',
+          '3e',
+          '3f',
+          '4',
+          '4b',
+          '4f',
+          '4l',
+          '4m',
+          '6',
+          '6a',
+          '6f',
+          '6h',
+          '7a',
+          '7b',
+          '7c',
+          '7d',
+          '7e',
+          '8',
+          '8a'
+        ) THEN 'Clinical Correlation'
+        WHEN t."refAppointmentRecommendationRight" IN ('6b', '6c') THEN 'Onco Consult'
+        WHEN t."refAppointmentRecommendationRight" = '0' THEN 'Redo'
+        -- ELSE 'Other'
+      END AS group_name,
+      COUNT(*) AS total_count
+    FROM
+      (
+        SELECT DISTINCT
+          ON (rrh."refAppointmentId") ra."refAppointmentRecommendationRight"
+        FROM
+          notes."refReportsHistory" rrh
+          JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+        WHERE
+          rrh."refRHHandledUserId" = $1
+          AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleEndTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime" >= $2
+          AND rrh."refRHHandleStartTime" <= $3
+        ORDER BY
+          rrh."refAppointmentId",
+          rrh."refRHHandleStartTime" DESC
+      ) t
+    GROUP BY
+      group_name
+  )
+SELECT
+  g.group_name,
+  COALESCE(c.total_count, 0) AS total_count
+FROM
+  groups g
+  LEFT JOIN counts c ON g.group_name = c.group_name
+ORDER BY
+  g.group_name;
+`
+
 var TotalTATSQL = `
 SELECT
   COUNT(*) FILTER (
@@ -968,13 +1400,413 @@ SELECT
       AND rrh."refRHHandleStartTime" IS NOT NULL
       AND rrh."refRHHandleStartTime"::timestamp >= $1
       AND rrh."refRHHandleStartTime"::timestamp <= $2
-  ) AS "totalreportedit"
+  ) AS "totalreportedit",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (rrh."refAppointmentId") ra."refAppointmentRecommendation"
+        FROM
+          notes."refReportsHistory" rrh
+          JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+        WHERE
+          rrh."refRHHandledUserId" = u."refUserId"
+          AND rrh."refRHHandleStartTime" != ''
+          AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleEndTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime"::timestamp >= $1
+          AND rrh."refRHHandleStartTime"::timestamp <= $2
+        ORDER BY
+          rrh."refAppointmentId",
+          rrh."refRHHandleStartTime" DESC
+      ) t
+    WHERE
+      t."refAppointmentRecommendation" IN ('1', '1a', '7', '10')
+  ) AS "leftannualscreening",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (rrh."refAppointmentId") ra."refAppointmentRecommendation"
+        FROM
+          notes."refReportsHistory" rrh
+          JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+        WHERE
+          rrh."refRHHandledUserId" = u."refUserId"
+          AND rrh."refRHHandleStartTime" != ''
+          AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleEndTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime"::timestamp >= $1
+          AND rrh."refRHHandleStartTime"::timestamp <= $2
+        ORDER BY
+          rrh."refAppointmentId",
+          rrh."refRHHandleStartTime" DESC
+      ) t
+    WHERE
+      t."refAppointmentRecommendation" IN (
+        '2',
+        '2a',
+        '3',
+        '3a',
+        '3b',
+        '3g',
+        '4h',
+        '4i1',
+        '4i2',
+        '4k'
+      )
+  ) AS "leftusgsfu",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (rrh."refAppointmentId") ra."refAppointmentRecommendation"
+        FROM
+          notes."refReportsHistory" rrh
+          JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+        WHERE
+          rrh."refRHHandledUserId" = u."refUserId"
+          AND rrh."refRHHandleStartTime" != ''
+          AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleEndTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime"::timestamp >= $1
+          AND rrh."refRHHandleStartTime"::timestamp <= $2
+        ORDER BY
+          rrh."refAppointmentId",
+          rrh."refRHHandleStartTime" DESC
+      ) t
+    WHERE
+      t."refAppointmentRecommendation" IN ('4g', '4n', '5', '5a', '6e')
+  ) AS "leftBiopsy",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (rrh."refAppointmentId") ra."refAppointmentRecommendation"
+        FROM
+          notes."refReportsHistory" rrh
+          JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+        WHERE
+          rrh."refRHHandledUserId" = u."refUserId"
+          AND rrh."refRHHandleStartTime" != ''
+          AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleEndTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime"::timestamp >= $1
+          AND rrh."refRHHandleStartTime"::timestamp <= $2
+        ORDER BY
+          rrh."refAppointmentId",
+          rrh."refRHHandleStartTime" DESC
+      ) t
+    WHERE
+      t."refAppointmentRecommendation" IN ('4a', '4c', '4d', '4e', '4j', '6d', '6g', '10a')
+  ) AS "leftBreastradiologist",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (rrh."refAppointmentId") ra."refAppointmentRecommendation"
+        FROM
+          notes."refReportsHistory" rrh
+          JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+        WHERE
+          rrh."refRHHandledUserId" = u."refUserId"
+          AND rrh."refRHHandleStartTime" != ''
+          AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleEndTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime"::timestamp >= $1
+          AND rrh."refRHHandleStartTime"::timestamp <= $2
+        ORDER BY
+          rrh."refAppointmentId",
+          rrh."refRHHandleStartTime" DESC
+      ) t
+    WHERE
+      t."refAppointmentRecommendation" IN (
+        '3c',
+        '3d',
+        '3e',
+        '3f',
+        '4',
+        '4b',
+        '4f',
+        '4l',
+        '4m',
+        '6',
+        '6a',
+        '6f',
+        '6h',
+        '7a',
+        '7b',
+        '7c',
+        '7d',
+        '7e',
+        '8',
+        '8a'
+      )
+  ) AS "leftClinicalCorrelation",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (rrh."refAppointmentId") ra."refAppointmentRecommendation"
+        FROM
+          notes."refReportsHistory" rrh
+          JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+        WHERE
+          rrh."refRHHandledUserId" = u."refUserId"
+          AND rrh."refRHHandleStartTime" != ''
+          AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleEndTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime"::timestamp >= $1
+          AND rrh."refRHHandleStartTime"::timestamp <= $2
+        ORDER BY
+          rrh."refAppointmentId",
+          rrh."refRHHandleStartTime" DESC
+      ) t
+    WHERE
+      t."refAppointmentRecommendation" IN ('6b', '6c')
+  ) AS "leftOncoConsult",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (rrh."refAppointmentId") ra."refAppointmentRecommendation"
+        FROM
+          notes."refReportsHistory" rrh
+          JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+        WHERE
+          rrh."refRHHandledUserId" = u."refUserId"
+          AND rrh."refRHHandleStartTime" != ''
+          AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleEndTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime"::timestamp >= $1
+          AND rrh."refRHHandleStartTime"::timestamp <= $2
+        ORDER BY
+          rrh."refAppointmentId",
+          rrh."refRHHandleStartTime" DESC
+      ) t
+    WHERE
+      t."refAppointmentRecommendation" IN ('0')
+  ) AS "leftRedo",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (rrh."refAppointmentId") ra."refAppointmentRecommendationRight"
+        FROM
+          notes."refReportsHistory" rrh
+          JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+        WHERE
+          rrh."refRHHandledUserId" = u."refUserId"
+          AND rrh."refRHHandleStartTime" != ''
+          AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleEndTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime"::timestamp >= $1
+          AND rrh."refRHHandleStartTime"::timestamp <= $2
+        ORDER BY
+          rrh."refAppointmentId",
+          rrh."refRHHandleStartTime" DESC
+      ) t
+    WHERE
+      t."refAppointmentRecommendationRight" IN ('1', '1a', '7', '10')
+  ) AS "rightannualscreening",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (rrh."refAppointmentId") ra."refAppointmentRecommendationRight"
+        FROM
+          notes."refReportsHistory" rrh
+          JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+        WHERE
+          rrh."refRHHandledUserId" = u."refUserId"
+          AND rrh."refRHHandleStartTime" != ''
+          AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleEndTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime"::timestamp >= $1
+          AND rrh."refRHHandleStartTime"::timestamp <= $2
+        ORDER BY
+          rrh."refAppointmentId",
+          rrh."refRHHandleStartTime" DESC
+      ) t
+    WHERE
+      t."refAppointmentRecommendationRight" IN (
+        '2',
+        '2a',
+        '3',
+        '3a',
+        '3b',
+        '3g',
+        '4h',
+        '4i1',
+        '4i2',
+        '4k'
+      )
+  ) AS "rightusgsfu",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (rrh."refAppointmentId") ra."refAppointmentRecommendationRight"
+        FROM
+          notes."refReportsHistory" rrh
+          JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+        WHERE
+          rrh."refRHHandledUserId" = u."refUserId"
+          AND rrh."refRHHandleStartTime" != ''
+          AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleEndTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime"::timestamp >= $1
+          AND rrh."refRHHandleStartTime"::timestamp <= $2
+        ORDER BY
+          rrh."refAppointmentId",
+          rrh."refRHHandleStartTime" DESC
+      ) t
+    WHERE
+      t."refAppointmentRecommendationRight" IN ('4g', '4n', '5', '5a', '6e')
+  ) AS "rightBiopsy",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (rrh."refAppointmentId") ra."refAppointmentRecommendationRight"
+        FROM
+          notes."refReportsHistory" rrh
+          JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+        WHERE
+          rrh."refRHHandledUserId" = u."refUserId"
+          AND rrh."refRHHandleStartTime" != ''
+          AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleEndTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime"::timestamp >= $1
+          AND rrh."refRHHandleStartTime"::timestamp <= $2
+        ORDER BY
+          rrh."refAppointmentId",
+          rrh."refRHHandleStartTime" DESC
+      ) t
+    WHERE
+      t."refAppointmentRecommendationRight" IN ('4a', '4c', '4d', '4e', '4j', '6d', '6g', '10a')
+  ) AS "rightBreastradiologist",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (rrh."refAppointmentId") ra."refAppointmentRecommendationRight"
+        FROM
+          notes."refReportsHistory" rrh
+          JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+        WHERE
+          rrh."refRHHandledUserId" = u."refUserId"
+          AND rrh."refRHHandleStartTime" != ''
+          AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleEndTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime"::timestamp >= $1
+          AND rrh."refRHHandleStartTime"::timestamp <= $2
+        ORDER BY
+          rrh."refAppointmentId",
+          rrh."refRHHandleStartTime" DESC
+      ) t
+    WHERE
+      t."refAppointmentRecommendationRight" IN (
+        '3c',
+        '3d',
+        '3e',
+        '3f',
+        '4',
+        '4b',
+        '4f',
+        '4l',
+        '4m',
+        '6',
+        '6a',
+        '6f',
+        '6h',
+        '7a',
+        '7b',
+        '7c',
+        '7d',
+        '7e',
+        '8',
+        '8a'
+      )
+  ) AS "rightClinicalCorrelation",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (rrh."refAppointmentId") ra."refAppointmentRecommendationRight"
+        FROM
+          notes."refReportsHistory" rrh
+          JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+        WHERE
+          rrh."refRHHandledUserId" = u."refUserId"
+          AND rrh."refRHHandleStartTime" != ''
+          AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleEndTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime"::timestamp >= $1
+          AND rrh."refRHHandleStartTime"::timestamp <= $2
+        ORDER BY
+          rrh."refAppointmentId",
+          rrh."refRHHandleStartTime" DESC
+      ) t
+    WHERE
+      t."refAppointmentRecommendationRight" IN ('6b', '6c')
+  ) AS "rightOncoConsult",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (rrh."refAppointmentId") ra."refAppointmentRecommendationRight"
+        FROM
+          notes."refReportsHistory" rrh
+          JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+        WHERE
+          rrh."refRHHandledUserId" = u."refUserId"
+          AND rrh."refRHHandleStartTime" != ''
+          AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleEndTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime"::timestamp >= $1
+          AND rrh."refRHHandleStartTime"::timestamp <= $2
+        ORDER BY
+          rrh."refAppointmentId",
+          rrh."refRHHandleStartTime" DESC
+      ) t
+    WHERE
+      t."refAppointmentRecommendationRight" IN ('0')
+  ) AS "rightRedo"
 FROM
   public."Users" u
   FULL JOIN map."refScanCenterMap" rscm ON rscm."refUserId" = u."refUserId"
 WHERE
   u."refRTId" NOT IN (3, 4, 9)
-   AND (
+  AND (
     $3 = 0
     OR rscm."refSCId" = $3
   )
@@ -982,8 +1814,8 @@ ORDER BY
   u."refUserId";
   `
 
-  var GetOverAllScanCenterList = `
-  SELECT
+var GetOverAllScanCenterList = `
+ SELECT
   sc."refSCId",
   sc."refSCCustId",
   (
@@ -1098,12 +1930,342 @@ ORDER BY
     WHERE
       ra."refAppointmentDate"::timestamp >= $1
       AND ra."refAppointmentDate"::timestamp <= $2
-  ) AS "reportartificatsright"
+  ) AS "reportartificatsright",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
+        FROM
+          appointment."refAppointments" ra
+        WHERE
+          ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentDate"::timestamp >= $1
+          AND ra."refAppointmentDate"::timestamp <= $2
+        ORDER BY
+          ra."refAppointmentId"
+      ) t
+    WHERE
+      t."refAppointmentRecommendation" IN ('1', '1a', '7', '10')
+  ) AS "leftannualscreening",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
+        FROM
+          appointment."refAppointments" ra
+        WHERE
+          ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentDate"::timestamp >= $1
+          AND ra."refAppointmentDate"::timestamp <= $2
+        ORDER BY
+          ra."refAppointmentId"
+      ) t
+    WHERE
+      t."refAppointmentRecommendation" IN (
+        '2',
+        '2a',
+        '3',
+        '3a',
+        '3b',
+        '3g',
+        '4h',
+        '4i1',
+        '4i2',
+        '4k'
+      )
+  ) AS "leftusgsfu",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
+        FROM
+          appointment."refAppointments" ra
+        WHERE
+          ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentDate"::timestamp >= $1
+          AND ra."refAppointmentDate"::timestamp <= $2
+        ORDER BY
+          ra."refAppointmentId"
+      ) t
+    WHERE
+      t."refAppointmentRecommendation" IN ('4g', '4n', '5', '5a', '6e')
+  ) AS "leftBiopsy",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
+        FROM
+          appointment."refAppointments" ra
+        WHERE
+          ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentDate"::timestamp >= $1
+          AND ra."refAppointmentDate"::timestamp <= $2
+        ORDER BY
+          ra."refAppointmentId"
+      ) t
+    WHERE
+      t."refAppointmentRecommendation" IN ('4a', '4c', '4d', '4e', '4j', '6d', '6g', '10a')
+  ) AS "leftBreastradiologist",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
+        FROM
+          appointment."refAppointments" ra
+        WHERE
+          ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentDate"::timestamp >= $1
+          AND ra."refAppointmentDate"::timestamp <= $2
+        ORDER BY
+          ra."refAppointmentId"
+      ) t
+    WHERE
+      t."refAppointmentRecommendation" IN (
+        '3c',
+        '3d',
+        '3e',
+        '3f',
+        '4',
+        '4b',
+        '4f',
+        '4l',
+        '4m',
+        '6',
+        '6a',
+        '6f',
+        '6h',
+        '7a',
+        '7b',
+        '7c',
+        '7d',
+        '7e',
+        '8',
+        '8a'
+      )
+  ) AS "leftClinicalCorrelation",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
+        FROM
+          appointment."refAppointments" ra
+        WHERE
+          ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentDate"::timestamp >= $1
+          AND ra."refAppointmentDate"::timestamp <= $2
+        ORDER BY
+          ra."refAppointmentId"
+      ) t
+    WHERE
+      t."refAppointmentRecommendation" IN ('6b', '6c')
+  ) AS "leftOncoConsult",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
+        FROM
+          appointment."refAppointments" ra
+        WHERE
+          ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentDate"::timestamp >= $1
+          AND ra."refAppointmentDate"::timestamp <= $2
+        ORDER BY
+          ra."refAppointmentId"
+      ) t
+    WHERE
+      t."refAppointmentRecommendation" IN ('0')
+  ) AS "leftRedo",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
+        FROM
+          appointment."refAppointments" ra
+        WHERE
+          ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentDate"::timestamp >= $1
+          AND ra."refAppointmentDate"::timestamp <= $2
+        ORDER BY
+          ra."refAppointmentId"
+      ) t
+    WHERE
+      t."refAppointmentRecommendationRight" IN ('1', '1a', '7', '10')
+  ) AS "rightannualscreening",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
+        FROM
+          appointment."refAppointments" ra
+        WHERE
+          ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentDate"::timestamp >= $1
+          AND ra."refAppointmentDate"::timestamp <= $2
+        ORDER BY
+          ra."refAppointmentId"
+      ) t
+    WHERE
+      t."refAppointmentRecommendationRight" IN (
+        '2',
+        '2a',
+        '3',
+        '3a',
+        '3b',
+        '3g',
+        '4h',
+        '4i1',
+        '4i2',
+        '4k'
+      )
+  ) AS "rightusgsfu",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
+        FROM
+          appointment."refAppointments" ra
+        WHERE
+          ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentDate"::timestamp >= $1
+          AND ra."refAppointmentDate"::timestamp <= $2
+        ORDER BY
+          ra."refAppointmentId"
+      ) t
+    WHERE
+      t."refAppointmentRecommendationRight" IN ('4g', '4n', '5', '5a', '6e')
+  ) AS "rightBiopsy",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
+        FROM
+          appointment."refAppointments" ra
+        WHERE
+          ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentDate"::timestamp >= $1
+          AND ra."refAppointmentDate"::timestamp <= $2
+        ORDER BY
+          ra."refAppointmentId"
+      ) t
+    WHERE
+      t."refAppointmentRecommendationRight" IN ('4a', '4c', '4d', '4e', '4j', '6d', '6g', '10a')
+  ) AS "rightBreastradiologist",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
+        FROM
+          appointment."refAppointments" ra
+        WHERE
+          ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentDate"::timestamp >= $1
+          AND ra."refAppointmentDate"::timestamp <= $2
+        ORDER BY
+          ra."refAppointmentId"
+      ) t
+    WHERE
+      t."refAppointmentRecommendationRight" IN (
+        '3c',
+        '3d',
+        '3e',
+        '3f',
+        '4',
+        '4b',
+        '4f',
+        '4l',
+        '4m',
+        '6',
+        '6a',
+        '6f',
+        '6h',
+        '7a',
+        '7b',
+        '7c',
+        '7d',
+        '7e',
+        '8',
+        '8a'
+      )
+  ) AS "rightClinicalCorrelation",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
+        FROM
+          appointment."refAppointments" ra
+        WHERE
+          ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentDate"::timestamp >= $1
+          AND ra."refAppointmentDate"::timestamp <= $2
+        ORDER BY
+          ra."refAppointmentId"
+      ) t
+    WHERE
+      t."refAppointmentRecommendationRight" IN ('6b', '6c')
+  ) AS "rightOncoConsult",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      (
+        SELECT DISTINCT
+          ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
+        FROM
+          appointment."refAppointments" ra
+        WHERE
+          ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentDate"::timestamp >= $1
+          AND ra."refAppointmentDate"::timestamp <= $2
+        ORDER BY
+          ra."refAppointmentId"
+      ) t
+    WHERE
+      t."refAppointmentRecommendationRight" IN ('0')
+  ) AS "rightOncoConsult"
 FROM
   public."ScanCenter" sc
 WHERE
   (
     $3 = 0
     OR sc."refSCId" = $3
-  )
-  `
+  ) 
+`

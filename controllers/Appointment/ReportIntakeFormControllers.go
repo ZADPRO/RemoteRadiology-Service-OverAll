@@ -5,10 +5,13 @@ import (
 	db "AuthenticationService/internal/DB"
 	accesstoken "AuthenticationService/internal/Helper/AccessToken"
 	hashapi "AuthenticationService/internal/Helper/HashAPI"
+	logger "AuthenticationService/internal/Helper/Logger"
 	helper "AuthenticationService/internal/Helper/RequestHandler"
 	model "AuthenticationService/internal/Model/Appointment"
 	"fmt"
 	"net/http"
+
+	helperView "AuthenticationService/internal/Helper/ViewFile"
 
 	"github.com/gin-gonic/gin"
 )
@@ -676,6 +679,65 @@ func DownloadReportService() gin.HandlerFunc {
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)
 
+		c.JSON(http.StatusOK, gin.H{
+			"data":  hashapi.Encrypt(payload, true, token),
+			"token": token,
+		})
+	}
+}
+
+func ViewReportService() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		logger := logger.InitLogger()
+
+		idValue, idExists := c.Get("id")
+		roleIdValue, roleIdExists := c.Get("roleId")
+
+		if !idExists || !roleIdExists {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"status":  false,
+				"message": "User ID, RoleID not found in request context.",
+			})
+			return
+		}
+
+		data, ok := helper.GetRequestBody[model.ViewReportReq](c, true)
+		if !ok {
+			return
+		}
+
+		// Default payload
+		payload := map[string]interface{}{
+			"status": false,
+			"data": map[string]interface{}{
+				"base64Data":  "",
+				"contentType": "",
+			},
+		}
+
+		// Try to load the file
+		ViewFiles, viewErr := helperView.ViewFile("./Assets/Files/" + data.FileName)
+		if viewErr != nil {
+			logger.Printf("Failed to read DrivingLicense file: %v", viewErr)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": "Failed to load file",
+			})
+			return
+		}
+
+		// Update payload on success
+		payload["status"] = true
+		payload["data"] = map[string]interface{}{
+			"base64Data":  ViewFiles.Base64Data,
+			"contentType": ViewFiles.ContentType,
+		}
+
+		// Create token
+		token := accesstoken.CreateToken(idValue, roleIdValue)
+
+		// Respond
 		c.JSON(http.StatusOK, gin.H{
 			"data":  hashapi.Encrypt(payload, true, token),
 			"token": token,

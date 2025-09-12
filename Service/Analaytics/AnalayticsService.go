@@ -5,7 +5,6 @@ import (
 	logger "AuthenticationService/internal/Helper/Logger"
 	model "AuthenticationService/internal/Model/Analaytics"
 	query "AuthenticationService/query/Analaytics"
-	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -66,7 +65,6 @@ func AdminOverallOneAnalayticsService(db *gorm.DB, reqVal model.AdminOverallOneA
 			return model.AdminOverallAnalyticsResponse{}
 		}
 	}
-	fmt.Println("**********", reqVal.SCId, "**********")
 
 	var adminStatus = true
 
@@ -74,10 +72,24 @@ func AdminOverallOneAnalayticsService(db *gorm.DB, reqVal model.AdminOverallOneA
 		adminStatus = false
 	}
 
-	//Impression and Recommentation
-	ImpressionNRecommentationErr := db.Raw(query.ImpressionNRecommentationScanCenterSQL, reqVal.StartDate, reqVal.EndDate, reqVal.SCId, reqVal.SCId, adminStatus).Scan(&response.ImpressionModel).Error
-	if ImpressionNRecommentationErr != nil {
-		log.Fatal(ImpressionNRecommentationErr.Error())
+	// //Impression and Recommentation
+	// ImpressionNRecommentationErr := db.Raw(query.ImpressionNRecommentationScanCenterSQL, reqVal.StartDate, reqVal.EndDate, reqVal.SCId, reqVal.SCId, adminStatus).Scan(&response.ImpressionModel).Error
+	// if ImpressionNRecommentationErr != nil {
+	// 	log.Fatal(ImpressionNRecommentationErr.Error())
+	// 	return model.AdminOverallAnalyticsResponse{}
+	// }
+
+	// Left Recommentation
+	LeftRecommendationErr := db.Raw(query.LeftRecommendationScancenterSQL, reqVal.StartDate, reqVal.EndDate, reqVal.SCId, adminStatus).Scan(&response.LeftRecommendation).Error
+	if LeftRecommendationErr != nil {
+		log.Fatal(LeftRecommendationErr.Error())
+		return model.AdminOverallAnalyticsResponse{}
+	}
+
+	// Left Recommentation
+	RightRecommendationErr := db.Raw(query.RightRecommendationScancenterSQL, reqVal.StartDate, reqVal.EndDate, reqVal.SCId, adminStatus).Scan(&response.RightRecommendation).Error
+	if RightRecommendationErr != nil {
+		log.Fatal(RightRecommendationErr.Error())
 		return model.AdminOverallAnalyticsResponse{}
 	}
 
@@ -152,10 +164,24 @@ func UserAnalaytics(db *gorm.DB, reqVal model.OneUserReq, UserId int, roleIdValu
 		return model.OneUserReponse{}
 	}
 
-	//Impression and Recommentation
-	ImpressionNRecommentationErr := db.Raw(query.ImpressionNRecommentationSQL, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.ImpressionModel).Error
-	if ImpressionNRecommentationErr != nil {
-		log.Fatal(ImpressionNRecommentationErr.Error())
+	// //Impression and Recommentation
+	// ImpressionNRecommentationErr := db.Raw(query.ImpressionNRecommentationSQL, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.ImpressionModel).Error
+	// if ImpressionNRecommentationErr != nil {
+	// 	log.Fatal(ImpressionNRecommentationErr.Error())
+	// 	return model.OneUserReponse{}
+	// }
+
+	// Left Recommentation
+	LeftRecommendationErr := db.Raw(query.LeftRecommendationUserSQL, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.LeftRecommendation).Error
+	if LeftRecommendationErr != nil {
+		log.Fatal(LeftRecommendationErr.Error())
+		return model.OneUserReponse{}
+	}
+
+	// Left Recommentation
+	RightRecommendationErr := db.Raw(query.RightRecommendationUserSQL, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.RightRecommendation).Error
+	if RightRecommendationErr != nil {
+		log.Fatal(RightRecommendationErr.Error())
 		return model.OneUserReponse{}
 	}
 

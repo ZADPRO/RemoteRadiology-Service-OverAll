@@ -103,7 +103,6 @@ FROM
   JOIN public."Users" f ON f."refUserId" = rrh."refRHHandledUserId"
 WHERE
   rrh."refAppointmentId" = ?
-  AND (rrh."refRHHandleStatus" != 'technologistformfill' OR rrh."refRHHandleStatus" IS NULL)
 ORDER BY
   rrh."refRHId" ASC;
 `
@@ -118,7 +117,6 @@ FROM
   JOIN public."Users" f ON f."refUserId" = rrh."refRHHandledUserId"
 WHERE
   rrh."refAppointmentId" = ?
-  AND (rrh."refRHHandleStatus" != 'technologistformfill' OR rrh."refRHHandleStatus" IS NULL)
   AND f."refRTId" IN (1, 2, 3, 5, 8, 10)
 ORDER BY
   rrh."refRHId" ASC;
@@ -325,10 +323,11 @@ INSERT INTO
     "refUserId",
     "refAppointmentId",
     "refRHHandledUserId",
-    "refRHHandleStartTime"
+    "refRHHandleStartTime",
+    "refRHHandleStatus"
   )
 VALUES
-  (?, ?, ?, ?);
+  (?, ?, ?, ?, ?);
 `
 
 var InsertReportHistorySQL = `
