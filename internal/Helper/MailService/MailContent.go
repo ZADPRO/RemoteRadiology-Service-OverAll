@@ -408,12 +408,12 @@ func RegistrationMailContent(userName, patientID, gmail, password string, role s
 		html.EscapeString(patientID) + `
           </p>
           <p>
-            <strong>Email (Gmail):</strong> ` + html.EscapeString(gmail) + `
+            <strong>Email:</strong> ` + html.EscapeString(gmail) + `
           </p>
           <p><strong>Password:</strong> ` + html.EscapeString(password) + `</p>
         </div>
         <a href="https://easeqtremote.brightoncloudtech.com/" class="button"
-          >Login to Dashboard</a
+          >Login Now</a
         >
         <p style="margin-top: 20px">
           If you did not request this registration, please ignore this email.

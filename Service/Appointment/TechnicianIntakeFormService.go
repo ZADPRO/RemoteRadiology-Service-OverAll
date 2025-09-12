@@ -459,6 +459,7 @@ func AssignTechnicianService(db *gorm.DB, reqVal model.ViewTechnicianIntakeFormR
 		reqVal.AppointmentId,
 		idValue,
 		timeZone.GetPacificTime(),
+		"Technologist Form Fill",
 	).Error
 	if ReportHistoryErr != nil {
 		log.Printf("ERROR: Failed to Insert Report History: %v\n", ReportHistoryErr)
@@ -612,7 +613,7 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 		ReportHistoryErr := tx.Exec(
 			query.CompleteReportHistorySQL,
 			timeZone.GetPacificTime(),
-			"technologistformfill",
+			"Technologist Form Fill",
 			"",
 			reqVal.AppointmentId,
 			idValue,

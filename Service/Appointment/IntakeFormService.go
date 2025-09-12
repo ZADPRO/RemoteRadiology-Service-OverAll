@@ -5,7 +5,6 @@ import (
 	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
 	timeZone "AuthenticationService/internal/Helper/TimeZone"
-	helperfile "AuthenticationService/internal/Helper/ViewFile"
 	model "AuthenticationService/internal/Model/Appointment"
 	query "AuthenticationService/query/Appointment"
 	"encoding/json"
@@ -203,6 +202,21 @@ func AddIntakeFormService(db *gorm.DB, reqVal model.AddIntakeFormReq, idValue in
 			return false, "Something went wrong, Try Again"
 		}
 
+		ReportHistoryErr := tx.Exec(
+			query.ReportHistorySQL,
+			idValue,
+			reqVal.AppointmentId,
+			idValue,
+			reqVal.PatientIntakeStartTime,
+			timeZone.GetPacificTime(),
+			"Patient Intake Override Form Fill",
+		).Error
+		if ReportHistoryErr != nil {
+			log.Printf("ERROR: Failed to Insert Report History: %v\n", ReportHistoryErr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again"
+		}
+
 	} else {
 
 		if reqVal.OverrideRequest {
@@ -273,6 +287,21 @@ func AddIntakeFormService(db *gorm.DB, reqVal model.AddIntakeFormReq, idValue in
 			return false, "Something went wrong, Try Again"
 		}
 
+		ReportHistoryErr := tx.Exec(
+			query.ReportHistorySQL,
+			idValue,
+			reqVal.AppointmentId,
+			idValue,
+			reqVal.PatientIntakeStartTime,
+			timeZone.GetPacificTime(),
+			"Patient Intake Form Fill",
+		).Error
+		if ReportHistoryErr != nil {
+			log.Printf("ERROR: Failed to Insert Report History: %v\n", ReportHistoryErr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again"
+		}
+
 	}
 
 	if err := tx.Commit().Error; err != nil {
@@ -322,23 +351,23 @@ func ViewIntakeService(db *gorm.DB, reqVal model.ViewIntakeReq) ([]model.GetView
 
 	for i, data := range ViewIntakeData {
 		ViewIntakeData[i].Answer = hashdb.Decrypt(data.Answer)
-		if data.QuestionId == 128 || data.QuestionId == 133 || data.QuestionId == 138 || data.QuestionId == 143 || data.QuestionId == 148 || data.QuestionId == 153 || data.QuestionId == 158 || data.QuestionId == 165 {
-			if len(hashdb.Decrypt(data.Answer)) > 0 {
-				FilesData, viewErr := helperfile.ViewFile("./Assets/Files/" + hashdb.Decrypt(data.Answer))
-				if viewErr != nil {
-					// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-					log.Fatalf("Failed to read profile image file: %v", viewErr)
-				}
-				if FilesData != nil {
-					ViewIntakeData[i].File = &model.FileData{
-						Base64Data:  FilesData.Base64Data,
-						ContentType: FilesData.ContentType,
-					}
-				}
-			} else {
-				ViewIntakeData[i].File = nil
-			}
-		}
+		// if data.QuestionId == 128 || data.QuestionId == 133 || data.QuestionId == 138 || data.QuestionId == 143 || data.QuestionId == 148 || data.QuestionId == 153 || data.QuestionId == 158 || data.QuestionId == 165 {
+		// 	if len(hashdb.Decrypt(data.Answer)) > 0 {
+		// 		FilesData, viewErr := helperfile.ViewFile("./Assets/Files/" + hashdb.Decrypt(data.Answer))
+		// 		if viewErr != nil {
+		// 			// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
+		// 			log.Fatalf("Failed to read profile image file: %v", viewErr)
+		// 		}
+		// 		if FilesData != nil {
+		// 			ViewIntakeData[i].File = &model.FileData{
+		// 				Base64Data:  FilesData.Base64Data,
+		// 				ContentType: FilesData.ContentType,
+		// 			}
+		// 		}
+		// 	} else {
+		// 		ViewIntakeData[i].File = nil
+		// 	}
+		// }
 	}
 
 	if err := tx.Commit().Error; err != nil {

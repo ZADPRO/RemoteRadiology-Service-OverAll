@@ -461,3 +461,11 @@ type AddAddendumModel struct {
 type DownloadReportReq struct {
 	Id int `json:"id" binding:"required" mapstructure:"id"`
 }
+
+type ViewReportReq struct {
+	FileName string `json:"filename" binding:"required" mapstructure:"filename"`
+}
+
+type ViewReportRes struct {
+	File *FileData `json:"file" gorm:"-"`
+}
