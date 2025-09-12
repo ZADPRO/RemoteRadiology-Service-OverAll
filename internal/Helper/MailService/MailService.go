@@ -17,7 +17,7 @@ func MailService(toMailer string, htmlContent string, subject string) bool {
 
 	fmt.Println(os.Getenv("PASSWORD"))
 
-	d := gomail.NewDialer("smtp.gmail.com", 465, os.Getenv("EMAILID"), os.Getenv("PASSWORD"))
+	d := gomail.NewDialer("smtpout.secureserver.net", 465, os.Getenv("EMAILID"), os.Getenv("PASSWORD"))
 
 	if err := d.DialAndSend(m); err != nil {
 		log.Printf("Could not send email: %v", err)
