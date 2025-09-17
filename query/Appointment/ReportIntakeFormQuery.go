@@ -476,10 +476,11 @@ INSERT INTO
     "refRFText",
     "refRFCreatedAt",
     "refRFCreatedBy",
-    "refRFStatus"
+    "refRFStatus",
+    "refRFAccessStatus"
   )
 VALUES
-  ($1, $2, $3, $4, true)
+  ($1, $2, $3, $4, true, $5)
 RETURNING
   "refRFId",
   (
@@ -507,16 +508,19 @@ WHERE
 
 var GetReportFormateListSQL = `
 SELECT
-  u."refUserCustId",
-  rrf.*
+  *
 FROM
   notes."refReportFormate" rrf
   JOIN public."Users" u ON u."refUserId" = rrf."refRFCreatedBy"
 WHERE
-  rrf."refRFStatus" = true
-  AND rrf."refRFCreatedBy" = ?
-  ORDER BY
-  rrf."refRFId" DESC
+  (
+    rrf."refRFCreatedBy" = $1
+    OR (
+      rrf."refRFCreatedBy" <> $1
+      AND rrf."refRFAccessStatus" = 'public'
+    )
+  )
+  AND (rrf."refRFStatus" = true)
 `
 
 var DeleteReportTemplateSQL = `
@@ -524,6 +528,12 @@ UPDATE notes."refReportFormate"
 SET 
   "refRFStatus" = false
 WHERE "refRFId" = $1;
+`
+var UpdateReportTemplateSQL = `
+UPDATE notes."refReportFormate"
+SET 
+  "refRFAccessStatus" = $1
+WHERE "refRFId" = $2;
 `
 
 var GetOneReportFormateListSQL = `
@@ -1277,4 +1287,64 @@ SET
   "refAppointmentComplete" = $1
 WHERE
   "refAppointmentId" = $2
+`
+
+var ListOldReportSQL = `
+SELECT
+  *
+FROM
+  notes."refOldReport" ror
+WHERE
+  ror."refAppointmentId" = $1
+  AND ror."refUserId" = $2
+  AND ror."refORCategoryId" = $3
+  AND ror."refORStatus" = true
+`
+
+var AddOldReportSQL = `
+INSERT INTO
+  notes."refOldReport" (
+    "refUserId",
+    "refAppointmentId",
+    "refORCategoryId",
+    "refORFilename",
+    "refORCreatedAt",
+    "refORCreatedBy",
+    "refORStatus"
+  )
+VALUES
+  ($1, $2, $3, $4, $5, $6, true);
+`
+
+var GetParticularOldReport = `
+SELECT
+  *
+FROM
+  notes."refOldReport" ror
+WHERE
+  ror."refORId" = $1
+`
+
+var DeleteOldReportSQL = `
+UPDATE
+  notes."refOldReport"
+SET
+  "refORStatus" = $1
+WHERE
+  "refORId" = $2;
+`
+
+var GetOldReportsSQL = `
+SELECT 
+  r."refORCategoryId",
+  COALESCE(
+    json_agg(r."refORFilename") FILTER (WHERE r."refORFilename" IS NOT NULL), 
+    '[]'
+  ) AS files
+FROM notes."refOldReport" r
+WHERE r."refUserId" = $1
+  AND r."refAppointmentId" = $2
+  AND r."refORStatus" = true
+GROUP BY r."refORCategoryId"
+ORDER BY r."refORCategoryId";
 `
