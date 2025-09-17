@@ -34,6 +34,11 @@ type GetReportIntakeData struct {
 	Answer     string `json:"answer" gorm:"column:refRITFAnswer"`
 }
 
+type GetOldReport struct {
+	RefORCategoryId int    `json:"refORCategoryId" gorm:"column:refORCategoryId"`
+	Files           string `json:"files" gorm:"column:files"`
+}
+
 type GetReportTextContent struct {
 	IntakeId                                     int    `json:"refRTCId" gorm:"column:refRTCId"`
 	TextContent                                  string `json:"refRTCText" gorm:"column:refRTCText"`
@@ -332,10 +337,22 @@ type AddedumCountModel struct {
 type UploadReportFormateReq struct {
 	Name            string `json:"name" binding:"required" mapstructure:"name"`
 	FormateTemplate string `json:"formateTemplate" binding:"required" mapstructure:"formateTemplate"`
+	AccessStatus    string `json:"accessStatus" binding:"required" mapstructure:"accessStatus"`
 }
 
 type DeleteReportFormateReq struct {
 	Id int `json:"id" binding:"required" mapstructure:"id"`
+}
+
+type UpdateReportFormateReq struct {
+	Id           int    `json:"id" binding:"required" mapstructure:"id"`
+	AccessStatus string `json:"accessStatus" binding:"required" mapstructure:"accessStatus"`
+}
+
+type ListOldReportReq struct {
+	CategoryId    int `json:"categoryId" binding:"required" mapstructure:"categoryId"`
+	PatientId     int `json:"patientId" binding:"required" mapstructure:"patientId"`
+	AppointmentId int `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
 }
 
 type GetUserDetails struct {
@@ -351,11 +368,12 @@ type GetReportFormateReq struct {
 }
 
 type ReportFormateModel struct {
-	RFId          int       `json:"refRFId" gorm:"column:refRFId"`
-	RFName        string    `json:"refRFName" gorm:"column:refRFName"`
-	RFCreatedAt   time.Time `json:"refRFCreatedAt" gorm:"column:refRFCreatedAt"`
-	RFCreatedBy   int       `json:"refRFCreatedBy" gorm:"column:refRFCreatedBy"`
-	RefUserCustId string    `json:"refUserCustId" gorm:"column:refUserCustId"`
+	RFId              int       `json:"refRFId" gorm:"column:refRFId"`
+	RFName            string    `json:"refRFName" gorm:"column:refRFName"`
+	RFCreatedAt       time.Time `json:"refRFCreatedAt" gorm:"column:refRFCreatedAt"`
+	RFCreatedBy       int       `json:"refRFCreatedBy" gorm:"column:refRFCreatedBy"`
+	RefUserCustId     string    `json:"refUserCustId" gorm:"column:refUserCustId"`
+	RefRFAccessStatus string    `json:"refRFAccessStatus" gorm:"column:refRFAccessStatus"`
 }
 
 type ReportTextFormateModel struct {
@@ -468,4 +486,18 @@ type ViewReportReq struct {
 
 type ViewReportRes struct {
 	File *FileData `json:"file" gorm:"-"`
+}
+
+type ListOldReportModel struct {
+	ORId          int    `json:"refORId" gorm:"column:refORId"`
+	UserId        int    `json:"refUserId" gorm:"column:refUserId"`
+	AppointmentId int    `json:"refAppointmentId" gorm:"column:refAppointmentId"`
+	ORCategoryId  int    `json:"refORCategoryId" gorm:"column:refORCategoryId"`
+	ORFilename    string `json:"refORFilename" gorm:"column:refORFilename"`
+	ORCreatedAt   string `json:"refORCreatedAt" gorm:"column:refORCreatedAt"`
+	ORCreatedBy   string `json:"refORCreatedBy" gorm:"column:refORCreatedBy"`
+}
+
+type DeleteOldReportModel struct {
+	ORId int `json:"refORId" binding:"required" mapstructure:"refORId"`
 }

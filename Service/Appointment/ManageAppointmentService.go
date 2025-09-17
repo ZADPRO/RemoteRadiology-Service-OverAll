@@ -266,18 +266,11 @@ func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int, roleIdValue int
 			}
 		} else if roleIdValue == 6 || roleIdValue == 7 {
 			for _, data := range StaffAvailable {
-				if data.RoleId == 10 || data.RoleId == 6 || data.RoleId == 7 {
+				if data.RoleId == 10 || data.RoleId == 6 || data.RoleId == 7 || data.RoleId == 9 {
 					FinalStaffAvailable = append(FinalStaffAvailable, data)
 				}
 			}
 		}
-		// else if roleIdValue == 9 {
-		// 	for _, data := range StaffAvailable {
-		// 		if data.RoleId == 10 || data.RoleId == 6 || data.RoleId == 7 || data.RoleId == 1 {
-		// 			FinalStaffAvailable = append(FinalStaffAvailable, data)
-		// 		}
-		// 	}
-		// }
 
 		return patientQueue, FinalStaffAvailable
 	}

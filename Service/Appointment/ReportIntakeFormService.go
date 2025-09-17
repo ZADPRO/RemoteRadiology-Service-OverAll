@@ -11,6 +11,8 @@ import (
 	query "AuthenticationService/query/Appointment"
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"gorm.io/gorm"
 )
@@ -48,7 +50,7 @@ func CheckAccessService(db *gorm.DB, reqVal model.CheckAccessReq, idValue int, r
 	return result[0].Status, message, result[0].RefAppointmentAccessId, result[0].CustID
 }
 
-func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValue int, roleIdValue int) (bool, string, []model.GetViewIntakeData, []model.GetTechnicianIntakeData, []model.GetReportIntakeData, []model.GetReportTextContent, []model.GetReportHistory, []model.GetReportComments, []model.GetOneUserAppointmentModel, []model.ReportFormateModel, []model.GetUserDetails, []model.PatientCustId, bool, *model.FileData, string, []model.AddAddendumModel) {
+func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValue int, roleIdValue int) (bool, string, []model.GetViewIntakeData, []model.GetTechnicianIntakeData, []model.GetReportIntakeData, []model.GetReportTextContent, []model.GetReportHistory, []model.GetReportComments, []model.GetOneUserAppointmentModel, []model.ReportFormateModel, []model.GetUserDetails, []model.PatientCustId, bool, *model.FileData, string, []model.AddAddendumModel, []model.GetOldReport) {
 	log := logger.InitLogger()
 
 	tx := db.Begin()
@@ -68,7 +70,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			false,
 			&model.FileData{},
 			"",
-			[]model.AddAddendumModel{}
+			[]model.AddAddendumModel{},
+			[]model.GetOldReport{}
 	}
 
 	defer func() {
@@ -160,7 +163,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						false,
 						&model.FileData{},
 						"",
-						[]model.AddAddendumModel{}
+						[]model.AddAddendumModel{},
+						[]model.GetOldReport{}
 				}
 
 				transData := 28
@@ -182,7 +186,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						false,
 						&model.FileData{},
 						"",
-						[]model.AddAddendumModel{}
+						[]model.AddAddendumModel{},
+						[]model.GetOldReport{}
 				}
 
 				var UpdateAccessSQL = query.UpdateAccessAppointment
@@ -215,7 +220,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						false,
 						&model.FileData{},
 						"",
-						[]model.AddAddendumModel{}
+						[]model.AddAddendumModel{},
+						[]model.GetOldReport{}
+
 				}
 
 				//List the Latest Report History
@@ -242,7 +249,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						false,
 						&model.FileData{},
 						"",
-						[]model.AddAddendumModel{}
+						[]model.AddAddendumModel{},
+						[]model.GetOldReport{}
 				}
 
 				if len(ReportHistory) > 0 {
@@ -280,7 +288,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 							false,
 							&model.FileData{},
 							"",
-							[]model.AddAddendumModel{}
+							[]model.AddAddendumModel{},
+							[]model.GetOldReport{}
 					}
 				}
 
@@ -305,7 +314,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 				false,
 				&model.FileData{},
 				"",
-				[]model.AddAddendumModel{}
+				[]model.AddAddendumModel{},
+				[]model.GetOldReport{}
 		}
 
 		var IntakeFormData []model.GetViewIntakeData
@@ -502,7 +512,14 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 
 		// }
 
-		return true, "Successfully Fetched", IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, OneUserAppointment, ReportFormateList, UserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterProfileImg, hashdb.Decrypt(GetScanCenterImg[0].SCAddress), ListAddendumService(db, reqVal.AppointmentId)
+		//Get the Other Old Reports
+		var oldReportData []model.GetOldReport
+		oldReportErr := db.Raw(query.GetOldReportsSQL, reqVal.PatientId, reqVal.AppointmentId).Scan(&oldReportData).Error
+		if oldReportErr != nil {
+			log.Error(oldReportErr)
+		}
+
+		return true, "Successfully Fetched", IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, OneUserAppointment, ReportFormateList, UserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterProfileImg, hashdb.Decrypt(GetScanCenterImg[0].SCAddress), ListAddendumService(db, reqVal.AppointmentId), oldReportData
 
 	} else {
 
@@ -523,7 +540,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 				false,
 				&model.FileData{},
 				"",
-				[]model.AddAddendumModel{}
+				[]model.AddAddendumModel{},
+				[]model.GetOldReport{}
 		}
 
 		return status, message,
@@ -540,7 +558,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			false,
 			&model.FileData{},
 			"",
-			[]model.AddAddendumModel{}
+			[]model.AddAddendumModel{},
+			[]model.GetOldReport{}
 	}
 
 }
@@ -2600,6 +2619,7 @@ func UploadReportFormateService(db *gorm.DB, reqVal model.UploadReportFormateReq
 		hashdb.Encrypt(reqVal.FormateTemplate),
 		timeZone.GetPacificTime(),
 		idValue,
+		reqVal.AccessStatus,
 	).Scan(&insertedID).Error
 	if InsertReportTemplateErr != nil {
 		log.Printf("ERROR: Failed to Insert Report Template: %v\n", InsertReportTemplateErr)
@@ -2663,6 +2683,58 @@ func DeleteReportFormateService(db *gorm.DB, reqVal model.DeleteReportFormateReq
 	errTrans := model.RefTransHistory{
 		TransTypeId: transData,
 		THData:      "Report Template Deleted Successfully",
+		UserId:      idValue,
+		THActionBy:  idValue,
+	}
+
+	errTransStatus := db.Create(&errTrans).Error
+	if errTransStatus != nil {
+		log.Error("errreportStatus INSERT ERROR at Trnasaction: " + errTransStatus.Error())
+		return false, "Something went wrong, Try Again"
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	return true, "Successfully Changes Saved"
+}
+
+func UpdateReportFormateService(db *gorm.DB, reqVal model.UpdateReportFormateReq, idValue int) (bool, string) {
+	log := logger.InitLogger()
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
+		return false, "Something went wrong, Try Again"
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("ERROR: Recovered from panic, rolling back transaction:", r)
+			tx.Rollback()
+		}
+	}()
+
+	//Update Template
+	UpdateReportTemplateErr := tx.Exec(
+		query.UpdateReportTemplateSQL,
+		reqVal.AccessStatus,
+		reqVal.Id,
+	).Error
+	if UpdateReportTemplateErr != nil {
+		log.Printf("ERROR: Failed to Update Report Template: %v\n", UpdateReportTemplateErr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	//Addding audit For the Template
+	transData := 36
+	errTrans := model.RefTransHistory{
+		TransTypeId: transData,
+		THData:      "Report Template Update Successfully",
 		UserId:      idValue,
 		THActionBy:  idValue,
 	}
@@ -2932,4 +3004,85 @@ func AddAddendumService(db *gorm.DB, reqVal model.AddAddendumReq, idValue int) (
 
 	return true, "Successfully Addedum Received", ListAddendumService(db, reqVal.AppointmentId)
 
+}
+
+func ListOldReportService(db *gorm.DB, reqVal model.ListOldReportReq, idValue int) (bool, string, []model.ListOldReportModel) {
+	log := logger.InitLogger()
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
+		return false, "Something went wrong, Try Again", []model.ListOldReportModel{}
+	}
+
+	var ListOldReportModel []model.ListOldReportModel
+
+	ListAddendumErr := tx.Raw(query.ListOldReportSQL, reqVal.AppointmentId, reqVal.PatientId, reqVal.CategoryId).Scan(&ListOldReportModel).Error
+	if ListAddendumErr != nil {
+		log.Printf("ERROR: Failed to fetch scan centers: %v", ListAddendumErr)
+		return false, "Something went wrong, Try Again", []model.ListOldReportModel{}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again", []model.ListOldReportModel{}
+	}
+
+	return true, "Successfully Changes Saved", ListOldReportModel
+
+}
+
+func DeleteOldReportService(db *gorm.DB, reqVal model.DeleteOldReportModel) (bool, string) {
+
+	log := logger.InitLogger()
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
+		return false, "Something went wrong, Try Again"
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("ERROR: Recovered from panic, rolling back transaction:", r)
+			tx.Rollback()
+		}
+	}()
+
+	var DicomFiles []model.ListOldReportModel
+	DicomErr := tx.Raw(query.GetParticularOldReport, reqVal.ORId).Scan(&DicomFiles).Error
+	if DicomErr != nil {
+		log.Printf("ERROR: Failed to fetch scan centers: %v", DicomErr)
+		return false, "Something went wrong, Try Again"
+	}
+
+	DeleteDicomErr := tx.Exec(
+		query.DeleteOldReportSQL,
+		false,
+		reqVal.ORId,
+	).Error
+	if DeleteDicomErr != nil {
+		log.Error(DeleteDicomErr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	uploadPath := "./Assets/Files/"
+
+	for _, data := range DicomFiles {
+		filePath := filepath.Join(uploadPath, data.ORFilename)
+		if err := os.Remove(filePath); err != nil {
+			log.Error("File deletion failed:", err)
+			return false, "Something went wrong, Try Again"
+		}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	return true, "Successfully Deleted"
 }
