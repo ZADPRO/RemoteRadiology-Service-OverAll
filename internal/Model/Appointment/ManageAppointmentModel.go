@@ -64,6 +64,7 @@ type ViewPatientHistoryModel struct {
 	AppointmentComplete string `json:"refAppointmentComplete" gorm:"column:refAppointmentComplete"`
 	CustSCId            string `json:"refSCCustId" gorm:"column:refSCCustId"`
 	OverrideStatus      string `json:"refOverrideStatus" gorm:"column:refOverrideStatus"`
+	UserId              int    `json:"refUserId" gorm:"column:refUserId"`
 }
 
 type GetDicomFile struct {
@@ -175,4 +176,15 @@ type Notification struct {
 	RefNMessage   string `json:"refNMessage" gorm:"column:refNMessage"`
 	RefNStatus    *bool  `json:"refNStatus" gorm:"column:refNStatus"`
 	RefNCreatedAt string `json:"refNCreatedAt" gorm:"column:refNCreatedAt"`
+}
+
+type RefAuditTransHistory struct {
+	RefTHId       int    `json:"refTHId" gorm:"column:refTHId;primaryKey"`
+	TransTypeId   int    `json:"transTypeId" gorm:"column:transTypeId"`
+	RefTHData     string `json:"refTHData" gorm:"column:refTHData"`
+	RefTHTime     string `json:"refTHTime" gorm:"column:refTHTime"` // can use time.Time instead of string
+	RefUserId     int    `json:"refUserId" gorm:"column:refUserId"`
+	RefTHActionBy int    `json:"refTHActionBy" gorm:"column:refTHActionBy"`
+	RefUserCustId string `json:"refUserCustId" gorm:"column:refUserCustId"`
+	// RefUserFirstName string `json:"refUserFirstName" gorm:"column:refUserFirstName"`
 }

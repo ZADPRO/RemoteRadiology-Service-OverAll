@@ -468,3 +468,18 @@ func ListMessagesService(db *gorm.DB, idValue int) []model.Notification {
 	return Notification
 
 }
+
+func ListAuditLogService(db *gorm.DB) []model.RefAuditTransHistory {
+	log := logger.InitLogger()
+
+	var AuditTransHitory []model.RefAuditTransHistory
+
+	AuditTransHitoryErr := db.Raw(query.GetAuditReportStatusSQL).Scan(&AuditTransHitory).Error
+	if AuditTransHitoryErr != nil {
+		log.Error(AuditTransHitoryErr)
+		return []model.RefAuditTransHistory{}
+	}
+
+	return AuditTransHitory
+
+}

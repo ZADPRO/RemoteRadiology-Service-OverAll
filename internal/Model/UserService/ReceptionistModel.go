@@ -50,6 +50,16 @@ func (MapScanCenterModel) TableName() string {
 	return "map.refScanCenterMap"
 }
 
+type MapScanCenterPatientModel struct {
+	SCMPId int `json:"refSCMPId" gorm:"primaryKey;autoIncrement;column:refSCMPId"`
+	UserId int `json:"refUserId" gorm:"column:refUserId"`
+	SCId   int `json:"refSCId" gorm:"column:refSCId"`
+}
+
+func (MapScanCenterPatientModel) TableName() string {
+	return "map.refScanCenterMapPatient"
+}
+
 type GetAllReceptionistData struct {
 	UserId             int    `json:"refUserId" gorm:"primaryKey;autoIncrement;column:refUserId"`
 	UserCustId         string `json:"refUserCustId" gorm:"column:refUserCustId"`

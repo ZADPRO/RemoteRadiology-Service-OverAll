@@ -7,6 +7,8 @@ type GetUserModel struct {
 	Email                   string    `json:"refCODOEmail" gorm:"column:refCODOEmail"`
 	FirstName               string    `json:"refUserFirstName" gorm:"column:refUserFirstName"`
 	LastName                string    `json:"refUserLastName" gorm:"column:refUserLastName"`
+	DOB                     string    `json:"refUserDOB" gorm:"column:refUserDOB"`
+	Gender                  string    `json:"refUserGender" gorm:"column:refUserGender"`
 	CODOPhoneNo1CountryCode string    `json:"refCODOPhoneNo1CountryCode" gorm:"column:refCODOPhoneNo1CountryCode"`
 	CODOPhoneNo1            string    `json:"refCODOPhoneNo1" gorm:"column:refCODOPhoneNo1"`
 	UserProfileImg          string    `json:"refUserProfileImg" gorm:"column:refUserProfileImg"`
@@ -20,6 +22,8 @@ type GetUserResModel struct {
 	Email                   string    `json:"refCODOEmail"`
 	FirstName               string    `json:"refUserFirstName"`
 	LastName                string    `json:"refUserLastName"`
+	DOB                     string    `json:"refUserDOB"`
+	Gender                  string    `json:"refUserGender"`
 	ScanCenterId            int       `json:"refSCId"`
 	CODOPhoneNo1CountryCode string    `json:"refCODOPhoneNo1CountryCode"`
 	CODOPhoneNo1            string    `json:"refCODOPhoneNo1"`

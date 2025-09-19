@@ -74,6 +74,7 @@ var UpdateTechnicianAppointmentStatus = `
 UPDATE
   appointment."refAppointments"
 SET
+  "refAppointmentDate" = ?,
   "refAppointmentComplete" = ?,
   "refAppointmentPriority" = ?,
   "refAppointmentTechArtifactsLeft" = ?,

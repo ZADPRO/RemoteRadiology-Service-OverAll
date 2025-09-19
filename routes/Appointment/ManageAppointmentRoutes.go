@@ -16,4 +16,5 @@ func InitManageAppointmentRoutes(router *gin.Engine) {
 	route.POST("/viewAddtionalFiles", accesstoken.JWTMiddleware(), controllers.ViewAddtionalFilesController())
 	route.POST("/assignUser", accesstoken.JWTMiddleware(), controllers.AssignUserController())
 	route.POST("/listMessages", accesstoken.JWTMiddleware(), controllers.ListMessagesController())
+	route.GET("/listauditlog", accesstoken.JWTMiddleware(), controllers.ListAuditLogController())
 }

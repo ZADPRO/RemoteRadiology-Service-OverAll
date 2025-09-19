@@ -18,6 +18,7 @@ type TechnicianRegisterReq struct {
 
 type VerifyData struct {
 	UserId       int    `json:"refUserId" gorm:"column:refUserId"`
+	UserCustId   string `json:"refUserCustId" gorm:"column:refUserCustId"`
 	PhoneNumber1 string `json:"refCODOPhoneNo1" gorm:"column:refCODOPhoneNo1"`
 	PhoneNumber2 string `json:"refCODOPhoneNo2" gorm:"column:refCODOPhoneNo2"`
 	Email        string `json:"refCODOEmail" gorm:"column:refCODOEmail"`
@@ -197,6 +198,22 @@ type RefTransHistory struct {
 
 func (RefTransHistory) TableName() string {
 	return "aduit.refTransHistory"
+}
+
+type CreateAppointmentModel struct {
+	AppointmentId   int    `json:"refAppointmentId" gorm:"primaryKey;autoIncrement;column:refAppointmentId"`
+	UserId          int    `json:"refUserId" gorm:"column:refUserId"`
+	SCId            int    `json:"refSCId" gorm:"column:refSCId"`
+	AppointmentDate string `json:"refAppointmentDate" gorm:"column:refAppointmentDate"`
+	// AppointmentStartTime string `json:"refAppointmentStartTime" gorm:"column:refAppointmentStartTime"`
+	// AppointmentEndTime   string `json:"refAppointmentEndTime" gorm:"column:refAppointmentEndTime"`
+	AppointmentUrgency  bool   `json:"refAppointmentUrgency" gorm:"column:refAppointmentUrgency"`
+	AppointmentStatus   bool   `json:"refAppointmentStatus" gorm:"column:refAppointmentStatus"`
+	AppointmentComplete string `json:"refAppointmentComplete" gorm:"column:refAppointmentComplete"`
+}
+
+func (CreateAppointmentModel) TableName() string {
+	return "appointment.refAppointments"
 }
 
 type CreateTechnicianDomainModel struct {

@@ -43,3 +43,4 @@ type VerifyOtpPatient struct {
 type VerifyOTP struct {
 	Result bool `json:"result" gorm:"column:result"`
 }
+

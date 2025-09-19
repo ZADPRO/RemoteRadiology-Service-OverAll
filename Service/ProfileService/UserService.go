@@ -52,6 +52,8 @@ func GetUserService(db *gorm.DB, idValue int) model.GetUserResModel {
 			ScanCenterId:            ScanCenterId,
 			CODOPhoneNo1CountryCode: UserData[0].CODOPhoneNo1CountryCode,
 			CODOPhoneNo1:            UserData[0].CODOPhoneNo1,
+			DOB:                     hashdb.Decrypt(UserData[0].DOB),
+			Gender:                  UserData[0].Gender,
 		}
 	} else {
 		return model.GetUserResModel{
