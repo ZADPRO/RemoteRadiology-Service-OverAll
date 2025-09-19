@@ -287,3 +287,17 @@ WHERE
   "refAppointmentId" = $1
   AND "refTITFQId" = 1
   `
+
+var GetAuditReportStatusSQL = `
+SELECT
+  *
+FROM
+  aduit."refTransHistory" rth
+  JOIN public."Users" u ON u."refUserId" = rth."refUserId"
+WHERE
+  rth."transTypeId" = 1
+ORDER BY
+  rth."refTHId" DESC
+LIMIT
+  1000
+`

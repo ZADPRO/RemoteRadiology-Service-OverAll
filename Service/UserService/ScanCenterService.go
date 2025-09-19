@@ -203,6 +203,15 @@ func PatchScanCenterService(db *gorm.DB, reqVal model.UpdateScanCentertReq, idVa
 		return false, "Something went wrong, Try Again"
 	}
 
+	if !reqVal.Status {
+		InactiveErr := tx.Exec(query.ScanCenterInactiveSQL, reqVal.ID)
+		if InactiveErr.Error != nil {
+			log.Printf("ERROR: Failed to update Scan Center: %v\n", InactiveErr.Error)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again"
+		}
+	}
+
 	if err := tx.Commit().Error; err != nil {
 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
 		tx.Rollback()

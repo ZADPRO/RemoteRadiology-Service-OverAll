@@ -26,3 +26,9 @@ func GetPacificTime() string {
 	pacificTime := time.Now().In(MustGetPacificLocation())
 	return pacificTime.Format("2006-01-02 15:04:05")
 }
+
+func GetPacificTimeDateOnly() string {
+	pacificTime := time.Now().In(MustGetPacificLocation())
+	return pacificTime.Format("2006-01-02")
+}
+

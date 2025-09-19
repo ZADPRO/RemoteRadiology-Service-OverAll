@@ -258,6 +258,7 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 	//Updating a Appointment Status
 	UpdateAppointmentStatuserr := tx.Exec(
 		query.UpdateTechnicianAppointmentStatus,
+		timeZone.GetPacificTimeDateOnly(),
 		"reportformfill",
 		reqVal.Priority,
 		reqVal.ArtificatsLeft,

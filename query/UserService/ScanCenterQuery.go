@@ -31,3 +31,15 @@ SET
 WHERE
   "refSCId" = ?
 `
+
+var ScanCenterInactiveSQL = `
+UPDATE
+  public."Users" u
+SET
+  "refUserStatus" = false
+FROM
+  map."refScanCenterMap" rscm
+WHERE
+  u."refUserId" = rscm."refUserId"
+  AND rscm."refSCId" = $1;
+`
