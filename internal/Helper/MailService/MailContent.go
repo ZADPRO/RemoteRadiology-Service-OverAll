@@ -13,7 +13,7 @@ func LoginOTPContent(otp int) string {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Login Passcode</title>
+  <title>Login Verification Code</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -63,12 +63,12 @@ func LoginOTPContent(otp int) string {
 <body>
   <div class="container">
     <div class="header">
-      <h1>Login Passcode Verification</h1>
+      <h1>Login Verification Code Verification</h1>
     </div>
     <div class="content">
-      <p>Use the following Passcode to log in. This Passcode is valid for 10 minutes:</p>
+      <p>Use the following Verification Code to log in. This Verification Code is valid for 10 minutes:</p>
       <div class="otp">` + html.EscapeString(strconv.Itoa(otp)) + `</div>
-      <p>If you did not request this Passcode, please ignore this email.</p>
+      <p>If you did not request this Verification Code, please ignore this email.</p>
     </div>
     <div class="footer">
       &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + ` Wellthgreen Theranostics. All rights reserved.
@@ -85,7 +85,7 @@ func ForgetPasswordOTPContent(otp int) string {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Login Passcode</title>
+  <title>Login Verification Code</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -135,12 +135,12 @@ func ForgetPasswordOTPContent(otp int) string {
 <body>
   <div class="container">
     <div class="header">
-      <h1>Forget Password Passcode Verification</h1>
+      <h1>Forget Password Verification Code Verification</h1>
     </div>
     <div class="content">
-      <p>Use the following Passcode to Forget Password. This Passcode is valid for 10 minutes:</p>
+      <p>Use the following Verification Code to Forget Password. This Verification Code is valid for 10 minutes:</p>
       <div class="otp">` + html.EscapeString(strconv.Itoa(otp)) + `</div>
-      <p>If you did not request this Passcode, please ignore this email.</p>
+      <p>If you did not request this Verification Code, please ignore this email.</p>
     </div>
     <div class="footer">
       &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + ` Wellthgreen Theranostics. All rights reserved.
@@ -310,11 +310,11 @@ func GetOTPMailContent(userName string, otp int) string {
           <strong>Wellthgreen Theranostics</strong>.
         </p>
         <p>
-          Please use the Passcode below to verify your email address and complete
+          Please use the Verification Code below to verify your email address and complete
           your registration:
         </p>
         <div class="otp-box">` + html.EscapeString(strconv.Itoa(otp)) + `</div>
-        <p>This Passcode is valid for the next 10 minutes.</p>
+        <p>This Verification Code is valid for the next 10 minutes.</p>
         <p>If you didn’t register with us, please ignore this email.</p>
       </div>
       <div class="footer">
