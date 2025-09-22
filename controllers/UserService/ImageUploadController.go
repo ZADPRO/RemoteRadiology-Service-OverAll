@@ -29,7 +29,7 @@ func PostUploadProfileImage() gin.HandlerFunc {
 			return // Stop processing
 		}
 
-		uploadPath := "./Assets"
+		uploadPath := "./Assets/Profile/"
 
 		log := logger.InitLogger()
 

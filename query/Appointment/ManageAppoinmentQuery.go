@@ -40,7 +40,13 @@ SELECT
     'success'
   ) AS "refOverrideStatus",
   ra.*,
-  sc.*
+  sc.*,
+   (
+    SELECT COUNT(*)
+    FROM notes."refOldReport" ror
+    WHERE ror."refAppointmentId" = ra."refAppointmentId"
+      AND ror."refORStatus" = true
+  ) AS "OldReportCount"
 FROM
   appointment."refAppointments" ra
   JOIN public."ScanCenter" sc ON sc."refSCId" = ra."refSCId"
@@ -72,7 +78,16 @@ DISTINCT
   u."refUserId",
   ra.*,
   sc.*,
-  COALESCE(d.dicomFiles, '[]') AS "dicomFiles"
+  COALESCE(d.dicomFiles, '[]') AS "dicomFiles",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      notes."refOldReport" ror
+    WHERE
+      ror."refAppointmentId" = ra."refAppointmentId"
+      AND ror."refORStatus" = true
+  ) AS "OldReportCount"
 FROM
   appointment."refAppointments" ra
   JOIN public."ScanCenter" sc ON sc."refSCId" = ra."refSCId"
@@ -115,7 +130,16 @@ DISTINCT
   u."refUserId",
   ra.*,
   sc.*,
-  COALESCE(dicom_data."dicomFiles", '[]') AS "dicomFiles"
+  COALESCE(dicom_data."dicomFiles", '[]') AS "dicomFiles",
+  (
+    SELECT
+      COUNT(*)
+    FROM
+      notes."refOldReport" ror
+    WHERE
+      ror."refAppointmentId" = ra."refAppointmentId"
+      AND ror."refORStatus" = true
+  ) AS "OldReportCount"
 FROM
   appointment."refAppointments" ra
   JOIN public."ScanCenter" sc ON sc."refSCId" = ra."refSCId"

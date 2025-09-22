@@ -63,15 +63,15 @@ func LoginOTPContent(otp int) string {
 <body>
   <div class="container">
     <div class="header">
-      <h1>Login Verification Code Verification</h1>
+      <h1>Login Verification Code</h1>
     </div>
     <div class="content">
-      <p>Use the following Verification Code to log in. This Verification Code is valid for 10 minutes:</p>
+      <p>Please use the verification code below to log in. This code will remain valid for 10 minutes:</p>
       <div class="otp">` + html.EscapeString(strconv.Itoa(otp)) + `</div>
-      <p>If you did not request this Verification Code, please ignore this email.</p>
+      <p>If you did not request it, please ignore this email.</p>
     </div>
     <div class="footer">
-      &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + ` Wellthgreen Theranostics. All rights reserved.
+      &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + ` Wellthgreen. All rights reserved.
     </div>
   </div>
 </body>
@@ -135,15 +135,15 @@ func ForgetPasswordOTPContent(otp int) string {
 <body>
   <div class="container">
     <div class="header">
-      <h1>Forget Password Verification Code Verification</h1>
+      <h1>Password Reset Code</h1>
     </div>
     <div class="content">
-      <p>Use the following Verification Code to Forget Password. This Verification Code is valid for 10 minutes:</p>
+      <p>Please use the verification code below to reset your password. This code will remain valid for 10 minutes:</p>
       <div class="otp">` + html.EscapeString(strconv.Itoa(otp)) + `</div>
-      <p>If you did not request this Verification Code, please ignore this email.</p>
+      <p>If you did not request it, please ignore this email.</p>
     </div>
     <div class="footer">
-      &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + ` Wellthgreen Theranostics. All rights reserved.
+      &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + ` Wellthgreen. All rights reserved.
     </div>
   </div>
 </body>
@@ -213,18 +213,18 @@ func RegisterationMailContent(userName string) string {
       </div>
       <div class="content">
         <p>
-          Thank you for registering with <strong>Wellthgreen Theranostics</strong>.
+          Thank you for registering with <strong>Wellthgreen</strong>.
         </p>
         <p>
           We’re excited to have you on board. You can now log in using your
           registered email and the password you created.
         </p>
-        <a href="https://easeqtremote.brightoncloudtech.com/" class="button">Login Now</a>
+        <a href="https://easeqt.wellthgreen.com/" class="button">Login Now</a>
         <p>If you didn’t register with us, please ignore this email.</p>
       </div>
       <div class="footer">
         &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + `
-        Wellthgreen Theranostics. All rights reserved.
+        Wellthgreen. All rights reserved.
       </div>
     </div>
   </body>
@@ -307,7 +307,7 @@ func GetOTPMailContent(userName string, otp int) string {
       <div class="content">
         <p>
           Thank you for registering with
-          <strong>Wellthgreen Theranostics</strong>.
+          <strong>easeQT</strong>.
         </p>
         <p>
           Please use the Verification Code below to verify your email address and complete
@@ -319,7 +319,7 @@ func GetOTPMailContent(userName string, otp int) string {
       </div>
       <div class="footer">
         &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + `
-        Wellthgreen Theranostics. All rights reserved.
+        Wellthgreen. All rights reserved.
       </div>
     </div>
   </body>
@@ -399,7 +399,7 @@ func RegistrationMailContent(userName, patientID, gmail, password string, role s
       </div>
       <div class="content">
         <p>
-          You have successfully been onboarded as a ` + html.EscapeString(role) + ` at <strong>Wellthgreen Theranostics</strong>.
+          You have successfully been onboarded as a ` + html.EscapeString(role) + ` on <strong>easeQT</strong>.
         </p>
         <p>Your login credentials are as follows:</p>
         <div class="credentials">
@@ -412,16 +412,16 @@ func RegistrationMailContent(userName, patientID, gmail, password string, role s
           </p>
           <p><strong>Password:</strong> ` + html.EscapeString(password) + `</p>
         </div>
-        <a href="https://easeqtremote.brightoncloudtech.com/" class="button"
+        <a href="https://easeqt.wellthgreen.com/" class="button"
           >Login Now</a
         >
         <p style="margin-top: 20px">
-          If you did not request this registration, please ignore this email.
+          If you did not request it, please ignore this email.
         </p>
       </div>
       <div class="footer">
         &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + `
-        Wellthgreen Theranostics. All rights reserved.
+        Wellthgreen. All rights reserved.
       </div>
     </div>
   </body>
@@ -528,7 +528,7 @@ func PatientReportSignOff(userName string, patientID string, AppintmentDate stri
 
         <p>To access your report, please log in with your credentials:</p>
         
-        <a href="https://easeqtremote.brightoncloudtech.com/" class="button">
+        <a href="https://easeqt.wellthgreen.com/" class="button">
           Login to View Report
         </a>
         
@@ -539,7 +539,7 @@ func PatientReportSignOff(userName string, patientID string, AppintmentDate stri
       </div>
       <div class="footer">
         &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + `
-        Wellthgreen Theranostics. All rights reserved.<br>
+        Wellthgreen. All rights reserved.<br>
       </div>
     </div>
   </body>
@@ -651,7 +651,7 @@ func ManagerReportSignOff(patientName string, patientID string, appointmentDate 
         </div>
 
         <div style="text-align: center; margin: 25px 0;">
-          <a href="https://easeqtremote.brightoncloudtech.com/" class="button">
+          <a href="https://easeqt.wellthgreen.com/" class="button">
             Login
           </a>
         </div>
@@ -663,7 +663,7 @@ func ManagerReportSignOff(patientName string, patientID string, appointmentDate 
       </div>
       <div class="footer">
         &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + `
-        Wellthgreen Theranostics. All rights reserved.<br>
+        Wellthgreen. All rights reserved.<br>
         <small>This is an automated notification. Please do not reply to this email.</small>
       </div>
     </div>

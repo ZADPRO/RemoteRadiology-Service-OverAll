@@ -427,7 +427,10 @@ type GetOneUserAppointmentModel struct {
 }
 
 type PatientCustId struct {
-	CustId string `json:"refUserCustId" gorm:"column:refUserCustId"`
+	CustId        string `json:"refUserCustId" gorm:"column:refUserCustId"`
+	UserFirstName string `json:"refUserFirstName" gorm:"column:refUserFirstName"`
+	UserDOB       string `json:"refUserDOB" gorm:"column:refUserDOB"`
+	UserGender    string `json:"refUserGender" gorm:"column:refUserGender"`
 }
 
 type ListUserModel struct {

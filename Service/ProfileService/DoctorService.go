@@ -74,7 +74,7 @@ func GetDoctorDataService(db *gorm.DB, reqVal model.GetOneReceptionistReq, idVal
 			profileImgHelperData, viewErr := helper.ViewFile("./Assets/Profile/" + hashdb.Decrypt(tech.ProfileImg))
 			if viewErr != nil {
 				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-				log.Fatalf("Failed to read profile image file: %v", viewErr)
+				log.Errorf("Failed to read profile image file: %v", viewErr)
 			}
 			if profileImgHelperData != nil {
 				RadiologistData[i].ProfileImgFile = &model.FileData{
@@ -92,7 +92,7 @@ func GetDoctorDataService(db *gorm.DB, reqVal model.GetOneReceptionistReq, idVal
 			DriversLicenseNoImgHelperData, viewErr := helper.ViewFile("./Assets/Files/" + hashdb.Decrypt(tech.DriversLicenseNo))
 			if viewErr != nil {
 				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-				log.Fatalf("Failed to read profile image file: %v", viewErr)
+				log.Errorf("Failed to read profile image file: %v", viewErr)
 			}
 			if DriversLicenseNoImgHelperData != nil {
 				RadiologistData[i].DriversLicenseFile = &model.FileData{
@@ -108,7 +108,7 @@ func GetDoctorDataService(db *gorm.DB, reqVal model.GetOneReceptionistReq, idVal
 			DigitalSignatureHelper, viewErr := helper.ViewFile("./Assets/Profile/" + hashdb.Decrypt(tech.DigitalSignature))
 			if viewErr != nil {
 				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-				log.Fatalf("Failed to read profile image file: %v", viewErr)
+				log.Errorf("Failed to read profile image file: %v", viewErr)
 			}
 			if DigitalSignatureHelper != nil {
 				RadiologistData[i].DigitalSignatureFile = &model.FileData{
@@ -142,7 +142,7 @@ func GetDoctorDataService(db *gorm.DB, reqVal model.GetOneReceptionistReq, idVal
 			DriversLicenseNoImgHelperData, viewErr := helper.ViewFile("./Assets/Files/" + hashdb.Decrypt(tech.DriversLicenseNo))
 			if viewErr != nil {
 				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-				log.Fatalf("Failed to read DrivingLicense file: %v", viewErr)
+				log.Errorf("Failed to read DrivingLicense file: %v", viewErr)
 			}
 			if DriversLicenseNoImgHelperData != nil {
 				RadiologistData[i].DriversLicenseFile = &model.FileData{
@@ -158,7 +158,7 @@ func GetDoctorDataService(db *gorm.DB, reqVal model.GetOneReceptionistReq, idVal
 			DigitalSignatureHelper, viewErr := helper.ViewFile("./Assets/Profile/" + hashdb.Decrypt(tech.DigitalSignature))
 			if viewErr != nil {
 				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-				log.Fatalf("Failed to read DigitalSignature file: %v", viewErr)
+				log.Errorf("Failed to read DigitalSignature file: %v", viewErr)
 			}
 			if DigitalSignatureHelper != nil {
 				RadiologistData[i].DigitalSignatureFile = &model.FileData{

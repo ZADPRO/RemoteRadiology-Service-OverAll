@@ -22,7 +22,7 @@ func main() {
 	// Load the DotENV
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("❌Error loading .env file")
+		log.Printf("❌Error loading .env file")
 	}
 
 	// ⚠️ Trust only localhost proxy (or none if you want)

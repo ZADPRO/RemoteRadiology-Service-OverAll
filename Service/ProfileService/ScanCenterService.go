@@ -35,7 +35,7 @@ func GetAllScanCenterService(db *gorm.DB) []model.GetAllScaCenter {
 			profileImgHelperData, viewErr := helper.ViewFile("./Assets/Profile/" + hashdb.Decrypt(tech.SCProfile))
 			if viewErr != nil {
 				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-				log.Fatalf("Failed to read profile image file: %v", viewErr)
+				log.Errorf("Failed to read profile image file: %v", viewErr)
 			}
 			if profileImgHelperData != nil {
 				RadiologistData[i].ProfileImgFile = &model.FileData{
@@ -90,7 +90,7 @@ func GetScanCenterService(db *gorm.DB, reqVal model.GetRadiologistreq, idValue i
 			profileImgHelperData, viewErr := helper.ViewFile("./Assets/Profile/" + hashdb.Decrypt(tech.SCProfile))
 			if viewErr != nil {
 				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-				log.Fatalf("Failed to read profile image file: %v", viewErr)
+				log.Errorf("Failed to read profile image file: %v", viewErr)
 			}
 			if profileImgHelperData != nil {
 				RadiologistData[i].ProfileImgFile = &model.FileData{

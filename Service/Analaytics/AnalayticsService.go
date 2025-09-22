@@ -18,14 +18,14 @@ func AdminOverallOneAnalayticsService(db *gorm.DB, reqVal model.AdminOverallOneA
 	//6 Months Analaytics
 	AdminOverallAnalayticsErr := db.Raw(query.AdminOverallAnalayticsSQL, reqVal.SCId, reqVal.SCId).Scan(&response.AdminScanCenterModel).Error
 	if AdminOverallAnalayticsErr != nil {
-		log.Fatal(AdminOverallAnalayticsErr.Error())
+		log.Error(AdminOverallAnalayticsErr.Error())
 		return model.AdminOverallAnalyticsResponse{}
 	}
 
 	//Particualr Month Scan Indications
 	AdminOverallScanIndicatesAnalayticsErr := db.Raw(query.AdminOverallScanIndicatesAnalayticsSQL, reqVal.StartDate, reqVal.EndDate, reqVal.SCId, reqVal.SCId).Scan(&response.AdminOverallScanIndicatesAnalayticsModel).Error
 	if AdminOverallScanIndicatesAnalayticsErr != nil {
-		log.Fatal(AdminOverallScanIndicatesAnalayticsErr.Error())
+		log.Error(AdminOverallScanIndicatesAnalayticsErr.Error())
 		return model.AdminOverallAnalyticsResponse{}
 	}
 
@@ -53,7 +53,7 @@ func AdminOverallOneAnalayticsService(db *gorm.DB, reqVal model.AdminOverallOneA
 		//List the All the User List with the Above Choosen User RoleIds
 		var UserListIdsDataerr = db.Raw(query.ScanCenterUserListIdsSQL, userListIds, reqVal.SCId).Scan(&response.UserListIdsData).Error
 		if UserListIdsDataerr != nil {
-			log.Fatal(UserListIdsDataerr.Error())
+			log.Error(UserListIdsDataerr.Error())
 			return model.AdminOverallAnalyticsResponse{}
 		}
 	case 1, 9:
@@ -61,7 +61,7 @@ func AdminOverallOneAnalayticsService(db *gorm.DB, reqVal model.AdminOverallOneA
 		//List the All the User List with the Above Choosen User RoleIds
 		var UserListIdsDataerr = db.Raw(query.UserListIdsSQL, userListIds).Scan(&response.UserListIdsData).Error
 		if UserListIdsDataerr != nil {
-			log.Fatal(UserListIdsDataerr.Error())
+			log.Error(UserListIdsDataerr.Error())
 			return model.AdminOverallAnalyticsResponse{}
 		}
 	}
@@ -75,42 +75,42 @@ func AdminOverallOneAnalayticsService(db *gorm.DB, reqVal model.AdminOverallOneA
 	// //Impression and Recommentation
 	// ImpressionNRecommentationErr := db.Raw(query.ImpressionNRecommentationScanCenterSQL, reqVal.StartDate, reqVal.EndDate, reqVal.SCId, reqVal.SCId, adminStatus).Scan(&response.ImpressionModel).Error
 	// if ImpressionNRecommentationErr != nil {
-	// 	log.Fatal(ImpressionNRecommentationErr.Error())
+	// 	log.Error(ImpressionNRecommentationErr.Error())
 	// 	return model.AdminOverallAnalyticsResponse{}
 	// }
 
 	// Left Recommentation
 	LeftRecommendationErr := db.Raw(query.LeftRecommendationScancenterSQL, reqVal.StartDate, reqVal.EndDate, reqVal.SCId, adminStatus).Scan(&response.LeftRecommendation).Error
 	if LeftRecommendationErr != nil {
-		log.Fatal(LeftRecommendationErr.Error())
+		log.Error(LeftRecommendationErr.Error())
 		return model.AdminOverallAnalyticsResponse{}
 	}
 
 	// Left Recommentation
 	RightRecommendationErr := db.Raw(query.RightRecommendationScancenterSQL, reqVal.StartDate, reqVal.EndDate, reqVal.SCId, adminStatus).Scan(&response.RightRecommendation).Error
 	if RightRecommendationErr != nil {
-		log.Fatal(RightRecommendationErr.Error())
+		log.Error(RightRecommendationErr.Error())
 		return model.AdminOverallAnalyticsResponse{}
 	}
 
 	//Tech Artificates
 	TechArtificatsErr := db.Raw(query.TechArtificatsAll, reqVal.SCId, reqVal.StartDate, reqVal.EndDate).Scan(&response.TechArtificats).Error
 	if TechArtificatsErr != nil {
-		log.Fatal(TechArtificatsErr.Error())
+		log.Error(TechArtificatsErr.Error())
 		return model.AdminOverallAnalyticsResponse{}
 	}
 
 	//Report Artificates
 	ReportArtificatsErr := db.Raw(query.ReportArtificatsAll, reqVal.SCId, reqVal.StartDate, reqVal.EndDate).Scan(&response.ReportArtificats).Error
 	if ReportArtificatsErr != nil {
-		log.Fatal(ReportArtificatsErr.Error())
+		log.Error(ReportArtificatsErr.Error())
 		return model.AdminOverallAnalyticsResponse{}
 	}
 
 	//GetOverAllScanCenterList
 	OverAllAnalayticsScanCenterListErr := db.Raw(query.GetOverAllScanCenterList, reqVal.StartDate, reqVal.EndDate, reqVal.SCId).Scan(&response.OverAllScancenterAnalaytics).Error
 	if OverAllAnalayticsScanCenterListErr != nil {
-		log.Fatal(OverAllAnalayticsScanCenterListErr.Error())
+		log.Error(OverAllAnalayticsScanCenterListErr.Error())
 		return model.AdminOverallAnalyticsResponse{}
 	}
 
@@ -125,21 +125,21 @@ func UserAnalaytics(db *gorm.DB, reqVal model.OneUserReq, UserId int, roleIdValu
 	//6 Months Analaytics
 	AdminOverallAnalayticsErr := db.Raw(query.WellGreenUserAnalayticsSQL, UserId).Scan(&response.AdminScanCenterModel).Error
 	if AdminOverallAnalayticsErr != nil {
-		log.Fatal(AdminOverallAnalayticsErr.Error())
+		log.Error(AdminOverallAnalayticsErr.Error())
 		return model.OneUserReponse{}
 	}
 
 	//Particualr Month Scan Indications
 	AdminOverallScanIndicatesAnalayticsErr := db.Raw(query.WellGreenUserIndicatesAnalayticsSQL, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.AdminOverallScanIndicatesAnalayticsModel).Error
 	if AdminOverallScanIndicatesAnalayticsErr != nil {
-		log.Fatal(AdminOverallScanIndicatesAnalayticsErr.Error())
+		log.Error(AdminOverallScanIndicatesAnalayticsErr.Error())
 		return model.OneUserReponse{}
 	}
 
 	//User Worked Timing
 	UserWorkedTimingErr := db.Raw(query.UserWorkedTimingSQL, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.UserAccessTimingModel).Error
 	if UserWorkedTimingErr != nil {
-		log.Fatal(UserWorkedTimingErr.Error())
+		log.Error(UserWorkedTimingErr.Error())
 		return model.OneUserReponse{}
 	}
 
@@ -147,7 +147,7 @@ func UserAnalaytics(db *gorm.DB, reqVal model.OneUserReq, UserId int, roleIdValu
 	if reqVal.RoleId == 6 || reqVal.RoleId == 7 {
 		ListScanAppointmentCountErr := db.Raw(query.ListScanAppointmentCountSQL, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.ListScanAppointmentCountModel).Error
 		if ListScanAppointmentCountErr != nil {
-			log.Fatal(ListScanAppointmentCountErr.Error())
+			log.Error(ListScanAppointmentCountErr.Error())
 			return model.OneUserReponse{}
 		}
 
@@ -160,49 +160,49 @@ func UserAnalaytics(db *gorm.DB, reqVal model.OneUserReq, UserId int, roleIdValu
 	//Total Correct and Edit
 	TotalCorrectEditErr := db.Raw(query.TotalCorrectEditSQL, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.TotalCorrectEdit).Error
 	if TotalCorrectEditErr != nil {
-		log.Fatal(TotalCorrectEditErr.Error())
+		log.Error(TotalCorrectEditErr.Error())
 		return model.OneUserReponse{}
 	}
 
 	// //Impression and Recommentation
 	// ImpressionNRecommentationErr := db.Raw(query.ImpressionNRecommentationSQL, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.ImpressionModel).Error
 	// if ImpressionNRecommentationErr != nil {
-	// 	log.Fatal(ImpressionNRecommentationErr.Error())
+	// 	log.Error(ImpressionNRecommentationErr.Error())
 	// 	return model.OneUserReponse{}
 	// }
 
 	// Left Recommentation
 	LeftRecommendationErr := db.Raw(query.LeftRecommendationUserSQL, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.LeftRecommendation).Error
 	if LeftRecommendationErr != nil {
-		log.Fatal(LeftRecommendationErr.Error())
+		log.Error(LeftRecommendationErr.Error())
 		return model.OneUserReponse{}
 	}
 
 	// Left Recommentation
 	RightRecommendationErr := db.Raw(query.RightRecommendationUserSQL, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.RightRecommendation).Error
 	if RightRecommendationErr != nil {
-		log.Fatal(RightRecommendationErr.Error())
+		log.Error(RightRecommendationErr.Error())
 		return model.OneUserReponse{}
 	}
 
 	//Total TAT Timing
 	TotalTATErr := db.Raw(query.TotalTATSQL, reqVal.StartDate, reqVal.EndDate, UserId).Scan(&response.DurationBucketModel).Error
 	if TotalTATErr != nil {
-		log.Fatal(TotalTATErr.Error())
+		log.Error(TotalTATErr.Error())
 		return model.OneUserReponse{}
 	}
 
 	//Tech Artificates
 	TechArtificatsErr := db.Raw(query.TechArtificats, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.TechArtificats).Error
 	if TechArtificatsErr != nil {
-		log.Fatal(TechArtificatsErr.Error())
+		log.Error(TechArtificatsErr.Error())
 		return model.OneUserReponse{}
 	}
 
 	//Report Artificates
 	ReportArtificatsErr := db.Raw(query.ReportArtificats, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.ReportArtificats).Error
 	if ReportArtificatsErr != nil {
-		log.Fatal(ReportArtificatsErr.Error())
+		log.Error(ReportArtificatsErr.Error())
 		return model.OneUserReponse{}
 	}
 
@@ -223,7 +223,7 @@ func OneUserService(db *gorm.DB, reqVal model.OneUserReq, idValue int, roleIdVal
 			if roleIdValue == 3 {
 				var findSCIdErr = db.Raw(query.FindSCIdSQL, reqVal.UserId).Scan(&ScancenterId).Error
 				if findSCIdErr != nil {
-					log.Fatal(findSCIdErr.Error())
+					log.Error(findSCIdErr.Error())
 					return model.OneUserReponse{}
 				}
 			}
@@ -231,21 +231,21 @@ func OneUserService(db *gorm.DB, reqVal model.OneUserReq, idValue int, roleIdVal
 			//6 Months Analaytics
 			AdminOverallAnalayticsErr := db.Raw(query.GetUsers6MonthTotalCountSQL, ScancenterId).Scan(&response.AdminScanCenterModel).Error
 			if AdminOverallAnalayticsErr != nil {
-				log.Fatal(AdminOverallAnalayticsErr.Error())
+				log.Error(AdminOverallAnalayticsErr.Error())
 				return model.OneUserReponse{}
 			}
 
 			//Particualr Month Scan Indications
 			AdminOverallScanIndicatesAnalayticsErr := db.Raw(query.AdminOverallScanIndicatesAnalayticsSQL, reqVal.StartDate, reqVal.EndDate, ScancenterId, ScancenterId).Scan(&response.AdminOverallScanIndicatesAnalayticsModel).Error
 			if AdminOverallScanIndicatesAnalayticsErr != nil {
-				log.Fatal(AdminOverallScanIndicatesAnalayticsErr.Error())
+				log.Error(AdminOverallScanIndicatesAnalayticsErr.Error())
 				return model.OneUserReponse{}
 			}
 
 			//OverAllUserList
 			OverAllUsersListErr := db.Raw(query.TotoalUserAnalayticsSQL, reqVal.StartDate, reqVal.EndDate, ScancenterId).Scan(&response.OverAllAnalaytics).Error
 			if OverAllUsersListErr != nil {
-				log.Fatal(OverAllUsersListErr.Error())
+				log.Error(OverAllUsersListErr.Error())
 				return model.OneUserReponse{}
 			}
 

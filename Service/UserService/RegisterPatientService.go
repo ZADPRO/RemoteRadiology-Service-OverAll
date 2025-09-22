@@ -6,6 +6,7 @@ import (
 	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
 	mailservice "AuthenticationService/internal/Helper/MailService"
+	timeZone "AuthenticationService/internal/Helper/TimeZone"
 	model "AuthenticationService/internal/Model/UserService"
 	query "AuthenticationService/query/UserService"
 	"encoding/json"
@@ -179,6 +180,27 @@ func PostPatientService(db *gorm.DB, reqVal model.RegisterNewPatientReq, idValue
 	Appointmenterr := db.Create(&Appointment).Error
 	if Appointmenterr != nil {
 		log.Printf("ERROR: Failed to create Appointment: %v\n", Appointmenterr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	InsertReportQuestionsErr := tx.Exec(query.InsertReportIntakeAllSQL, int(PatientData.UserId), int(Appointment.AppointmentId), timeZone.GetPacificTime(), int(idValue)).Error
+	if InsertReportQuestionsErr != nil {
+		log.Printf("ERROR: Failed to Report Question: %v\n", InsertReportQuestionsErr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	InsertReportTextContentErr := tx.Exec(
+		query.InsertNewReportTextContentSQL,
+		int(PatientData.UserId),
+		int(Appointment.AppointmentId),
+		timeZone.GetPacificTime(),
+		int(idValue),
+	).Error
+
+	if InsertReportTextContentErr != nil {
+		log.Printf("ERROR: Failed to Report Text Content: %v\n", InsertReportTextContentErr)
 		tx.Rollback()
 		return false, "Something went wrong, Try Again"
 	}
@@ -384,6 +406,27 @@ func PostCreatePatientService(db *gorm.DB, reqVal model.CreateAppointmentPatient
 		}
 
 	}
+
+	InsertReportQuestionsErr := tx.Exec(query.InsertReportIntakeAllSQL, int(reqVal.RefUserId), int(Appointment.AppointmentId), timeZone.GetPacificTime(), int(idValue)).Error
+	if InsertReportQuestionsErr != nil {
+		log.Printf("ERROR: Failed to Report Question: %v\n", InsertReportQuestionsErr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	InsertReportTextContentErr := tx.Exec(
+		query.InsertNewReportTextContentSQL,
+		int(reqVal.RefUserId),
+		int(Appointment.AppointmentId),
+		timeZone.GetPacificTime(),
+		int(idValue),
+	).Error
+	if InsertReportTextContentErr != nil {
+		log.Printf("ERROR: Failed to Report Text Content: %v\n", InsertReportTextContentErr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
 	if err := tx.Commit().Error; err != nil {
 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
 		tx.Rollback()
