@@ -28,7 +28,7 @@ func CheckAccessService(db *gorm.DB, reqVal model.CheckAccessReq, idValue int, r
 		err := db.Raw(query.ScribeCheckAccessSQL, idValue, reqVal.AppointmentId).Scan(&result).Error
 
 		if err != nil {
-			log.Fatal(err)
+			log.Error(err)
 		}
 
 		fmt.Println("&&&&&&&&&&&&&&&", result)
@@ -37,7 +37,7 @@ func CheckAccessService(db *gorm.DB, reqVal model.CheckAccessReq, idValue int, r
 		err := db.Raw(query.CheckAccessSQL, idValue, reqVal.AppointmentId).Scan(&result).Error
 
 		if err != nil {
-			log.Fatal(err)
+			log.Error(err)
 		}
 	}
 
@@ -85,14 +85,20 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 	var PatientUserDetails []model.PatientCustId
 	PatientUserDetailsErr := db.Raw(query.PatientUserDetailsSQL, reqVal.PatientId).Scan(&PatientUserDetails).Error
 	if PatientUserDetailsErr != nil {
-		log.Fatal(PatientUserDetailsErr)
+		log.Error(PatientUserDetailsErr)
+	}
+
+	for i, data := range PatientUserDetails {
+		PatientUserDetails[i].UserFirstName = hashdb.Decrypt(data.UserFirstName)
+		PatientUserDetails[i].UserDOB = hashdb.Decrypt(data.UserDOB)
+		PatientUserDetails[i].UserGender = hashdb.Decrypt(data.UserGender)
 	}
 
 	//GetUserDetails
 	var UserDetails []model.GetUserDetails
 	UserDetailsErr := db.Raw(query.GetUserDetailsSQL, idValue).Scan(&UserDetails).Error
 	if UserDetailsErr != nil {
-		log.Fatal(UserDetailsErr)
+		log.Error(UserDetailsErr)
 	}
 
 	//Decrypt UserDetails
@@ -120,7 +126,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 		var Appointment []model.AppointmentModel
 		Appointmenterr := db.Raw(query.GetAppointmentSQL, reqVal.AppointmentId).Scan(&Appointment).Error
 		if Appointmenterr != nil {
-			log.Fatal(Appointmenterr)
+			log.Error(Appointmenterr)
 		}
 
 		if !reqVal.ReadOnlyStatus {
@@ -229,7 +235,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 				var ReportHistory []model.GetReportHistory
 				ListReportHistoryErr := db.Raw(query.CheckLatestReportSQL, reqVal.AppointmentId, reqVal.PatientId).Scan(&ReportHistory).Error
 				if ListReportHistoryErr != nil {
-					log.Fatal(ListReportHistoryErr)
+					log.Error(ListReportHistoryErr)
 				}
 
 				if ListReportHistoryErr != nil {
@@ -323,7 +329,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 		//Appointment Table
 		ViewAppointmentErr := db.Raw(query.GetOneUserAppointment, reqVal.PatientId, reqVal.AppointmentId).Scan(&OneUserAppointment).Error
 		if ViewAppointmentErr != nil {
-			log.Fatal(ViewAppointmentErr)
+			log.Error(ViewAppointmentErr)
 		}
 
 		//Decrypt Appointment Table
@@ -334,7 +340,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 		//Intake Form Table
 		IntakeFormDataerr := db.Raw(query.GetIntakeFormSQL, reqVal.AppointmentId).Scan(&IntakeFormData).Error
 		if IntakeFormDataerr != nil {
-			log.Fatal(IntakeFormDataerr)
+			log.Error(IntakeFormDataerr)
 		}
 
 		//Decrypt Intake Form Table
@@ -346,7 +352,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 		var TechnicianIntakeFormData []model.GetTechnicianIntakeData
 		TechnicianIntakeFormDataerr := db.Raw(query.GetTechnicianIntakeFormSQL, reqVal.AppointmentId).Scan(&TechnicianIntakeFormData).Error
 		if TechnicianIntakeFormDataerr != nil {
-			log.Fatal(TechnicianIntakeFormDataerr)
+			log.Error(TechnicianIntakeFormDataerr)
 		}
 
 		//Decrypt the Techncian Form Table
@@ -358,7 +364,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 		var ReportIntakeFormData []model.GetReportIntakeData
 		ReportIntakeFormDataerr := db.Raw(query.GetReportIntakeFormSQL, reqVal.AppointmentId).Scan(&ReportIntakeFormData).Error
 		if ReportIntakeFormDataerr != nil {
-			log.Fatal(ReportIntakeFormDataerr)
+			log.Error(ReportIntakeFormDataerr)
 		}
 
 		//Decrypt Report Intake Form Table
@@ -370,7 +376,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 		var ReportTextContentData []model.GetReportTextContent
 		ReportTextContentDataerr := db.Raw(query.GetReporttextContent, reqVal.AppointmentId).Scan(&ReportTextContentData).Error
 		if ReportTextContentDataerr != nil {
-			log.Fatal(ReportTextContentDataerr)
+			log.Error(ReportTextContentDataerr)
 		}
 
 		//Decrypt Report Text Content Table
@@ -383,12 +389,12 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 		if roleIdValue == 1 || roleIdValue == 6 || roleIdValue == 7 || roleIdValue == 9 || roleIdValue == 10 {
 			ReportHistoryDataerr := db.Raw(query.GetReportHistoryFullSQL, reqVal.AppointmentId).Scan(&ReportHistoryData).Error
 			if ReportHistoryDataerr != nil {
-				log.Fatal(ReportHistoryDataerr)
+				log.Error(ReportHistoryDataerr)
 			}
 		} else {
 			ReportHistoryDataerr := db.Raw(query.GetReportHistorySQL, reqVal.AppointmentId).Scan(&ReportHistoryData).Error
 			if ReportHistoryDataerr != nil {
-				log.Fatal(ReportHistoryDataerr)
+				log.Error(ReportHistoryDataerr)
 			}
 		}
 
@@ -402,7 +408,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 		var ReportCommentsData []model.GetReportComments
 		ReportCommentsDataerr := db.Raw(query.GetReportCommentsSQL, reqVal.AppointmentId).Scan(&ReportCommentsData).Error
 		if ReportCommentsDataerr != nil {
-			log.Fatal(ReportCommentsDataerr)
+			log.Error(ReportCommentsDataerr)
 		}
 
 		// Decrypt Report Comment Table
@@ -417,13 +423,13 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			//Get the Template all listed
 			ReportFormateListErr := db.Raw(query.GetReportFormateAllListSQL).Scan(&ReportFormateList).Error
 			if ReportFormateListErr != nil {
-				log.Fatal(ReportFormateListErr)
+				log.Error(ReportFormateListErr)
 			}
 		} else {
 			//Get the Template all listed
 			ReportFormateListErr := db.Raw(query.GetReportFormateListSQL, idValue).Scan(&ReportFormateList).Error
 			if ReportFormateListErr != nil {
-				log.Fatal(ReportFormateListErr)
+				log.Error(ReportFormateListErr)
 			}
 		}
 
@@ -436,7 +442,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 		var GetScanCenterImg []model.ScanCenterModel
 		GetScanCenterImgErr := db.Raw(query.ScanCenterSQL, Appointment[0].SCId).Scan(&GetScanCenterImg).Error
 		if GetScanCenterImgErr != nil {
-			log.Fatal(GetScanCenterImgErr)
+			log.Error(GetScanCenterImgErr)
 		}
 
 		var ScanCenterProfileImg *model.FileData
@@ -444,7 +450,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 		if len(GetScanCenterImg) > 0 {
 			viewedFile, viewErr := helperView.ViewFile("./Assets/Profile/" + hashdb.Decrypt(GetScanCenterImg[0].ProfileImg))
 			if viewErr != nil {
-				log.Fatalf("Failed to read ScanCenter profile image: %v", viewErr)
+				log.Errorf("Failed to read ScanCenter profile image: %v", viewErr)
 			}
 
 			ScanCenterProfileImg = &model.FileData{
@@ -472,7 +478,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			var ReportStatus []model.DoctorReportAccessStatus
 			err := db.Raw(query.DoctorReportAccessSQL, idValue).Scan(&ReportStatus).Error
 			if err != nil {
-				log.Fatal(err)
+				log.Error(err)
 			}
 
 			if len(ReportStatus) == 0 || ReportStatus[0].DDEaseQTReportAccess == nil {
@@ -490,7 +496,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			var ReportStatus []model.CoDoctorReportAccessStatus
 			err := db.Raw(query.CoDoctorReportAccessSQL, idValue).Scan(&ReportStatus).Error
 			if err != nil {
-				log.Fatal(err)
+				log.Error(err)
 			}
 
 			if len(ReportStatus) == 0 || ReportStatus[0].CDEaseQTReportAccess == nil {
@@ -587,7 +593,7 @@ func AnswerReportIntakeService(db *gorm.DB, reqVal model.AnswerReportIntakeReq, 
 
 	ReportIntakeFormDataerr := db.Raw(query.GetReportIntakeFormQuestionSQL, reqVal.AppointmentId, reqVal.QuestionId).Scan(&ReportIntakeFormData).Error
 	if ReportIntakeFormDataerr != nil {
-		log.Fatal(ReportIntakeFormDataerr)
+		log.Error(ReportIntakeFormDataerr)
 	}
 
 	//If AVaiable Need to Update, else Create a QuestionID and Answer
@@ -735,7 +741,7 @@ func AnswerTechnicianIntakeService(db *gorm.DB, reqVal model.AnswerReportIntakeR
 
 	TechnicianIntakeFormDataErr := db.Raw(query.GetTechnicianIntakeFormQuestionSQL, reqVal.AppointmentId, reqVal.QuestionId).Scan(&TechnicianIntakeFormData).Error
 	if TechnicianIntakeFormDataErr != nil {
-		log.Fatal(TechnicianIntakeFormDataErr)
+		log.Error(TechnicianIntakeFormDataErr)
 	}
 
 	//If AVaiable Need to Update, else Create a QuestionID and Answer
@@ -831,7 +837,7 @@ func AnswerPatientIntakeService(db *gorm.DB, reqVal model.AnswerReportIntakeReq,
 
 	PatientIntakeFormDataErr := db.Raw(query.GetPatientIntakeFormQuestionSQL, reqVal.AppointmentId, reqVal.QuestionId).Scan(&PatientIntakeFormData).Error
 	if PatientIntakeFormDataErr != nil {
-		log.Fatal(PatientIntakeFormDataErr)
+		log.Error(PatientIntakeFormDataErr)
 	}
 
 	//If AVaiable Need to Update, else Create a QuestionID and Answer
@@ -927,7 +933,7 @@ func AnswerTextContentService(db *gorm.DB, reqVal model.AnswerTextContentReq, id
 
 	ReportTextContentErr := db.Raw(query.GetTextContentSQL, reqVal.AppointmentId).Scan(&ReportTextContent).Error
 	if ReportTextContentErr != nil {
-		log.Fatal(ReportTextContentErr)
+		log.Error(ReportTextContentErr)
 	}
 
 	//If AVaiable Need to Update, else Create a QuestionID and Answer
@@ -2057,7 +2063,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 	var ReportIntakeFormData []model.GetReportIntakeData
 	ReportIntakeFormDataerr := db.Raw(query.GetReportIntakeFormSQL, reqVal.AppointmentId).Scan(&ReportIntakeFormData).Error
 	if ReportIntakeFormDataerr != nil {
-		log.Fatal(ReportIntakeFormDataerr)
+		log.Error(ReportIntakeFormDataerr)
 	}
 
 	//Decrypt Report Intake Form Table
@@ -2069,7 +2075,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 	var ReportTextContentData []model.GetReportTextContent
 	ReportTextContentDataerr := db.Raw(query.GetReporttextContent, reqVal.AppointmentId).Scan(&ReportTextContentData).Error
 	if ReportTextContentDataerr != nil {
-		log.Fatal(ReportTextContentDataerr)
+		log.Error(ReportTextContentDataerr)
 	}
 
 	//Decrypt Report Text Content Table
@@ -2081,7 +2087,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 	//Appointment Table
 	ViewAppointmentErr := db.Raw(query.GetOneUserAppointment, reqVal.PatientId, reqVal.AppointmentId).Scan(&OneUserAppointment).Error
 	if ViewAppointmentErr != nil {
-		log.Fatal(ViewAppointmentErr)
+		log.Error(ViewAppointmentErr)
 	}
 
 	//Decrypt Appointment Table
@@ -2106,7 +2112,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		var ReportStatus []model.DoctorReportAccessStatus
 		err := db.Raw(query.DoctorReportAccessSQL, idValue).Scan(&ReportStatus).Error
 		if err != nil {
-			log.Fatal(err)
+			log.Error(err)
 		}
 
 		if len(ReportStatus) == 0 || ReportStatus[0].DDEaseQTReportAccess == nil {
@@ -2124,7 +2130,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		var ReportStatus []model.CoDoctorReportAccessStatus
 		err := db.Raw(query.CoDoctorReportAccessSQL, idValue).Scan(&ReportStatus).Error
 		if err != nil {
-			log.Fatal(err)
+			log.Error(err)
 		}
 
 		if len(ReportStatus) == 0 || ReportStatus[0].CDEaseQTReportAccess == nil {
@@ -2228,7 +2234,7 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 
 		UserCountErr := tx.Raw(query.AddedumCountSQL, reqVal.AppointmentId).Scan(&UserCount).Error
 		if UserCountErr != nil {
-			log.Fatal(UserCountErr)
+			log.Error(UserCountErr)
 		}
 
 		if UserCount[0].Count > 0 {
@@ -2378,7 +2384,7 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 
 		ListUserDataErr := db.Raw(query.ListUserDataSQL, reqVal.PatientId, reqVal.AppointmentId, []int{6}).Scan(&ListUserData).Error
 		if ListUserDataErr != nil {
-			log.Fatal(ListUserDataErr.Error())
+			log.Error(ListUserDataErr.Error())
 			return false, "Something went wrong, Try Again"
 		}
 
@@ -2411,7 +2417,7 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 
 		ListUserDataErr := db.Raw(query.ListUserDataSQL, reqVal.PatientId, reqVal.AppointmentId, []int{1, 10}).Scan(&ListUserData).Error
 		if ListUserDataErr != nil {
-			log.Fatal(ListUserDataErr.Error())
+			log.Error(ListUserDataErr.Error())
 			return false, "Something went wrong, Try Again"
 		}
 
@@ -2761,7 +2767,7 @@ func GetReportFormateService(db *gorm.DB, reqVal model.GetReportFormateReq, idVa
 	var TemplateFormate []model.ReportTextFormateModel
 	err := db.Raw(query.GetOneReportFormateListSQL, reqVal.Id).Scan(&TemplateFormate).Error
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
 	}
 
 	for i, data := range TemplateFormate {
@@ -2916,14 +2922,14 @@ func DownloadReportService(db *gorm.DB, reqVal model.DownloadReportReq) model.Ge
 
 	err := db.Raw(query.DownloadReportSQL, reqVal.Id).Scan(&PatientFile).Error
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
 	}
 
 	if len(PatientFile.Answer) > 0 {
 		DriversLicenseNoImgHelperData, viewErr := helperView.ViewFile("./Assets/Files/" + hashdb.Decrypt(PatientFile.Answer))
 		if viewErr != nil {
 			// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-			log.Fatalf("Failed to read DrivingLicense file: %v", viewErr)
+			log.Errorf("Failed to read DrivingLicense file: %v", viewErr)
 		}
 
 		// for i, data := range PatientFile {

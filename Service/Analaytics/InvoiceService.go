@@ -32,7 +32,7 @@ func GetAmountService(db *gorm.DB) (bool, int, int, []model.ScanCenterModel, []m
 	// Amount Value
 	AmountValueErr := tx.Raw(query.GetAmountSQL).Scan(&AmountModel).Error
 	if AmountValueErr != nil {
-		log.Fatal(AmountValueErr.Error())
+		log.Error(AmountValueErr.Error())
 		return false, 0, 0, []model.ScanCenterModel{}, []model.UserModel{}
 	}
 
@@ -40,7 +40,7 @@ func GetAmountService(db *gorm.DB) (bool, int, int, []model.ScanCenterModel, []m
 	var ScancenterData []model.ScanCenterModel
 	ScancenterDataErr := tx.Raw(query.ListAllScanCenter).Scan(&ScancenterData).Error
 	if ScancenterDataErr != nil {
-		log.Fatal(ScancenterDataErr.Error())
+		log.Error(ScancenterDataErr.Error())
 		return false, 0, 0, []model.ScanCenterModel{}, []model.UserModel{}
 	}
 
@@ -48,7 +48,7 @@ func GetAmountService(db *gorm.DB) (bool, int, int, []model.ScanCenterModel, []m
 	var UserData []model.UserModel
 	UserDataErr := tx.Raw(query.ListUserSQL).Scan(&UserData).Error
 	if UserDataErr != nil {
-		log.Fatal(UserDataErr.Error())
+		log.Error(UserDataErr.Error())
 		return false, 0, 0, []model.ScanCenterModel{}, []model.UserModel{}
 	}
 
@@ -79,7 +79,7 @@ func UpdateAmountService(db *gorm.DB, reqVal model.AmountModel) (bool, string) {
 
 	UpdateErr := tx.Exec(query.UpdateAmountSQL, reqVal.ScancenterAmount, reqVal.UserAmount).Error
 	if UpdateErr != nil {
-		log.Fatal(UpdateErr)
+		log.Error(UpdateErr)
 		return false, "Something went wrong, Try Again"
 	}
 
@@ -113,7 +113,7 @@ func GetInvoiceDataService(db *gorm.DB, reqVal model.GetInvoiceDataReq) model.Ge
 	// Amount Value
 	AmountValueErr := tx.Raw(query.GetAmountSQL).Scan(&response.AmountModel).Error
 	if AmountValueErr != nil {
-		log.Fatal(AmountValueErr.Error())
+		log.Error(AmountValueErr.Error())
 		return model.GetInvoiceDataReponse{}
 	}
 
@@ -122,7 +122,7 @@ func GetInvoiceDataService(db *gorm.DB, reqVal model.GetInvoiceDataReq) model.Ge
 		// Get Scan Center Data
 		ScancenterDataErr := tx.Raw(query.ListOneScanCenter, reqVal.UserId).Scan(&response.ScanCenterModel).Error
 		if ScancenterDataErr != nil {
-			log.Fatal(ScancenterDataErr.Error())
+			log.Error(ScancenterDataErr.Error())
 			return model.GetInvoiceDataReponse{}
 		}
 
@@ -134,7 +134,7 @@ func GetInvoiceDataService(db *gorm.DB, reqVal model.GetInvoiceDataReq) model.Ge
 		// Get Scan Center Total Count
 		ScanCenterCountDataErr := tx.Raw(query.GetScanCenterCountPerMonthSQL, reqVal.Monthyear, reqVal.UserId).Scan(&response.GetCountScanCenterMonthModel).Error
 		if ScanCenterCountDataErr != nil {
-			log.Fatal(ScanCenterCountDataErr.Error())
+			log.Error(ScanCenterCountDataErr.Error())
 			return model.GetInvoiceDataReponse{}
 		}
 
@@ -142,7 +142,7 @@ func GetInvoiceDataService(db *gorm.DB, reqVal model.GetInvoiceDataReq) model.Ge
 		// Get User Details
 		UserDataErr := tx.Raw(query.GetOneUserSQL, reqVal.UserId).Scan(&response.GetUserModel).Error
 		if UserDataErr != nil {
-			log.Fatal(UserDataErr.Error())
+			log.Error(UserDataErr.Error())
 			return model.GetInvoiceDataReponse{}
 		}
 
@@ -154,7 +154,7 @@ func GetInvoiceDataService(db *gorm.DB, reqVal model.GetInvoiceDataReq) model.Ge
 		// Total Count for User
 		UserCountDataErr := tx.Raw(query.WellGreenUserIndicatesAnalayticsInvoiceSQL, reqVal.UserId, reqVal.Monthyear).Scan(&response.AdminOverallScanIndicatesAnalayticsModel).Error
 		if UserCountDataErr != nil {
-			log.Fatal(UserCountDataErr.Error())
+			log.Error(UserCountDataErr.Error())
 			return model.GetInvoiceDataReponse{}
 		}
 
@@ -219,7 +219,7 @@ func GenerateInvoiceDataService(db *gorm.DB, reqVal model.GenerateInvoiceReq, id
 		reqVal.Signature,
 	).Error
 	if InsertInvoiceErr != nil {
-		log.Fatal(InsertInvoiceErr)
+		log.Error(InsertInvoiceErr)
 		return false, "Something went wrong, Try Again"
 	}
 
@@ -261,7 +261,7 @@ func GetInvoiceHistoryService(db *gorm.DB, reqVal model.GetInvoiceHistoryReq, id
 	var invoiceHistory []model.InvoiceHistory
 	InvoiceHistoryErr := tx.Raw(useQuery, reqVal.UserId).Scan(&invoiceHistory).Error
 	if InvoiceHistoryErr != nil {
-		log.Fatal(InvoiceHistoryErr)
+		log.Error(InvoiceHistoryErr)
 		return []model.InvoiceHistory{}, []model.TakenDate{}
 	}
 
@@ -270,7 +270,7 @@ func GetInvoiceHistoryService(db *gorm.DB, reqVal model.GetInvoiceHistoryReq, id
 			DriversLicenseNoImgHelperData, viewErr := helper.ViewFile("./Assets/Files/" + data.RefIHSignature)
 			if viewErr != nil {
 				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-				log.Fatalf("Failed to read DrivingLicense file: %v", viewErr)
+				log.Errorf("Failed to read DrivingLicense file: %v", viewErr)
 			}
 			if DriversLicenseNoImgHelperData != nil {
 				invoiceHistory[i].RefIHSignatureFile = &model.FileData{
@@ -287,7 +287,7 @@ func GetInvoiceHistoryService(db *gorm.DB, reqVal model.GetInvoiceHistoryReq, id
 	var invoiceHistoryTakenDate []model.TakenDate
 	InvoiceHistoryTakenErr := tx.Raw(useQuery, reqVal.UserId).Scan(&invoiceHistoryTakenDate).Error
 	if InvoiceHistoryTakenErr != nil {
-		log.Fatal(InvoiceHistoryTakenErr)
+		log.Error(InvoiceHistoryTakenErr)
 		return []model.InvoiceHistory{}, []model.TakenDate{}
 	}
 
@@ -317,7 +317,7 @@ func GetInvoiceOverAllHistoryService(db *gorm.DB, reqVal model.GetInvoiceOverAll
 
 	AllInvoiceErr := db.Raw(query.GetInvoiceOverAllHistorySQL, roleIdValue, FromDate, ToDate).Scan(&AllInvoiceModel).Error
 	if AllInvoiceErr != nil {
-		log.Fatal(AllInvoiceErr.Error())
+		log.Error(AllInvoiceErr.Error())
 		return []model.InvoiceHistoryOverAll{}
 	}
 

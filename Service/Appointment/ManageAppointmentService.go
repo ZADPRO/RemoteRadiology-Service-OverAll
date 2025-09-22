@@ -167,8 +167,6 @@ func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int, roleIdValue int
 			StaffAvailable[i].Username = hashdb.Decrypt(data.Username)
 		}
 
-		fmt.Println("##################", roleIdValue)
-
 		if roleIdValue == 1 || roleIdValue == 10 {
 			FinalStaffAvailable = StaffAvailable
 		} else if roleIdValue == 2 || roleIdValue == 3 || roleIdValue == 5 || roleIdValue == 8 {
@@ -331,7 +329,7 @@ func ViewAddtionalFilesService(db *gorm.DB, reqVal model.ViewAddtionalFileReq) [
 		ViewFileData, viewErr := helper.ViewFile("./Assets/Files/" + data.FileName)
 		if viewErr != nil {
 			// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-			log.Fatalf("Failed to read profile image file: %v", viewErr)
+			log.Errorf("Failed to read profile image file: %v", viewErr)
 		}
 		if ViewFileData != nil {
 			ViewFile[i].FileData = &model.FileData{

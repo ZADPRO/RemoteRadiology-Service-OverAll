@@ -302,26 +302,6 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 		return false, "Something went wrong, Try Again"
 	}
 
-	InsertReportQuestionsErr := tx.Exec(query.InsertReportIntakeAllSQL, int(reqVal.PatientId), int(reqVal.AppointmentId), timeZone.GetPacificTime(), int(idValue)).Error
-	if InsertReportQuestionsErr != nil {
-		log.Printf("ERROR: Failed to Report Question: %v\n", InsertReportQuestionsErr)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again"
-	}
-
-	InsertReportTextContentErr := tx.Exec(
-		query.InsertNewReportTextContentSQL,
-		int(reqVal.PatientId),
-		int(reqVal.AppointmentId),
-		timeZone.GetPacificTime(),
-		int(idValue),
-	).Error
-	if InsertReportTextContentErr != nil {
-		log.Printf("ERROR: Failed to Report Text Content: %v\n", InsertReportTextContentErr)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again"
-	}
-
 	if err := tx.Commit().Error; err != nil {
 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
 		tx.Rollback()

@@ -33,7 +33,7 @@ func AddTrainingMaterialService(db *gorm.DB, reqVal model.AddTrainingMaterialReq
 
 	MaterialErr := tx.Create(&Material).Error
 	if MaterialErr != nil {
-		log.Fatal(MaterialErr)
+		log.Error(MaterialErr)
 		tx.Rollback()
 		return false, "Something went wrong, Try Again"
 	}
@@ -54,7 +54,7 @@ func ListTrainingMaterialService(db *gorm.DB, idValue int) []model.CreateMateria
 
 	ListFilesErr := db.Raw(query.ListTrainingFilesSQL).Scan(&ListFiles).Error
 	if ListFilesErr != nil {
-		log.Fatal(ListFilesErr)
+		log.Error(ListFilesErr)
 		return []model.CreateMaterialModel{}
 	}
 
@@ -84,7 +84,7 @@ func DeleteTrainingMaterialService(db *gorm.DB, reqVal model.DeleteTrainingMater
 
 	DeleeErr := tx.Exec(query.DeleteTrainingSQL, reqVal.Id).Error
 	if DeleeErr != nil {
-		log.Fatal(DeleeErr)
+		log.Error(DeleeErr)
 		tx.Rollback()
 		return false, "Something went wrong, Try Again"
 	}

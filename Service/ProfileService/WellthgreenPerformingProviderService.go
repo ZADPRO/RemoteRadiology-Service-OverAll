@@ -66,7 +66,7 @@ func GetPerformingProviderDataService(db *gorm.DB, reqVal model.GetRadiologistre
 			profileImgHelperData, viewErr := helper.ViewFile("./Assets/Profile/" + hashdb.Decrypt(tech.ProfileImg))
 			if viewErr != nil {
 				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-				log.Fatalf("Failed to read profile image file: %v", viewErr)
+				log.Errorf("Failed to read profile image file: %v", viewErr)
 			}
 			if profileImgHelperData != nil {
 				RadiologistData[i].ProfileImgFile = &model.FileData{
@@ -81,7 +81,7 @@ func GetPerformingProviderDataService(db *gorm.DB, reqVal model.GetRadiologistre
 		if len(hashdb.Decrypt(tech.Pan)) > 0 {
 			panFileHelperData, panFileErr := helper.ViewFile("./Assets/Files/" + hashdb.Decrypt(tech.Pan))
 			if panFileErr != nil {
-				log.Fatalf("Failed to read PAN file: %v", panFileErr)
+				log.Errorf("Failed to read PAN file: %v", panFileErr)
 			}
 			if panFileHelperData != nil {
 				RadiologistData[i].PanFile = &model.FileData{
@@ -96,7 +96,7 @@ func GetPerformingProviderDataService(db *gorm.DB, reqVal model.GetRadiologistre
 		if len(hashdb.Decrypt(tech.Aadhar)) > 0 {
 			aadharFileHelperData, aadharFileErr := helper.ViewFile("./Assets/Files/" + hashdb.Decrypt(tech.Aadhar))
 			if aadharFileErr != nil {
-				log.Fatalf("Failed to read Aadhar file: %v", aadharFileErr)
+				log.Errorf("Failed to read Aadhar file: %v", aadharFileErr)
 			}
 			if aadharFileHelperData != nil {
 				RadiologistData[i].AadharFile = &model.FileData{
@@ -112,7 +112,7 @@ func GetPerformingProviderDataService(db *gorm.DB, reqVal model.GetRadiologistre
 			DriversLicenseNoImgHelperData, viewErr := helper.ViewFile("./Assets/Files/" + hashdb.Decrypt(tech.DrivingLicense))
 			if viewErr != nil {
 				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-				log.Fatalf("Failed to read DrivingLicense file: %v", viewErr)
+				log.Errorf("Failed to read DrivingLicense file: %v", viewErr)
 			}
 			if DriversLicenseNoImgHelperData != nil {
 				RadiologistData[i].DrivingLicenseFile = &model.FileData{
@@ -128,7 +128,7 @@ func GetPerformingProviderDataService(db *gorm.DB, reqVal model.GetRadiologistre
 			DigitalSignatureHelper, viewErr := helper.ViewFile("./Assets/Profile/" + hashdb.Decrypt(tech.DigitalSignature))
 			if viewErr != nil {
 				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-				log.Fatalf("Failed to read DigitalSignature file: %v", viewErr)
+				log.Errorf("Failed to read DigitalSignature file: %v", viewErr)
 			}
 			if DigitalSignatureHelper != nil {
 				RadiologistData[i].DigitalSignatureFile = &model.FileData{

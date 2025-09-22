@@ -59,7 +59,7 @@ func GetManagerDataService(db *gorm.DB, reqVal model.GetRadiologistreq, idValue 
 			profileImgHelperData, viewErr := helper.ViewFile("./Assets/Profile/" + hashdb.Decrypt(tech.ProfileImg))
 			if viewErr != nil {
 				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-				log.Fatalf("Failed to read profile image file: %v", viewErr)
+				log.Errorf("Failed to read profile image file: %v", viewErr)
 			}
 			if profileImgHelperData != nil {
 				RadiologistData[i].ProfileImgFile = &model.FileData{
@@ -74,7 +74,7 @@ func GetManagerDataService(db *gorm.DB, reqVal model.GetRadiologistreq, idValue 
 		if len(hashdb.Decrypt(tech.Pan)) > 0 {
 			panFileHelperData, panFileErr := helper.ViewFile("./Assets/Files/" + hashdb.Decrypt(tech.Pan))
 			if panFileErr != nil {
-				log.Fatalf("Failed to read PAN file: %v", panFileErr)
+				log.Errorf("Failed to read PAN file: %v", panFileErr)
 			}
 			if panFileHelperData != nil {
 				RadiologistData[i].PanFile = &model.FileData{
@@ -89,7 +89,7 @@ func GetManagerDataService(db *gorm.DB, reqVal model.GetRadiologistreq, idValue 
 		if len(hashdb.Decrypt(tech.Aadhar)) > 0 {
 			aadharFileHelperData, aadharFileErr := helper.ViewFile("./Assets/Files/" + hashdb.Decrypt(tech.Aadhar))
 			if aadharFileErr != nil {
-				log.Fatalf("Failed to read Aadhar file: %v", aadharFileErr)
+				log.Errorf("Failed to read Aadhar file: %v", aadharFileErr)
 			}
 			if aadharFileHelperData != nil {
 				RadiologistData[i].AadharFile = &model.FileData{
@@ -104,7 +104,7 @@ func GetManagerDataService(db *gorm.DB, reqVal model.GetRadiologistreq, idValue 
 		if len(hashdb.Decrypt(tech.DrivingLicense)) > 0 {
 			drivingLicenseFileHelperData, drivingLicenseErr := helper.ViewFile("./Assets/Files/" + hashdb.Decrypt(tech.DrivingLicense))
 			if drivingLicenseErr != nil {
-				log.Fatalf("Failed to read Driving License file: %v", drivingLicenseErr)
+				log.Errorf("Failed to read Driving License file: %v", drivingLicenseErr)
 			}
 			if drivingLicenseFileHelperData != nil {
 				RadiologistData[i].DrivingLicenseFile = &model.FileData{

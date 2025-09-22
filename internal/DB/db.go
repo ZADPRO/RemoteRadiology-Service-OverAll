@@ -15,7 +15,7 @@ func init() {
 	// Load .env file
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Printf("Error loading .env file")
 	}
 }
 
@@ -36,7 +36,7 @@ func InitDB() (*gorm.DB, *sql.DB) {
 	// Connect to DB
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatal("❌Failed to connect to database:", err)
+		log.Printf("❌Failed to connect to database:", err)
 		return nil, nil
 	}
 

@@ -356,7 +356,7 @@ func ViewIntakeService(db *gorm.DB, reqVal model.ViewIntakeReq) ([]model.GetView
 		// 		FilesData, viewErr := helperfile.ViewFile("./Assets/Files/" + hashdb.Decrypt(data.Answer))
 		// 		if viewErr != nil {
 		// 			// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-		// 			log.Fatalf("Failed to read profile image file: %v", viewErr)
+		// 			log.Errorf("Failed to read profile image file: %v", viewErr)
 		// 		}
 		// 		if FilesData != nil {
 		// 			ViewIntakeData[i].File = &model.FileData{
