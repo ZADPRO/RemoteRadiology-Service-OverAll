@@ -20,7 +20,8 @@ SET
   "refDDDrivingLicense" = ?,
   "refDDDigitalSignature" = ?,
   "refDDSpecialization" = ?,
-  "refDDEaseQTReportAccess" = ?
+  "refDDEaseQTReportAccess" = ?,
+  "refDDNAsystemReportAccess" = ?
 WHERE
   "refUserId" = ?
 `

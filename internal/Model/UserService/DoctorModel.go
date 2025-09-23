@@ -135,6 +135,7 @@ type UpdateDoctorReq struct {
 	MalpracticeInsuranceDetails []UpdateMalpracticeInsureanceFiles  `json:"malpracticeinsureance_files" mapstructure:"malpracticeinsureance_files"`
 	DigitalSignature            string                              `json:"digital_signature" mapstructure:"digital_signature"`
 	EaseQTReportAccess          bool                                `json:"easeQTReportAccess" binding:"required" mapstructure:"easeQTReportAccess"`
+	NASystemReportAccess        bool                                `json:"naSystemreportAcess" binding:"required" mapstructure:"naSystemreportAcess"`
 	Status                      bool                                `json:"status" binding:"required" mapstructure:"status"`
 }
 
