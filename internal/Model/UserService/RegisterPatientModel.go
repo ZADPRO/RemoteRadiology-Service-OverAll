@@ -43,7 +43,7 @@ type CreateAppointmentPatientReq struct {
 	EmailId           string `json:"emailId" mapstructure:"emailId"`
 	Gender            string `json:"gender" mapstructure:"gender"`
 	DateofAppointment string `json:"dateofAppointment" mapstructure:"dateofAppointment"`
-	PatientId         string `json:"patientId" mapstructure:"patientId"`
+	PatientId         int    `json:"patientId" mapstructure:"patientId"`
 	Mailoption        string `json:"mailoption" mapstructure:"mailoption"`
 	SCId              int    `json:"refSCId" mapstructure:"refSCId"`
 	SCCustId          string `json:"refSCustId" mapstructure:"refSCustId"`
