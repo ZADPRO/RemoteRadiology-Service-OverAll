@@ -86,7 +86,7 @@ func AssignGetReportController() gin.HandlerFunc {
 
 		fmt.Println("$$$$$$$$$$$$$", data)
 
-		status, message, IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, ReportAppointmentData, ReportFormateList, GetUserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterImg, ScancenterAddress, Addendum, oldReport := service.AssignGetReportService(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
+		status, message, IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, ReportAppointmentData, ReportFormateList, GetUserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterImg, ScancenterAddress, Addendum, oldReport, NASystemReportAccess := service.AssignGetReportService(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
 
 		payload := map[string]interface{}{
 			"status":                   status,
@@ -106,6 +106,7 @@ func AssignGetReportController() gin.HandlerFunc {
 			"ScancenterAddress":        ScancenterAddress,
 			"Addendum":                 Addendum,
 			"oldReport":                oldReport,
+			"naSystemReportAccess":     NASystemReportAccess,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)
