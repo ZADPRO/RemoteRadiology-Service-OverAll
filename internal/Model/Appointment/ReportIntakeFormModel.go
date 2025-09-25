@@ -458,11 +458,13 @@ type SendMailReportReq struct {
 }
 
 type DoctorReportAccessStatus struct {
-	DDEaseQTReportAccess *bool `json:"refDDEaseQTReportAccess" gorm:"column:refDDEaseQTReportAccess"`
+	DDEaseQTReportAccess   *bool `json:"refDDEaseQTReportAccess" gorm:"column:refDDEaseQTReportAccess"`
+	DDNAsystemReportAccess *bool `json:"refDDNAsystemReportAccess" gorm:"column:refDDNAsystemReportAccess"`
 }
 
 type CoDoctorReportAccessStatus struct {
-	CDEaseQTReportAccess *bool `json:"refCDEaseQTReportAccess" gorm:"column:refCDEaseQTReportAccess"`
+	CDEaseQTReportAccess   *bool `json:"refCDEaseQTReportAccess" gorm:"column:refCDEaseQTReportAccess"`
+	CDNAsystemReportAccess *bool `json:"refCDNAsystemReportAccess" gorm:"column:refCDNAsystemReportAccess"`
 }
 
 type AddAddendumReq struct {

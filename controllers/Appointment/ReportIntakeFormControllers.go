@@ -367,7 +367,7 @@ func AutosaveController() gin.HandlerFunc {
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
 
-		status, message, ReportIntake, TextContent, AppointmentDetails, EaseQTReportAccess := service.AutosaveServicee(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
+		status, message, ReportIntake, TextContent, AppointmentDetails, EaseQTReportAccess, NASystemReportAccess := service.AutosaveServicee(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
 
 		payload := map[string]interface{}{
 			"status":                status,
@@ -376,6 +376,7 @@ func AutosaveController() gin.HandlerFunc {
 			"reportTextContentData": TextContent,
 			"appointmentStatus":     AppointmentDetails,
 			"easeQTReportAccess":    EaseQTReportAccess,
+			"naSystemReportAccess":  NASystemReportAccess,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)
