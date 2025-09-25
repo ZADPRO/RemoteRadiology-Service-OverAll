@@ -1153,13 +1153,13 @@ func CompleteReportService(db *gorm.DB, reqVal model.CompleteReportReq, idValue 
 	return true, "Successfully Changes Saved"
 }
 
-func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int, roleIdValue int) (bool, string, []model.GetReportIntakeData, []model.GetReportTextContent, []model.GetOneUserAppointmentModel, bool) {
+func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int, roleIdValue int) (bool, string, []model.GetReportIntakeData, []model.GetReportTextContent, []model.GetOneUserAppointmentModel, bool, bool) {
 	log := logger.InitLogger()
 
 	tx := db.Begin()
 	if tx.Error != nil {
 		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
-		return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 	}
 
 	defer func() {
@@ -1179,7 +1179,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		}, idValue)
 
 		if !status {
-			return status, message, []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return status, message, []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1196,7 +1196,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave Text Content: %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 
 	}
@@ -1214,7 +1214,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 
 	}
@@ -1231,7 +1231,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1247,7 +1247,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1265,7 +1265,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1281,7 +1281,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1297,7 +1297,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1313,7 +1313,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1329,7 +1329,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1345,7 +1345,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1361,7 +1361,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1377,7 +1377,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1393,7 +1393,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1409,7 +1409,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1425,7 +1425,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 
 		var updateSyncErr = tx.Exec(
@@ -1438,7 +1438,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 
 	}
@@ -1455,7 +1455,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1471,7 +1471,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1487,7 +1487,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1503,7 +1503,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1519,7 +1519,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1535,7 +1535,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1551,7 +1551,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1567,7 +1567,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1583,7 +1583,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1599,7 +1599,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1615,7 +1615,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1631,7 +1631,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1647,7 +1647,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1663,7 +1663,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1679,7 +1679,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1695,7 +1695,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1711,7 +1711,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1727,7 +1727,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1745,7 +1745,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1761,7 +1761,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1777,7 +1777,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1793,7 +1793,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1809,7 +1809,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1825,7 +1825,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1841,7 +1841,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1857,7 +1857,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1873,7 +1873,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1889,7 +1889,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1905,7 +1905,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1921,7 +1921,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1937,7 +1937,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1953,7 +1953,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1969,7 +1969,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -1985,7 +1985,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -2001,7 +2001,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -2017,7 +2017,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -2033,7 +2033,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
@@ -2049,14 +2049,14 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
 		tx.Rollback()
-		return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false
 	}
 
 	//Report Intake Form Table
@@ -2096,17 +2096,22 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 	}
 
 	var EaseQTReportAccess = false
+	var NASystemReportAccess = false
 
 	//Get the Ease QT Report Access Status
 	switch roleIdValue {
 	case 1: //Master Admin
 		EaseQTReportAccess = true
+		NASystemReportAccess = true
 	case 2: //Scan Center Technician
 		EaseQTReportAccess = false
+		NASystemReportAccess = true
 	case 3: //Scan Center Manager
 		EaseQTReportAccess = false
+		NASystemReportAccess = true
 	case 4: //Patient
 		EaseQTReportAccess = false
+		NASystemReportAccess = true
 	case 5: //Scan Center Doctor
 
 		var ReportStatus []model.DoctorReportAccessStatus
@@ -2121,11 +2126,14 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		}
 
 		EaseQTReportAccess = *ReportStatus[0].DDEaseQTReportAccess
+		NASystemReportAccess = *ReportStatus[0].DDNAsystemReportAccess
 
 	case 6: //Junior Doctor
 		EaseQTReportAccess = true
+		NASystemReportAccess = true
 	case 7: //Scribe
 		EaseQTReportAccess = true
+		NASystemReportAccess = true
 	case 8: //Scan Center Reviewer
 		var ReportStatus []model.CoDoctorReportAccessStatus
 		err := db.Raw(query.CoDoctorReportAccessSQL, idValue).Scan(&ReportStatus).Error
@@ -2139,15 +2147,20 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		}
 
 		EaseQTReportAccess = *ReportStatus[0].CDEaseQTReportAccess
+		NASystemReportAccess = *ReportStatus[0].CDNAsystemReportAccess
+
 	case 9: //Manager
 		EaseQTReportAccess = true
+		NASystemReportAccess = true
 	case 10: //Performing Provider
 		EaseQTReportAccess = true
+		NASystemReportAccess = true
 	default:
 		EaseQTReportAccess = false
+		NASystemReportAccess = false
 	}
 
-	return true, "Successfully Changes Saved", ReportIntakeFormData, ReportTextContentData, OneUserAppointment, EaseQTReportAccess
+	return true, "Successfully Changes Saved", ReportIntakeFormData, ReportTextContentData, OneUserAppointment, EaseQTReportAccess, NASystemReportAccess
 }
 
 func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int, roleIdValue int) (bool, string) {

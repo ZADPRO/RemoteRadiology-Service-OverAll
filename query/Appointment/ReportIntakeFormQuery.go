@@ -689,7 +689,8 @@ WHERE
 
 var DoctorReportAccessSQL = `
 SELECT
-  "refDDEaseQTReportAccess"
+  "refDDEaseQTReportAccess",
+  "refDDNAsystemReportAccess"
 FROM
   userdomain."refDoctorDomain"
 WHERE
@@ -698,7 +699,8 @@ WHERE
 
 var CoDoctorReportAccessSQL = `
 SELECT
-  "refCDEaseQTReportAccess"
+  "refCDEaseQTReportAccess",
+  "refCDNAsystemReportAccess"
 FROM
   userdomain."refCoDoctorDomain"
 WHERE
