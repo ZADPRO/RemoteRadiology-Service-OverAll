@@ -98,24 +98,25 @@ func (a DicomFileArray) Value() (driver.Value, error) {
 }
 
 type ViewTechnicianPatientQueueModel struct {
-	AppointmentId             int                 `json:"refAppointmentId" gorm:"column:refAppointmentId"`
-	Remarks                   string              `json:"refAppointmentRemarks" gorm:"column:refAppointmentRemarks"`
-	AppointmentDate           string              `json:"refAppointmentDate" gorm:"column:refAppointmentDate"`
-	Username                  string              `json:"refUserFirstName" gorm:"column:refUserFirstName"`
-	UserCustId                string              `json:"refUserCustId" gorm:"column:refUserCustId"`
-	CategoryId                int                 `json:"refCategoryId" gorm:"column:refCategoryId"`
-	UserId                    int                 `json:"refUserId" gorm:"column:refUserId"`
-	AssignedUserId            int                 `json:"refAppointmentAssignedUserId" gorm:"column:refAppointmentAssignedUserId"`
-	AppointmentComplete       string              `json:"refAppointmentComplete" gorm:"column:refAppointmentComplete"`
-	ScanCenterCustId          string              `json:"refSCCustId" gorm:"column:refSCCustId"`
-	SCAddress                 string              `json:"refSCAddress" gorm:"column:refSCAddress"`
-	ScanCenterId              string              `json:"refSCId" gorm:"column:refSCId"`
-	DicomFiles                DicomFileArray      `json:"dicomFiles" gorm:"column:dicomFiles"`
-	OverrideStatus            string              `json:"refOverrideStatus" gorm:"column:refOverrideStatus"`
-	AppointmentMailSendStatus string              `json:"refAppointmentMailSendStatus" gorm:"column:refAppointmentMailSendStatus"`
-	OldReportCount            string              `json:"OldReportCount" gorm:"column:OldReportCount"`
-	GetCorrectEditModel       GetCorrectEditModel `json:"GetCorrectEditModel" gorm:"-"`
-	ReportStatus              string              `json:"reportStatus"  gorm:"-"`
+	AppointmentId              int                 `json:"refAppointmentId" gorm:"column:refAppointmentId"`
+	Remarks                    string              `json:"refAppointmentRemarks" gorm:"column:refAppointmentRemarks"`
+	AppointmentDate            string              `json:"refAppointmentDate" gorm:"column:refAppointmentDate"`
+	Username                   string              `json:"refUserFirstName" gorm:"column:refUserFirstName"`
+	UserCustId                 string              `json:"refUserCustId" gorm:"column:refUserCustId"`
+	CategoryId                 int                 `json:"refCategoryId" gorm:"column:refCategoryId"`
+	UserId                     int                 `json:"refUserId" gorm:"column:refUserId"`
+	AssignedUserId             int                 `json:"refAppointmentAssignedUserId" gorm:"column:refAppointmentAssignedUserId"`
+	AppointmentComplete        string              `json:"refAppointmentComplete" gorm:"column:refAppointmentComplete"`
+	ScanCenterCustId           string              `json:"refSCCustId" gorm:"column:refSCCustId"`
+	SCAddress                  string              `json:"refSCAddress" gorm:"column:refSCAddress"`
+	ScanCenterId               string              `json:"refSCId" gorm:"column:refSCId"`
+	DicomFiles                 DicomFileArray      `json:"dicomFiles" gorm:"column:dicomFiles"`
+	OverrideStatus             string              `json:"refOverrideStatus" gorm:"column:refOverrideStatus"`
+	AppointmentMailSendStatus  string              `json:"refAppointmentMailSendStatus" gorm:"column:refAppointmentMailSendStatus"`
+	OldReportCount             string              `json:"OldReportCount" gorm:"column:OldReportCount"`
+	GetCorrectEditModel        GetCorrectEditModel `json:"GetCorrectEditModel" gorm:"-"`
+	PatientPrivatePublicStatus string              `json:"patientPrivatePublicStatus" gorm:"-"`
+	ReportStatus               string              `json:"reportStatus"  gorm:"-"`
 }
 
 type ReportUrgentStatusModel struct {

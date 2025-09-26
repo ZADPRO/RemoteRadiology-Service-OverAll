@@ -1350,3 +1350,13 @@ WHERE r."refUserId" = $1
 GROUP BY r."refORCategoryId"
 ORDER BY r."refORCategoryId";
 `
+
+var GetPatientPrivatePublicSQL = `
+SELECT
+  *
+FROM
+  notes."refTechnicianIntakeForm"
+WHERE
+  "refAppointmentId" = $1
+  AND "refTITFQId" = $2;
+`

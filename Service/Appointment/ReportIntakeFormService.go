@@ -50,7 +50,7 @@ func CheckAccessService(db *gorm.DB, reqVal model.CheckAccessReq, idValue int, r
 	return result[0].Status, message, result[0].RefAppointmentAccessId, result[0].CustID
 }
 
-func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValue int, roleIdValue int) (bool, string, []model.GetViewIntakeData, []model.GetTechnicianIntakeData, []model.GetReportIntakeData, []model.GetReportTextContent, []model.GetReportHistory, []model.GetReportComments, []model.GetOneUserAppointmentModel, []model.ReportFormateModel, []model.GetUserDetails, []model.PatientCustId, bool, *model.FileData, string, []model.AddAddendumModel, []model.GetOldReport, bool) {
+func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValue int, roleIdValue int) (bool, string, []model.GetViewIntakeData, []model.GetTechnicianIntakeData, []model.GetReportIntakeData, []model.GetReportTextContent, []model.GetReportHistory, []model.GetReportComments, []model.GetOneUserAppointmentModel, []model.ReportFormateModel, []model.GetUserDetails, []model.PatientCustId, bool, *model.FileData, string, []model.AddAddendumModel, []model.GetOldReport, bool, string) {
 	log := logger.InitLogger()
 
 	tx := db.Begin()
@@ -72,7 +72,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			"",
 			[]model.AddAddendumModel{},
 			[]model.GetOldReport{},
-			false
+			false,
+			""
 	}
 
 	defer func() {
@@ -172,7 +173,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						"",
 						[]model.AddAddendumModel{},
 						[]model.GetOldReport{},
-						false
+						false,
+						""
 				}
 
 				transData := 28
@@ -196,7 +198,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						"",
 						[]model.AddAddendumModel{},
 						[]model.GetOldReport{},
-						false
+						false,
+						""
 				}
 
 				var UpdateAccessSQL = query.UpdateAccessAppointment
@@ -231,9 +234,12 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						"",
 						[]model.AddAddendumModel{},
 						[]model.GetOldReport{},
-						false
+						false,
+						""
 
 				}
+
+				fmt.Println("------------------>", reqVal.PatientId)
 
 				//List the Latest Report History
 				var ReportHistory []model.GetReportHistory
@@ -261,7 +267,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						"",
 						[]model.AddAddendumModel{},
 						[]model.GetOldReport{},
-						false
+						false,
+						""
 				}
 
 				if len(ReportHistory) > 0 {
@@ -301,7 +308,41 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 							"",
 							[]model.AddAddendumModel{},
 							[]model.GetOldReport{},
-							false
+							false,
+							""
+					}
+				} else {
+					var starttime = timeZone.GetPacificTime()
+
+					//Insert the History
+					ReportHistoryErr := tx.Exec(
+						query.InsertReportHistorySQL,
+						reqVal.PatientId,
+						reqVal.AppointmentId,
+						idValue,
+						starttime,
+					).Error
+					if ReportHistoryErr != nil {
+						log.Printf("ERROR: Failed to Insert Report History: %v\n", ReportHistoryErr)
+						tx.Rollback()
+						return false, "Something went wrong, Try Again",
+							[]model.GetViewIntakeData{},
+							[]model.GetTechnicianIntakeData{},
+							[]model.GetReportIntakeData{},
+							[]model.GetReportTextContent{},
+							[]model.GetReportHistory{},
+							[]model.GetReportComments{},
+							[]model.GetOneUserAppointmentModel{},
+							[]model.ReportFormateModel{},
+							[]model.GetUserDetails{},
+							[]model.PatientCustId{},
+							false,
+							&model.FileData{},
+							"",
+							[]model.AddAddendumModel{},
+							[]model.GetOldReport{},
+							false,
+							""
 					}
 				}
 
@@ -328,7 +369,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 				"",
 				[]model.AddAddendumModel{},
 				[]model.GetOldReport{},
-				false
+				false,
+				""
 		}
 
 		var IntakeFormData []model.GetViewIntakeData
@@ -405,6 +447,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			}
 		}
 
+		fmt.Println("------------------>", ReportHistoryData)
 		//Decrypt Report History Table
 		for i, data := range ReportHistoryData {
 			ReportHistoryData[i].HandleUserName = hashdb.Decrypt(data.HandleUserName)
@@ -545,7 +588,24 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			log.Error(oldReportErr)
 		}
 
-		return true, "Successfully Fetched", IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, OneUserAppointment, ReportFormateList, UserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterProfileImg, hashdb.Decrypt(GetScanCenterImg[0].SCAddress), ListAddendumService(db, reqVal.AppointmentId), oldReportData, NASystemReportAccess
+		//Get the Private and Public in the Technician Intake
+		var patientPrivatePublic []model.GetTechnicianIntakeData
+		patientPrivatePublicErr := db.Raw(query.GetPatientPrivatePublicSQL, reqVal.AppointmentId, 57).Scan(&patientPrivatePublic).Error
+		if patientPrivatePublicErr != nil {
+			log.Error(patientPrivatePublicErr)
+		}
+
+		for i, data := range patientPrivatePublic {
+			patientPrivatePublic[i].Answer = hashdb.Decrypt(data.Answer)
+		}
+
+		var patientPrivatePublicStatus = ""
+
+		if len(patientPrivatePublic) > 0 {
+			patientPrivatePublicStatus = patientPrivatePublic[0].Answer
+		}
+
+		return true, "Successfully Fetched", IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, OneUserAppointment, ReportFormateList, UserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterProfileImg, hashdb.Decrypt(GetScanCenterImg[0].SCAddress), ListAddendumService(db, reqVal.AppointmentId), oldReportData, NASystemReportAccess, patientPrivatePublicStatus
 
 	} else {
 
@@ -568,7 +628,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 				"",
 				[]model.AddAddendumModel{},
 				[]model.GetOldReport{},
-				false
+				false,
+				""
 		}
 
 		return status, message,
@@ -587,7 +648,8 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			"",
 			[]model.AddAddendumModel{},
 			[]model.GetOldReport{},
-			false
+			false,
+			""
 	}
 
 }

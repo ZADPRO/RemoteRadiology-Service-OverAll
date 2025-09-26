@@ -208,6 +208,23 @@ func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int, roleIdValue int
 				patientQueue[i].ReportStatus = hashdb.Decrypt(ReportUrgentStatus[0].ReportStatus)
 			}
 
+			//Get the Private and Public in the Technician Intake
+			var patientPrivatePublic []model.GetTechnicianIntakeData
+			patientPrivatePublicErr := db.Raw(query.GetPatientPrivatePublicSQL, patientQueue[i].AppointmentId, 57).Scan(&patientPrivatePublic).Error
+			if patientPrivatePublicErr != nil {
+				log.Error(patientPrivatePublicErr)
+			}
+
+			for i, data := range patientPrivatePublic {
+				patientPrivatePublic[i].Answer = hashdb.Decrypt(data.Answer)
+			}
+
+			if len(patientPrivatePublic) > 0 {
+				patientQueue[i].PatientPrivatePublicStatus = patientPrivatePublic[0].Answer
+			} else {
+				patientQueue[i].PatientPrivatePublicStatus = ""
+			}
+
 			// var dicom []model.GetDicomFile
 			// log.Printf("Fetching Dicom for AppointmentId=%d, UserId=%d", data.AppointmentId, data.UserId)
 
