@@ -232,7 +232,7 @@ FROM
   notes."refReportsHistory" rrh
   JOIN public."Users" u ON u."refUserId" = rrh."refRHHandledUserId"
 WHERE
-  rrh."refRHHandleStatus" = 'technologistformfill'
+  rrh."refRHHandleStatus" = 'Technologist Form Fill'
   AND rrh."refAppointmentId" = $1;
 `
 
