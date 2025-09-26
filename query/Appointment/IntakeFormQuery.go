@@ -229,9 +229,11 @@ var TechnicianUserSQL = `
 SELECT
   *
 FROM
-  public."Users"
+  notes."refReportsHistory" rrh
+  JOIN public."Users" u ON u."refUserId" = rrh."refRHHandledUserId"
 WHERE
-  "refUserId" = $1
+  rrh."refRHHandleStatus" = 'technologistformfill'
+  AND rrh."refAppointmentId" = $1;
 `
 
 var GetTextContent = `

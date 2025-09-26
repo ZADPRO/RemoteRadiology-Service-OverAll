@@ -325,3 +325,22 @@ ORDER BY
 LIMIT
   1000
 `
+
+var ScanCenterConsultantSQL = `
+SELECT
+  *
+FROM
+  public."ScanCenter"
+WHERE
+  "refSCId" = $1;
+`
+
+var ScanCenterMap = `
+SELECT
+  *
+FROM
+  map."refScanCenterMapPatient"
+WHERE
+  "refUserId" = $1;
+`
+
