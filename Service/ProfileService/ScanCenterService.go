@@ -72,8 +72,6 @@ func GetScanCenterService(db *gorm.DB, reqVal model.GetRadiologistreq, idValue i
 		}
 	}
 
-	fmt.Println(ScancenterID)
-
 	err := db.Raw(query.GetScanCenter, ScancenterID).Scan(&RadiologistData).Error
 	if err != nil {
 		log.Printf("ERROR: Failed to fetch scan centers: %v", err)

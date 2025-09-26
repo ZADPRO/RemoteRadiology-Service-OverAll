@@ -7,6 +7,7 @@ import (
 	model "AuthenticationService/internal/Model/UserService"
 	query "AuthenticationService/query/UserService"
 	"encoding/json"
+	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -58,15 +59,16 @@ func PostScanCenterService(db *gorm.DB, reqVal model.ScanCenterRegisterReq, idVa
 	// CustId := "SC" + strconv.Itoa(TotalCount[0].TotalCount+100001)
 
 	ScanCenter := model.ScanCenterModel{
-		CustId:       reqVal.CustId,
-		Logo:         hashdb.Encrypt(reqVal.Logo),
-		Name:         hashdb.Encrypt(reqVal.Name),
-		Address:      hashdb.Encrypt(reqVal.Address),
-		PhoneNo1:     reqVal.Telephone,
-		Email:        reqVal.Email,
-		Website:      hashdb.Encrypt(reqVal.Website),
-		Appointments: reqVal.Appointments,
-		SCStatus:     true,
+		CustId:             reqVal.CustId,
+		Logo:               hashdb.Encrypt(reqVal.Logo),
+		Name:               hashdb.Encrypt(reqVal.Name),
+		Address:            hashdb.Encrypt(reqVal.Address),
+		PhoneNo1:           reqVal.Telephone,
+		Email:              reqVal.Email,
+		Website:            hashdb.Encrypt(reqVal.Website),
+		Appointments:       reqVal.Appointments,
+		SCStatus:           true,
+		SCConsultantStatus: true,
 	}
 
 	ScanCenterErr := db.Create(&ScanCenter).Error
@@ -99,6 +101,8 @@ func PostScanCenterService(db *gorm.DB, reqVal model.ScanCenterRegisterReq, idVa
 
 func PatchScanCenterService(db *gorm.DB, reqVal model.UpdateScanCentertReq, idValue int) (bool, string) {
 	log := logger.InitLogger()
+
+	fmt.Println("----------------->", reqVal.SCConsultantStatus)
 
 	tx := db.Begin()
 	if tx.Error != nil {
@@ -149,6 +153,7 @@ func PatchScanCenterService(db *gorm.DB, reqVal model.UpdateScanCentertReq, idVa
 		"Website":            hashdb.Decrypt(PreviousData.Website),
 		"Appointment Status": PreviousData.Appointments,
 		"SCStatus":           PreviousData.SCStatus,
+		"SCConsultantStatus": PreviousData.SCConsultantStatus,
 	}
 
 	updatedData := map[string]interface{}{
@@ -160,6 +165,7 @@ func PatchScanCenterService(db *gorm.DB, reqVal model.UpdateScanCentertReq, idVa
 		"Website":            reqVal.Website,
 		"Appointment Status": reqVal.Appointments,
 		"SCStatus":           reqVal.Status,
+		"SCConsultantStatus": reqVal.SCConsultantStatus,
 	}
 
 	ChangesData := helper.GetChanges(updatedData, oldData)
@@ -195,6 +201,7 @@ func PatchScanCenterService(db *gorm.DB, reqVal model.UpdateScanCentertReq, idVa
 		hashdb.Encrypt(reqVal.Website),
 		reqVal.Appointments,
 		reqVal.Status,
+		reqVal.SCConsultantStatus,
 		reqVal.ID,
 	).Error
 	if ScanCenterErr != nil {

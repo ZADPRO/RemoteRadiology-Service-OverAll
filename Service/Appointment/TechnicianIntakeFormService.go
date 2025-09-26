@@ -353,22 +353,35 @@ func ViewTechnicianIntakeFormService(db *gorm.DB, reqVal model.ViewTechnicianInt
 	name := ""
 	custId := ""
 
-	if len(Aduit) > 0 {
+	var UserData []model.TechnicianModel
 
-		var UserData []model.TechnicianModel
-
-		UserDataerr := db.Raw(query.TechnicianUserSQL, Aduit[0].THActionBy).Scan(&UserData).Error
-		if UserDataerr != nil {
-			log.Printf("ERROR: Failed to fetch Aduit: %v", UserDataerr)
-			return []model.GetViewIntakeData{}, []model.AduitModel{}, []model.TechIntakeModel{}, "", ""
-		}
-
-		name = hashdb.Decrypt(UserData[0].FirstName)
-		custId = UserData[0].CustId
-
+	UserDataerr := db.Raw(query.TechnicianUserSQL, reqVal.AppointmentId).Scan(&UserData).Error
+	if UserDataerr != nil {
+		log.Printf("ERROR: Failed to fetch Aduit: %v", UserDataerr)
+		return []model.GetViewIntakeData{}, []model.AduitModel{}, []model.TechIntakeModel{}, "", ""
 	}
 
-	fmt.Println("$$$$$$$$$$$$$$$$$$$$", name, custId)
+	if len(UserData) > 0 {
+		name = hashdb.Decrypt(UserData[0].FirstName)
+		custId = UserData[0].CustId
+	}
+
+	// if len(Aduit) > 0 {
+
+	// 	var UserData []model.TechnicianModel
+
+	// 	UserDataerr := db.Raw(query.TechnicianUserSQL, Aduit[0].THActionBy).Scan(&UserData).Error
+	// 	if UserDataerr != nil {
+	// 		log.Printf("ERROR: Failed to fetch Aduit: %v", UserDataerr)
+	// 		return []model.GetViewIntakeData{}, []model.AduitModel{}, []model.TechIntakeModel{}, "", ""
+	// 	}
+
+	// 	name = hashdb.Decrypt(UserData[0].FirstName)
+	// 	custId = UserData[0].CustId
+
+	// }
+
+	// fmt.Println("$$$$$$$$$$$$$$$$$$$$", name, custId)
 
 	return ViewIntakeData, Aduit, TechIntakeData, name, custId
 }
