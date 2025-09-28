@@ -84,9 +84,7 @@ func AssignGetReportController() gin.HandlerFunc {
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
 
-		fmt.Println("$$$$$$$$$$$$$", data)
-
-		status, message, IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, ReportAppointmentData, ReportFormateList, GetUserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterImg, ScancenterAddress, Addendum, oldReport, NASystemReportAccess, patientpublicprivate := service.AssignGetReportService(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
+		status, message, IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, ReportAppointmentData, ReportFormateList, GetUserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterImg, ScancenterAddress, Addendum, oldReport, NASystemReportAccess, patientpublicprivate, PerformingProviderName, VerifyingProviderName := service.AssignGetReportService(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
 
 		payload := map[string]interface{}{
 			"status":                   status,
@@ -108,6 +106,8 @@ func AssignGetReportController() gin.HandlerFunc {
 			"oldReport":                oldReport,
 			"naSystemReportAccess":     NASystemReportAccess,
 			"patientpublicprivate":     patientpublicprivate,
+			"PerformingProviderName":   PerformingProviderName,
+			"VerifyingProviderName":    VerifyingProviderName,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)
@@ -369,16 +369,18 @@ func AutosaveController() gin.HandlerFunc {
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
 
-		status, message, ReportIntake, TextContent, AppointmentDetails, EaseQTReportAccess, NASystemReportAccess := service.AutosaveServicee(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
+		status, message, ReportIntake, TextContent, AppointmentDetails, EaseQTReportAccess, NASystemReportAccess, PerformingProviderName, VerifyingProviderName := service.AutosaveServicee(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
 
 		payload := map[string]interface{}{
-			"status":                status,
-			"message":               message,
-			"reportIntakeFormData":  ReportIntake,
-			"reportTextContentData": TextContent,
-			"appointmentStatus":     AppointmentDetails,
-			"easeQTReportAccess":    EaseQTReportAccess,
-			"naSystemReportAccess":  NASystemReportAccess,
+			"status":                 status,
+			"message":                message,
+			"reportIntakeFormData":   ReportIntake,
+			"reportTextContentData":  TextContent,
+			"appointmentStatus":      AppointmentDetails,
+			"easeQTReportAccess":     EaseQTReportAccess,
+			"naSystemReportAccess":   NASystemReportAccess,
+			"PerformingProviderName": PerformingProviderName,
+			"VerifyingProviderName":  VerifyingProviderName,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)
@@ -680,7 +682,7 @@ func SendMailReportController() gin.HandlerFunc {
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
 
-		status, message := service.SendMailReportService(dbConn, data)
+		status, message := service.SendMailReportService(dbConn, data, int(idValue.(float64)))
 
 		payload := map[string]interface{}{
 			"status":  status,

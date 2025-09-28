@@ -580,6 +580,27 @@ WHERE
   u."refUserId" = $1;
 `
 
+var UserIdentifyRole = `
+SELECT
+  *
+FROM
+  notes."refReportsHistory" rrh
+  JOIN public."Users" u 
+    ON u."refUserId" = rrh."refRHHandledUserId"
+WHERE
+  u."refRTId" = $1
+  AND rrh."refAppointmentId" = $2
+  AND rrh."refRHHandleStatus" IN (
+    'Predraft',
+    'Draft',
+    'Reviewed 1',
+    'Reviewed 2',
+    'Signed Off'
+  )
+ORDER BY
+  rrh."refRHId" DESC;
+`
+
 var PatientUserDetailsSQL = `
 SELECT
   *
@@ -740,6 +761,8 @@ FROM
   JOIN public."Users" u ON u."refUserId" = ra."refUserId"
 WHERE
   ra."refAppointmentId" = $1
+ORDER BY
+  "refADID" ASC;
 `
 
 var UpdateAutosaveTextContentSQL = `
@@ -1359,4 +1382,31 @@ FROM
 WHERE
   "refAppointmentId" = $1
   AND "refTITFQId" = $2;
+`
+
+var GetPatientContent = `
+SELECT
+  *
+FROM
+  notes."refReportsTextContent"
+WHERE
+  "refAppointmentId" = $1;
+`
+
+var GetUserId = `
+SELECT
+  *
+FROM
+  public."Users"
+WHERE
+  "refUserId" = $1
+`
+
+var UpdateReportTextContentSQL = `
+UPDATE
+  notes."refReportsTextContent"
+SET
+  "refRTCText" = $1
+WHERE
+  "refAppointmentId" = $2;
 `
