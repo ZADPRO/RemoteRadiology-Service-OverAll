@@ -468,8 +468,11 @@ type CoDoctorReportAccessStatus struct {
 }
 
 type AddAddendumReq struct {
-	AddAddendumText string `json:"addAddendumText" binding:"required" mapstructure:"addAddendumText"`
-	AppointmentId   int    `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
+	AddAddendumText   string `json:"addAddendumText" binding:"required" mapstructure:"addAddendumText"`
+	AppointmentId     int    `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
+	PatientMailStatus bool   `json:"patientMailStatus" mapstructure:"patientMailStatus"`
+	ManagerMailStatus bool   `json:"managerMailStatus" mapstructure:"managerMailStatus"`
+	PatientId         int    `json:"patientId" binding:"required" mapstructure:"patientId"`
 }
 
 type AddAddendumModel struct {
