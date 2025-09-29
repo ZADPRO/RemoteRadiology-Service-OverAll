@@ -2609,7 +2609,7 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 			PatientdataModel[i].UserFirstName = hashdb.Decrypt(data.UserFirstName)
 		}
 
-		AddedumContent = append(AddedumContent, "The written report was email to "+PatientdataModel[0].Email+" on "+timeZone.GetPacificTime())
+		AddedumContent = append(AddedumContent, "The written report was emailed to "+PatientdataModel[0].Email+" on "+timeZone.GetPacificTime())
 
 		htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, PatientdataModel[0].SCCustId)
 
@@ -2642,7 +2642,7 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 		}
 
 		for _, data := range ManagerModel {
-			AddedumContent = append(AddedumContent, "The written report was email to "+data.Email+" on "+timeZone.GetPacificTime())
+			AddedumContent = append(AddedumContent, "The written report was emailed to "+data.Email+" on "+timeZone.GetPacificTime())
 
 			htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, data.SCCustId)
 
@@ -3049,7 +3049,7 @@ func SendMailReportService(db *gorm.DB, reqVal model.SendMailReportReq, idValue 
 
 	if reqVal.PatientMailStatus {
 
-		AddedumContent = append(AddedumContent, "The written report was email to "+PatientdataModel[0].Email+" on "+timeZone.GetPacificTime())
+		AddedumContent = append(AddedumContent, "The written report was emailed to "+PatientdataModel[0].Email+" on "+timeZone.GetPacificTime())
 
 		htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, PatientdataModel[0].SCCustId)
 
@@ -3082,7 +3082,7 @@ func SendMailReportService(db *gorm.DB, reqVal model.SendMailReportReq, idValue 
 		}
 
 		for _, data := range ManagerModel {
-			AddedumContent = append(AddedumContent, "The written report was email to "+data.Email+" on "+timeZone.GetPacificTime())
+			AddedumContent = append(AddedumContent, "The written report was emailed to "+data.Email+" on "+timeZone.GetPacificTime())
 			htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, data.SCCustId)
 
 			subject := "Your Report Status"
@@ -3243,18 +3243,7 @@ func AddAddendumService(db *gorm.DB, reqVal model.AddAddendumReq, idValue int) (
 		return false, "Something went wrong, Try Again", []model.AddAddendumModel{}
 	}
 
-	InsertErr := tx.Exec(
-		query.InsertAddedumSQL,
-		reqVal.AppointmentId,
-		idValue,
-		reqVal.AddAddendumText,
-		timeZone.GetPacificTime(),
-	).Error
-	if InsertErr != nil {
-		log.Printf("ERROR: Failed to Insert Addendum: %v\n", InsertErr)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again", []model.AddAddendumModel{}
-	}
+	var AddedumContent []string
 
 	//Send Mail for the Patient
 	if reqVal.PatientMailStatus {
@@ -3270,6 +3259,8 @@ func AddAddendumService(db *gorm.DB, reqVal model.AddAddendumReq, idValue int) (
 		for i, data := range PatientdataModel {
 			PatientdataModel[i].UserFirstName = hashdb.Decrypt(data.UserFirstName)
 		}
+
+		AddedumContent = append(AddedumContent, "The written report was emailed to "+PatientdataModel[0].Email+" on "+timeZone.GetPacificTime())
 
 		htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, PatientdataModel[0].SCCustId)
 
@@ -3302,6 +3293,8 @@ func AddAddendumService(db *gorm.DB, reqVal model.AddAddendumReq, idValue int) (
 		}
 
 		for _, data := range ManagerModel {
+			AddedumContent = append(AddedumContent, "The written report was emailed to "+data.Email+" on "+timeZone.GetPacificTime())
+
 			htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, data.SCCustId)
 
 			subject := "Your Report Status"
@@ -3335,9 +3328,9 @@ func AddAddendumService(db *gorm.DB, reqVal model.AddAddendumReq, idValue int) (
 	}
 
 	if len(AddedumList) > 0 {
-		TextContent += "<br/>" + timeZone.GetPacificTime() + " - " + userCustId + "" + reqVal.AddAddendumText
+		TextContent += "<br/>" + timeZone.GetPacificTime() + " - " + userCustId + "" + reqVal.AddAddendumText + "<p>" + strings.Join(AddedumContent, ". ") + "</p>"
 	} else {
-		TextContent += "<br/><p><strong>ADDENDUM:</strong></p><br/><p>" + timeZone.GetPacificTime() + " - " + userCustId + "</p>" + reqVal.AddAddendumText
+		TextContent += "<br/><p><strong>ADDENDUM:</strong></p><br/><p>" + timeZone.GetPacificTime() + " - " + userCustId + "</p>" + reqVal.AddAddendumText + "<p>" + strings.Join(AddedumContent, ". ") + "</p>"
 	}
 
 	//Update textContent
@@ -3348,6 +3341,19 @@ func AddAddendumService(db *gorm.DB, reqVal model.AddAddendumReq, idValue int) (
 	).Error
 	if UpdateTextContentErr != nil {
 		log.Printf("ERROR: Failed to Update Report Text Content: %v\n", UpdateTextContentErr)
+	}
+
+	InsertErr := tx.Exec(
+		query.InsertAddedumSQL,
+		reqVal.AppointmentId,
+		idValue,
+		reqVal.AddAddendumText+"<p>"+strings.Join(AddedumContent, ". ")+"</p>",
+		timeZone.GetPacificTime(),
+	).Error
+	if InsertErr != nil {
+		log.Printf("ERROR: Failed to Insert Addendum: %v\n", InsertErr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again", []model.AddAddendumModel{}
 	}
 
 	if err := tx.Commit().Error; err != nil {
