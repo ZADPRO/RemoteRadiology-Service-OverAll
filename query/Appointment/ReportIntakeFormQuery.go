@@ -590,13 +590,7 @@ FROM
 WHERE
   u."refRTId" = $1
   AND rrh."refAppointmentId" = $2
-  AND rrh."refRHHandleStatus" IN (
-    'Predraft',
-    'Draft',
-    'Reviewed 1',
-    'Reviewed 2',
-    'Signed Off'
-  )
+  AND rrh."refRHHandleStatus" IN ($3)
 ORDER BY
   rrh."refRHId" DESC;
 `
