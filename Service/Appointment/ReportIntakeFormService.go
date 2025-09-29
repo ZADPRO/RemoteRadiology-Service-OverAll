@@ -84,8 +84,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 	var VerifyingProviderName = ""
 
 	//Performing Provider Name
+	var PerformingProviderStatus = `Signed Off`
 	var PerformingProviderData []model.PatientCustId
-	PerformingProviderErr := db.Raw(query.UserIdentifyRole, 10, reqVal.AppointmentId).Scan(&PerformingProviderData).Error
+	PerformingProviderErr := db.Raw(query.UserIdentifyRole, 10, reqVal.AppointmentId, PerformingProviderStatus).Scan(&PerformingProviderData).Error
 	if PerformingProviderErr != nil {
 		log.Error(PerformingProviderErr)
 	}
@@ -95,8 +96,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 	}
 
 	//Verifying Provider Name
+	var VerifyingProviderStatus = `Reviewed 2`
 	var VerifyingProviderData []model.PatientCustId
-	VerifyingProviderDataErr := db.Raw(query.UserIdentifyRole, 8, reqVal.AppointmentId).Scan(&VerifyingProviderData).Error
+	VerifyingProviderDataErr := db.Raw(query.UserIdentifyRole, 8, reqVal.AppointmentId, VerifyingProviderStatus).Scan(&VerifyingProviderData).Error
 	if VerifyingProviderDataErr != nil {
 		log.Error(VerifyingProviderDataErr)
 	}
@@ -1272,8 +1274,9 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 	var VerifyingProviderName = ""
 
 	//Performing Provider Name
+	var PerformingProviderStatus = `Signed Off`
 	var PerformingProviderData []model.PatientCustId
-	PerformingProviderErr := db.Raw(query.UserIdentifyRole, 10, reqVal.AppointmentId).Scan(&PerformingProviderData).Error
+	PerformingProviderErr := db.Raw(query.UserIdentifyRole, 10, reqVal.AppointmentId, PerformingProviderStatus).Scan(&PerformingProviderData).Error
 	if PerformingProviderErr != nil {
 		log.Error(PerformingProviderErr)
 	}
@@ -1283,8 +1286,9 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 	}
 
 	//Verifying Provider Name
+	var VerifyingProviderStatus = `Reviewed 2`
 	var VerifyingProviderData []model.PatientCustId
-	VerifyingProviderDataErr := db.Raw(query.UserIdentifyRole, 8, reqVal.AppointmentId).Scan(&VerifyingProviderData).Error
+	VerifyingProviderDataErr := db.Raw(query.UserIdentifyRole, 8, reqVal.AppointmentId, VerifyingProviderStatus).Scan(&VerifyingProviderData).Error
 	if VerifyingProviderDataErr != nil {
 		log.Error(VerifyingProviderDataErr)
 	}
