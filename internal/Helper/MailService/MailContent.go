@@ -157,7 +157,6 @@ func RegisterationMailContent(userName string) string {
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Welcome to Wellthgreen HealthCare Pvt Ltd</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -238,7 +237,6 @@ func GetOTPMailContent(userName string, otp int) string {
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Welcome to Wellthgreen HealthCare Pvt Ltd</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -333,7 +331,6 @@ func RegistrationMailContent(userName, patientID, gmail, password string, role s
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Welcome to Wellthgreen HealthCare Pvt Ltd</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -436,7 +433,6 @@ func PatientReportSignOff(userName string, patientID string, AppintmentDate stri
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Your Report is Ready - Wellthgreen HealthCare Pvt Ltd</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -553,7 +549,6 @@ func ManagerReportSignOff(patientName string, patientID string, appointmentDate 
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Report Ready for Admin Review - Wellthgreen HealthCare Pvt Ltd</title>
     <style>
       body {
         font-family: Arial, sans-serif;

@@ -164,7 +164,7 @@ func PostManagerService(db *gorm.DB, reqVal model.ManagerRegisterReq, idValue in
 
 	htmlContent := mailservice.RegistrationMailContent(reqVal.FirstName+" "+reqVal.LastName, CustId, reqVal.Email, reqVal.DOB, "Wellthgreen Manager")
 
-	subject := "Welcome to Wellthgreen HealthCare Pvt Ltd – Your User ID & Login Details Inside"
+	subject := "Welcome to easeQT – Your User ID & Login Details Inside"
 
 	emailStatus := mailservice.MailService(reqVal.Email, htmlContent, subject)
 
