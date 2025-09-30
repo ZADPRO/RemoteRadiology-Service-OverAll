@@ -216,7 +216,7 @@ func PostRadiologistService(db *gorm.DB, reqVal model.RadiologistRegisterReq, id
 
 	htmlContent := mailservice.RegistrationMailContent(reqVal.FirstName+" "+reqVal.LastName, CustId, reqVal.Email, reqVal.DOB, "Radiologist")
 
-	subject := "Welcome to Wellthgreen HealthCare Pvt Ltd – Your User ID & Login Details Inside"
+	subject := "Welcome to easeQT – Your User ID & Login Details Inside"
 
 	emailStatus := mailservice.MailService(reqVal.Email, htmlContent, subject)
 

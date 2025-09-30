@@ -215,7 +215,7 @@ func PostDoctorService(db *gorm.DB, reqVal model.DoctorRegisterReq, idValue int)
 
 	htmlContent := mailservice.RegistrationMailContent(reqVal.FirstName+" "+reqVal.LastName, CustId, reqVal.Email, reqVal.DOB, "Scan Center Doctor")
 
-	subject := "Welcome to Wellthgreen HealthCare Pvt Ltd – Your User ID & Login Details Inside"
+	subject := "Welcome to easeQT – Your User ID & Login Details Inside"
 
 	emailStatus := mailservice.MailService(reqVal.Email, htmlContent, subject)
 
