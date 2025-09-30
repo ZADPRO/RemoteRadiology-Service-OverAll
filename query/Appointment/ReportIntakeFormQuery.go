@@ -590,7 +590,7 @@ FROM
 WHERE
   u."refRTId" = $1
   AND rrh."refAppointmentId" = $2
-  AND rrh."refRHHandleStatus" IN ($3)
+  AND rrh."refRHHandleStatus" = ANY($3)
 ORDER BY
   rrh."refRHId" DESC;
 `
@@ -1404,3 +1404,26 @@ SET
 WHERE
   "refAppointmentId" = $2;
 `
+
+var ListAllSignatureSQL = `
+SELECT
+  *
+FROM
+  notes."refSignature"
+WHERE
+  "refAppointmentId" = $1
+ORDER BY
+  "refSId";
+`
+
+var InsertSignatureSQL = `
+INSERT INTO
+  notes."refSignature" (
+    "refAppointmentId",
+    "refUserId",
+    "refSText",
+    "refSCreatedAt"
+  )
+VALUES
+  ($1, $2, $3, $4);
+  `

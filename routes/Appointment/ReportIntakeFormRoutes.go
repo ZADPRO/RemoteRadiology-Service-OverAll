@@ -27,4 +27,5 @@ func InitReportIntakeFormRoutes(router *gin.Engine) {
 	route.POST("/listAllOldReport", accesstoken.JWTMiddleware(), controllers.ListOldReportController())
 	route.POST("/addOldReport", accesstoken.JWTMiddleware(), controllers.PostOldReportUploadFileController())
 	route.POST("/deleteOldReport", accesstoken.JWTMiddleware(), controllers.DeleteOldReportController())
+	route.POST("/insertSignature", accesstoken.JWTMiddleware(), controllers.InsertSignatureController())
 }
