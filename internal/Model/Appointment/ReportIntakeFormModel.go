@@ -509,3 +509,21 @@ type ListOldReportModel struct {
 type DeleteOldReportModel struct {
 	ORId int `json:"refORId" binding:"required" mapstructure:"refORId"`
 }
+
+type AddSignatureReq struct {
+	AddSignatureText string `json:"addSignatureText" binding:"required" mapstructure:"addSignatureText"`
+	AppointmentId    int    `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
+	PatientId        int    `json:"patientId" binding:"required" mapstructure:"patientId"`
+}
+
+type ListAllSignatureReq struct {
+	AppointmentId int `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
+}
+
+type ListAllSignatureModel struct {
+	SId           int    `json:"refSId" gorm:"column:refSId"`
+	UserId        int    `json:"refUserId" gorm:"column:refUserId"`
+	AppointmentId int    `json:"refAppointmentId" gorm:"column:refAppointmentId"`
+	SText         string `json:"refSText" gorm:"column:refSText"`
+	SCreatedAt    string `json:"refSCreatedAt" gorm:"column:refSCreatedAt"`
+}
