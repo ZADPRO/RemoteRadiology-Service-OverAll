@@ -458,16 +458,21 @@ type SendMailReportReq struct {
 }
 
 type DoctorReportAccessStatus struct {
-	DDEaseQTReportAccess *bool `json:"refDDEaseQTReportAccess" gorm:"column:refDDEaseQTReportAccess"`
+	DDEaseQTReportAccess   *bool `json:"refDDEaseQTReportAccess" gorm:"column:refDDEaseQTReportAccess"`
+	DDNAsystemReportAccess *bool `json:"refDDNAsystemReportAccess" gorm:"column:refDDNAsystemReportAccess"`
 }
 
 type CoDoctorReportAccessStatus struct {
-	CDEaseQTReportAccess *bool `json:"refCDEaseQTReportAccess" gorm:"column:refCDEaseQTReportAccess"`
+	CDEaseQTReportAccess   *bool `json:"refCDEaseQTReportAccess" gorm:"column:refCDEaseQTReportAccess"`
+	CDNAsystemReportAccess *bool `json:"refCDNAsystemReportAccess" gorm:"column:refCDNAsystemReportAccess"`
 }
 
 type AddAddendumReq struct {
-	AddAddendumText string `json:"addAddendumText" binding:"required" mapstructure:"addAddendumText"`
-	AppointmentId   int    `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
+	AddAddendumText   string `json:"addAddendumText" binding:"required" mapstructure:"addAddendumText"`
+	AppointmentId     int    `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
+	PatientMailStatus bool   `json:"patientMailStatus" mapstructure:"patientMailStatus"`
+	ManagerMailStatus bool   `json:"managerMailStatus" mapstructure:"managerMailStatus"`
+	PatientId         int    `json:"patientId" binding:"required" mapstructure:"patientId"`
 }
 
 type AddAddendumModel struct {
@@ -503,4 +508,22 @@ type ListOldReportModel struct {
 
 type DeleteOldReportModel struct {
 	ORId int `json:"refORId" binding:"required" mapstructure:"refORId"`
+}
+
+type AddSignatureReq struct {
+	AddSignatureText string `json:"addSignatureText" binding:"required" mapstructure:"addSignatureText"`
+	AppointmentId    int    `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
+	PatientId        int    `json:"patientId" binding:"required" mapstructure:"patientId"`
+}
+
+type ListAllSignatureReq struct {
+	AppointmentId int `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
+}
+
+type ListAllSignatureModel struct {
+	SId           int    `json:"refSId" gorm:"column:refSId"`
+	UserId        int    `json:"refUserId" gorm:"column:refUserId"`
+	AppointmentId int    `json:"refAppointmentId" gorm:"column:refAppointmentId"`
+	SText         string `json:"refSText" gorm:"column:refSText"`
+	SCreatedAt    string `json:"refSCreatedAt" gorm:"column:refSCreatedAt"`
 }

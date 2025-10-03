@@ -209,7 +209,7 @@ func PostPatientService(db *gorm.DB, reqVal model.RegisterNewPatientReq, idValue
 
 		htmlContent := mailservice.RegistrationMailContent(reqVal.Firstname, reqVal.PatientId, reqVal.EmailId, reqVal.DOB, "Patient")
 
-		subject := "Welcome – Your Breast QT Scan Appointment at " + reqVal.SCCustId + " Scan Centre"
+		subject := "Welcome – Your Appointment at " + reqVal.SCCustId + " Scan Centre"
 
 		emailStatus := mailservice.MailService(reqVal.EmailId, htmlContent, subject)
 
@@ -394,9 +394,9 @@ func PostCreatePatientService(db *gorm.DB, reqVal model.CreateAppointmentPatient
 
 	if reqVal.Mailoption == "sendbywellthgreen" {
 
-		htmlContent := mailservice.RegistrationMailContent(reqVal.Firstname, reqVal.PatientId, reqVal.EmailId, "Use your Password", "Patient")
+		htmlContent := mailservice.RegistrationMailContent(reqVal.Firstname, reqVal.SCCustId, reqVal.EmailId, "Use your Password", "Patient")
 
-		subject := "Welcome – Your Breast QT Scan Appointment at " + reqVal.SCCustId + " Scan Centre"
+		subject := "Welcome – Your Appointment at " + reqVal.SCCustId + " Scan Centre"
 
 		emailStatus := mailservice.MailService(reqVal.EmailId, htmlContent, subject)
 
@@ -454,9 +454,9 @@ func PostSendMailPatientService(db *gorm.DB, reqVal model.CreateAppointmentPatie
 
 	if reqVal.Mailoption == "sendbywellthgreen" {
 
-		htmlContent := mailservice.RegistrationMailContent(reqVal.Firstname, reqVal.PatientId, reqVal.EmailId, "Use your password", "Patient")
+		htmlContent := mailservice.RegistrationMailContent(reqVal.Firstname, reqVal.SCCustId, reqVal.EmailId, "Use your password", "Patient")
 
-		subject := "Welcome – Your Breast QT Scan Appointment at " + reqVal.SCCustId + " Scan Centre"
+		subject := "Welcome – Scan Appointment at " + reqVal.SCCustId + " Scan Centre"
 
 		emailStatus := mailservice.MailService(reqVal.EmailId, htmlContent, subject)
 

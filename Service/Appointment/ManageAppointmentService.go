@@ -93,7 +93,7 @@ func AddAppointmentService(db *gorm.DB, reqVal model.AddAppointmentReq, idValue 
 	return true, "Successfully Appointment Created", Appointment.AppointmentId, Appointment.SCId, reqVal.SCId
 }
 
-func ViewPatientHistoryService(db *gorm.DB, idValue int) []model.ViewPatientHistoryModel {
+func ViewPatientHistoryService(db *gorm.DB, idValue int) ([]model.ViewPatientHistoryModel, bool) {
 	log := logger.InitLogger()
 
 	var patientHistory []model.ViewPatientHistoryModel
@@ -101,10 +101,34 @@ func ViewPatientHistoryService(db *gorm.DB, idValue int) []model.ViewPatientHist
 	err := db.Raw(query.ViewPatientHistorySQL, idValue).Scan(&patientHistory).Error
 	if err != nil {
 		log.Printf("ERROR: Failed to View Patient History: %v", err)
-		return []model.ViewPatientHistoryModel{}
+		return []model.ViewPatientHistoryModel{}, false
 	}
 
-	return patientHistory
+	var ScanCenterMap []model.MapScanCenterPatientModel
+	ScanCenterMapErr := db.Raw(query.ScanCenterMap, idValue).Scan(&ScanCenterMap).Error
+	if ScanCenterMapErr != nil {
+		log.Printf("ERROR: Failed to View Scan Center: %v", ScanCenterMapErr)
+		return []model.ViewPatientHistoryModel{}, false
+	}
+
+	if len(ScanCenterMap) > 0 {
+		var ScanCenterConsultant []model.ScanCenterConsultantModel
+		ScanCenterConsultantErr := db.Raw(query.ScanCenterConsultantSQL, ScanCenterMap[0].SCId).Scan(&ScanCenterConsultant).Error
+		if ScanCenterConsultantErr != nil {
+			log.Printf("ERROR: Failed to View Scan Center: %v", ScanCenterConsultantErr)
+			return []model.ViewPatientHistoryModel{}, false
+		}
+
+		var ConsultantStatus = false
+		if len(ScanCenterConsultant) > 0 {
+			ConsultantStatus = ScanCenterConsultant[0].SCConsultantStatus
+		}
+
+		return patientHistory, ConsultantStatus
+	} else {
+		return []model.ViewPatientHistoryModel{}, false
+	}
+
 }
 
 func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int, roleIdValue int) ([]model.ViewTechnicianPatientQueueModel, []model.StaffAvailableModel) {
@@ -206,6 +230,23 @@ func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int, roleIdValue int
 
 			if len(ReportUrgentStatus) > 0 {
 				patientQueue[i].ReportStatus = hashdb.Decrypt(ReportUrgentStatus[0].ReportStatus)
+			}
+
+			//Get the Private and Public in the Technician Intake
+			var patientPrivatePublic []model.GetTechnicianIntakeData
+			patientPrivatePublicErr := db.Raw(query.GetPatientPrivatePublicSQL, patientQueue[i].AppointmentId, 57).Scan(&patientPrivatePublic).Error
+			if patientPrivatePublicErr != nil {
+				log.Error(patientPrivatePublicErr)
+			}
+
+			for i, data := range patientPrivatePublic {
+				patientPrivatePublic[i].Answer = hashdb.Decrypt(data.Answer)
+			}
+
+			if len(patientPrivatePublic) > 0 {
+				patientQueue[i].PatientPrivatePublicStatus = patientPrivatePublic[0].Answer
+			} else {
+				patientQueue[i].PatientPrivatePublicStatus = ""
 			}
 
 			// var dicom []model.GetDicomFile

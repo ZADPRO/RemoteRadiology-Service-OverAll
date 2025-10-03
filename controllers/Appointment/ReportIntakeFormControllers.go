@@ -84,9 +84,7 @@ func AssignGetReportController() gin.HandlerFunc {
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
 
-		fmt.Println("$$$$$$$$$$$$$", data)
-
-		status, message, IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, ReportAppointmentData, ReportFormateList, GetUserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterImg, ScancenterAddress, Addendum, oldReport := service.AssignGetReportService(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
+		status, message, IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, ReportAppointmentData, ReportFormateList, GetUserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterImg, ScancenterAddress, Addendum, oldReport, NASystemReportAccess, patientpublicprivate, PerformingProviderName, VerifyingProviderName, ListAllSignature := service.AssignGetReportService(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
 
 		payload := map[string]interface{}{
 			"status":                   status,
@@ -106,6 +104,11 @@ func AssignGetReportController() gin.HandlerFunc {
 			"ScancenterAddress":        ScancenterAddress,
 			"Addendum":                 Addendum,
 			"oldReport":                oldReport,
+			"naSystemReportAccess":     NASystemReportAccess,
+			"patientpublicprivate":     patientpublicprivate,
+			"PerformingProviderName":   PerformingProviderName,
+			"VerifyingProviderName":    VerifyingProviderName,
+			"ListAllSignature":         ListAllSignature,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)
@@ -367,15 +370,19 @@ func AutosaveController() gin.HandlerFunc {
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
 
-		status, message, ReportIntake, TextContent, AppointmentDetails, EaseQTReportAccess := service.AutosaveServicee(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
+		status, message, ReportIntake, TextContent, AppointmentDetails, EaseQTReportAccess, NASystemReportAccess, PerformingProviderName, VerifyingProviderName, ListAllSignature := service.AutosaveServicee(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
 
 		payload := map[string]interface{}{
-			"status":                status,
-			"message":               message,
-			"reportIntakeFormData":  ReportIntake,
-			"reportTextContentData": TextContent,
-			"appointmentStatus":     AppointmentDetails,
-			"easeQTReportAccess":    EaseQTReportAccess,
+			"status":                 status,
+			"message":                message,
+			"reportIntakeFormData":   ReportIntake,
+			"reportTextContentData":  TextContent,
+			"appointmentStatus":      AppointmentDetails,
+			"easeQTReportAccess":     EaseQTReportAccess,
+			"naSystemReportAccess":   NASystemReportAccess,
+			"PerformingProviderName": PerformingProviderName,
+			"VerifyingProviderName":  VerifyingProviderName,
+			"ListAllSignature":       ListAllSignature,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)
@@ -677,7 +684,7 @@ func SendMailReportController() gin.HandlerFunc {
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
 
-		status, message := service.SendMailReportService(dbConn, data)
+		status, message := service.SendMailReportService(dbConn, data, int(idValue.(float64)))
 
 		payload := map[string]interface{}{
 			"status":  status,
@@ -1018,6 +1025,45 @@ func DeleteOldReportController() gin.HandlerFunc {
 		payload := map[string]interface{}{
 			"status":  status,
 			"message": message,
+		}
+
+		token := accesstoken.CreateToken(idValue, roleIdValue)
+
+		c.JSON(http.StatusOK, gin.H{
+			"data":  hashapi.Encrypt(payload, true, token),
+			"token": token,
+		})
+	}
+}
+
+func InsertSignatureController() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idValue, idExists := c.Get("id")
+		roleIdValue, roleIdExists := c.Get("roleId")
+
+		if !idExists || !roleIdExists {
+			// Handle error: ID is missing from context (e.g., middleware didn't set it)
+			c.JSON(http.StatusUnauthorized, gin.H{ // Or StatusInternalServerError depending on why it's missing
+				"status":  false,
+				"message": "User ID, RoleID, Branch ID not found in request context.",
+			})
+			return
+		}
+
+		data, ok := helper.GetRequestBody[model.AddSignatureReq](c, true)
+		if !ok {
+			return
+		}
+
+		dbConn, sqlDB := db.InitDB()
+		defer sqlDB.Close()
+
+		status, message, list := service.InsertSignatureService(dbConn, data)
+
+		payload := map[string]interface{}{
+			"status":  status,
+			"message": message,
+			"data":    list,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)

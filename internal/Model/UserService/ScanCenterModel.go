@@ -25,6 +25,7 @@ type ScanCenterModel struct {
 	Website             string `json:"refSCWebsite" gorm:"column:refSCWebsite"`
 	Appointments        bool   `json:"refSCAppointments" gorm:"column:refSCAppointments"`
 	SCStatus            bool   `json:"refSCStatus" gorm:"column:refSCStatus"`
+	SCConsultantStatus  bool   `json:"refSCConsultantStatus" gorm:"column:refSCConsultantStatus"`
 }
 
 func (ScanCenterModel) TableName() string {
@@ -32,13 +33,14 @@ func (ScanCenterModel) TableName() string {
 }
 
 type UpdateScanCentertReq struct {
-	ID           int    `json:"id" binding:"required" mapstructure:"id"`
-	Name         string `json:"name" binding:"required" mapstructure:"name"`
-	Address      string `json:"address" binding:"required" mapstructure:"address"`
-	Email        string `json:"email" binding:"required" mapstructure:"email"`
-	Website      string `json:"website" binding:"required" mapstructure:"website"`
-	Telephone    string `json:"telephone" binding:"required" mapstructure:"telephone"`
-	Logo         string `json:"logo" binding:"required" mapstructure:"logo"`
-	Appointments bool   `json:"appointments" mapstructure:"appointments"`
-	Status       bool   `json:"status" mapstructure:"status"`
+	ID                 int    `json:"id" binding:"required" mapstructure:"id"`
+	Name               string `json:"name" binding:"required" mapstructure:"name"`
+	Address            string `json:"address" binding:"required" mapstructure:"address"`
+	Email              string `json:"email" binding:"required" mapstructure:"email"`
+	Website            string `json:"website" binding:"required" mapstructure:"website"`
+	Telephone          string `json:"telephone" binding:"required" mapstructure:"telephone"`
+	Logo               string `json:"logo" binding:"required" mapstructure:"logo"`
+	Appointments       bool   `json:"appointments" mapstructure:"appointments"`
+	Status             bool   `json:"status" mapstructure:"status"`
+	SCConsultantStatus bool   `json:"refSCConsultantStatus" mapstructure:"refSCConsultantStatus"`
 }

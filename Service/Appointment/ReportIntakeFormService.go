@@ -13,6 +13,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gorm.io/gorm"
 )
@@ -22,16 +23,12 @@ func CheckAccessService(db *gorm.DB, reqVal model.CheckAccessReq, idValue int, r
 
 	var result []model.AccessStatus
 
-	fmt.Println("222222222222222222", roleIdValue, idValue, reqVal)
-
 	if roleIdValue == 7 {
 		err := db.Raw(query.ScribeCheckAccessSQL, idValue, reqVal.AppointmentId).Scan(&result).Error
 
 		if err != nil {
 			log.Error(err)
 		}
-
-		fmt.Println("&&&&&&&&&&&&&&&", result)
 
 	} else {
 		err := db.Raw(query.CheckAccessSQL, idValue, reqVal.AppointmentId).Scan(&result).Error
@@ -50,7 +47,7 @@ func CheckAccessService(db *gorm.DB, reqVal model.CheckAccessReq, idValue int, r
 	return result[0].Status, message, result[0].RefAppointmentAccessId, result[0].CustID
 }
 
-func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValue int, roleIdValue int) (bool, string, []model.GetViewIntakeData, []model.GetTechnicianIntakeData, []model.GetReportIntakeData, []model.GetReportTextContent, []model.GetReportHistory, []model.GetReportComments, []model.GetOneUserAppointmentModel, []model.ReportFormateModel, []model.GetUserDetails, []model.PatientCustId, bool, *model.FileData, string, []model.AddAddendumModel, []model.GetOldReport) {
+func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValue int, roleIdValue int) (bool, string, []model.GetViewIntakeData, []model.GetTechnicianIntakeData, []model.GetReportIntakeData, []model.GetReportTextContent, []model.GetReportHistory, []model.GetReportComments, []model.GetOneUserAppointmentModel, []model.ReportFormateModel, []model.GetUserDetails, []model.PatientCustId, bool, *model.FileData, string, []model.AddAddendumModel, []model.GetOldReport, bool, string, string, string, []model.ListAllSignatureModel) {
 	log := logger.InitLogger()
 
 	tx := db.Begin()
@@ -71,7 +68,10 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			&model.FileData{},
 			"",
 			[]model.AddAddendumModel{},
-			[]model.GetOldReport{}
+			[]model.GetOldReport{},
+			false,
+			"", "", "",
+			[]model.ListAllSignatureModel{}
 	}
 
 	defer func() {
@@ -80,6 +80,33 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			tx.Rollback()
 		}
 	}()
+
+	var PerformingProviderName = ""
+	var VerifyingProviderName = ""
+
+	//Performing Provider Name
+	var PerformingProviderStatus = []string{"Reviewed 1", "Signed Off"}
+	var PerformingProviderData []model.PatientCustId
+	PerformingProviderErr := db.Raw(query.UserIdentifyRole, 10, reqVal.AppointmentId, PerformingProviderStatus).Scan(&PerformingProviderData).Error
+	if PerformingProviderErr != nil {
+		log.Error(PerformingProviderErr)
+	}
+
+	if len(PerformingProviderData) > 0 {
+		PerformingProviderName = hashdb.Decrypt(PerformingProviderData[0].UserFirstName)
+	}
+
+	//Verifying Provider Name
+	var VerifyingProviderStatus = []string{"Reviewed 2"}
+	var VerifyingProviderData []model.PatientCustId
+	VerifyingProviderDataErr := db.Raw(query.UserIdentifyRole, 8, reqVal.AppointmentId, VerifyingProviderStatus).Scan(&VerifyingProviderData).Error
+	if VerifyingProviderDataErr != nil {
+		log.Error(VerifyingProviderDataErr)
+	}
+
+	if len(VerifyingProviderData) > 0 {
+		VerifyingProviderName = hashdb.Decrypt(VerifyingProviderData[0].UserFirstName)
+	}
 
 	//patientCustId
 	var PatientUserDetails []model.PatientCustId
@@ -117,8 +144,6 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 	}
 
 	status, message, _, _ := CheckAccessService(db, checkAccessReq, idValue, roleIdValue)
-
-	fmt.Println(status, message)
 
 	if (status && !reqVal.ReadOnlyStatus) || (!status && reqVal.ReadOnlyStatus) || (status && reqVal.ReadOnlyStatus) {
 
@@ -170,7 +195,10 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						&model.FileData{},
 						"",
 						[]model.AddAddendumModel{},
-						[]model.GetOldReport{}
+						[]model.GetOldReport{},
+						false,
+						"", "", "",
+						[]model.ListAllSignatureModel{}
 				}
 
 				transData := 28
@@ -193,7 +221,10 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						&model.FileData{},
 						"",
 						[]model.AddAddendumModel{},
-						[]model.GetOldReport{}
+						[]model.GetOldReport{},
+						false,
+						"", "", "",
+						[]model.ListAllSignatureModel{}
 				}
 
 				var UpdateAccessSQL = query.UpdateAccessAppointment
@@ -227,7 +258,10 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						&model.FileData{},
 						"",
 						[]model.AddAddendumModel{},
-						[]model.GetOldReport{}
+						[]model.GetOldReport{},
+						false,
+						"", "", "",
+						[]model.ListAllSignatureModel{}
 
 				}
 
@@ -256,7 +290,10 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						&model.FileData{},
 						"",
 						[]model.AddAddendumModel{},
-						[]model.GetOldReport{}
+						[]model.GetOldReport{},
+						false,
+						"", "", "",
+						[]model.ListAllSignatureModel{}
 				}
 
 				if len(ReportHistory) > 0 {
@@ -266,8 +303,6 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 					if len(ReportHistory[0].HandleEndTime) == 0 {
 						starttime = ReportHistory[1].HandleEndTime
 					}
-
-					fmt.Println("___________________>", starttime)
 
 					//Insert the History
 					ReportHistoryErr := tx.Exec(
@@ -295,7 +330,44 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 							&model.FileData{},
 							"",
 							[]model.AddAddendumModel{},
-							[]model.GetOldReport{}
+							[]model.GetOldReport{},
+							false,
+							"", "", "",
+							[]model.ListAllSignatureModel{}
+					}
+				} else {
+					var starttime = timeZone.GetPacificTime()
+
+					//Insert the History
+					ReportHistoryErr := tx.Exec(
+						query.InsertReportHistorySQL,
+						reqVal.PatientId,
+						reqVal.AppointmentId,
+						idValue,
+						starttime,
+					).Error
+					if ReportHistoryErr != nil {
+						log.Printf("ERROR: Failed to Insert Report History: %v\n", ReportHistoryErr)
+						tx.Rollback()
+						return false, "Something went wrong, Try Again",
+							[]model.GetViewIntakeData{},
+							[]model.GetTechnicianIntakeData{},
+							[]model.GetReportIntakeData{},
+							[]model.GetReportTextContent{},
+							[]model.GetReportHistory{},
+							[]model.GetReportComments{},
+							[]model.GetOneUserAppointmentModel{},
+							[]model.ReportFormateModel{},
+							[]model.GetUserDetails{},
+							[]model.PatientCustId{},
+							false,
+							&model.FileData{},
+							"",
+							[]model.AddAddendumModel{},
+							[]model.GetOldReport{},
+							false,
+							"", "", "",
+							[]model.ListAllSignatureModel{}
 					}
 				}
 
@@ -321,7 +393,10 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 				&model.FileData{},
 				"",
 				[]model.AddAddendumModel{},
-				[]model.GetOldReport{}
+				[]model.GetOldReport{},
+				false,
+				"", "", "",
+				[]model.ListAllSignatureModel{}
 		}
 
 		var IntakeFormData []model.GetViewIntakeData
@@ -462,17 +537,22 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 		}
 
 		var EaseQTReportAccess = false
+		var NASystemReportAccess = false
 
 		//Get the Ease QT Report Access Status
 		switch roleIdValue {
 		case 1: //Master Admin
 			EaseQTReportAccess = true
+			NASystemReportAccess = true
 		case 2: //Scan Center Technician
 			EaseQTReportAccess = false
+			NASystemReportAccess = true
 		case 3: //Scan Center Manager
 			EaseQTReportAccess = false
+			NASystemReportAccess = true
 		case 4: //Patient
 			EaseQTReportAccess = false
+			NASystemReportAccess = true
 		case 5: //Scan Center Doctor
 
 			var ReportStatus []model.DoctorReportAccessStatus
@@ -487,11 +567,14 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			}
 
 			EaseQTReportAccess = *ReportStatus[0].DDEaseQTReportAccess
+			NASystemReportAccess = *ReportStatus[0].DDNAsystemReportAccess
 
 		case 6: //Junior Doctor
 			EaseQTReportAccess = true
+			NASystemReportAccess = true
 		case 7: //Scribe
 			EaseQTReportAccess = true
+			NASystemReportAccess = true
 		case 8: //Scan Center Reviewer
 			var ReportStatus []model.CoDoctorReportAccessStatus
 			err := db.Raw(query.CoDoctorReportAccessSQL, idValue).Scan(&ReportStatus).Error
@@ -505,12 +588,17 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			}
 
 			EaseQTReportAccess = *ReportStatus[0].CDEaseQTReportAccess
+			NASystemReportAccess = *ReportStatus[0].CDNAsystemReportAccess
+
 		case 9: //Manager
 			EaseQTReportAccess = true
+			NASystemReportAccess = true
 		case 10: //Performing Provider
 			EaseQTReportAccess = true
+			NASystemReportAccess = true
 		default:
 			EaseQTReportAccess = false
+			NASystemReportAccess = false
 		}
 		// if roleIdValue == 1 || roleIdValue == 9 || roleIdValue == 6 || roleIdValue == 7 || roleIdValue == 10 {
 		// 	EaseQTReportAccess = true
@@ -525,7 +613,24 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			log.Error(oldReportErr)
 		}
 
-		return true, "Successfully Fetched", IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, OneUserAppointment, ReportFormateList, UserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterProfileImg, hashdb.Decrypt(GetScanCenterImg[0].SCAddress), ListAddendumService(db, reqVal.AppointmentId), oldReportData
+		//Get the Private and Public in the Technician Intake
+		var patientPrivatePublic []model.GetTechnicianIntakeData
+		patientPrivatePublicErr := db.Raw(query.GetPatientPrivatePublicSQL, reqVal.AppointmentId, 57).Scan(&patientPrivatePublic).Error
+		if patientPrivatePublicErr != nil {
+			log.Error(patientPrivatePublicErr)
+		}
+
+		for i, data := range patientPrivatePublic {
+			patientPrivatePublic[i].Answer = hashdb.Decrypt(data.Answer)
+		}
+
+		var patientPrivatePublicStatus = ""
+
+		if len(patientPrivatePublic) > 0 {
+			patientPrivatePublicStatus = patientPrivatePublic[0].Answer
+		}
+
+		return true, "Successfully Fetched", IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, OneUserAppointment, ReportFormateList, UserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterProfileImg, hashdb.Decrypt(GetScanCenterImg[0].SCAddress), ListAddendumService(db, reqVal.AppointmentId), oldReportData, NASystemReportAccess, patientPrivatePublicStatus, PerformingProviderName, VerifyingProviderName, ListAllSignatureService(db, reqVal.AppointmentId)
 
 	} else {
 
@@ -547,7 +652,10 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 				&model.FileData{},
 				"",
 				[]model.AddAddendumModel{},
-				[]model.GetOldReport{}
+				[]model.GetOldReport{},
+				false,
+				"", "", "",
+				[]model.ListAllSignatureModel{}
 		}
 
 		return status, message,
@@ -565,7 +673,10 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			&model.FileData{},
 			"",
 			[]model.AddAddendumModel{},
-			[]model.GetOldReport{}
+			[]model.GetOldReport{},
+			false,
+			"", "", "",
+			[]model.ListAllSignatureModel{}
 	}
 
 }
@@ -1153,13 +1264,13 @@ func CompleteReportService(db *gorm.DB, reqVal model.CompleteReportReq, idValue 
 	return true, "Successfully Changes Saved"
 }
 
-func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int, roleIdValue int) (bool, string, []model.GetReportIntakeData, []model.GetReportTextContent, []model.GetOneUserAppointmentModel, bool) {
+func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int, roleIdValue int) (bool, string, []model.GetReportIntakeData, []model.GetReportTextContent, []model.GetOneUserAppointmentModel, bool, bool, string, string, []model.ListAllSignatureModel) {
 	log := logger.InitLogger()
 
 	tx := db.Begin()
 	if tx.Error != nil {
 		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
-		return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 	}
 
 	defer func() {
@@ -1168,6 +1279,33 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 			tx.Rollback()
 		}
 	}()
+
+	var PerformingProviderName = ""
+	var VerifyingProviderName = ""
+
+	//Performing Provider Name
+	var PerformingProviderStatus = []string{"Reviewed 1", "Signed Off"}
+	var PerformingProviderData []model.PatientCustId
+	PerformingProviderErr := db.Raw(query.UserIdentifyRole, 10, reqVal.AppointmentId, PerformingProviderStatus).Scan(&PerformingProviderData).Error
+	if PerformingProviderErr != nil {
+		log.Error(PerformingProviderErr)
+	}
+
+	if len(PerformingProviderData) > 0 {
+		PerformingProviderName = hashdb.Decrypt(PerformingProviderData[0].UserFirstName)
+	}
+
+	//Verifying Provider Name
+	var VerifyingProviderStatus = []string{"Reviewed 2"}
+	var VerifyingProviderData []model.PatientCustId
+	VerifyingProviderDataErr := db.Raw(query.UserIdentifyRole, 8, reqVal.AppointmentId, VerifyingProviderStatus).Scan(&VerifyingProviderData).Error
+	if VerifyingProviderDataErr != nil {
+		log.Error(VerifyingProviderDataErr)
+	}
+
+	if len(VerifyingProviderData) > 0 {
+		VerifyingProviderName = hashdb.Decrypt(VerifyingProviderData[0].UserFirstName)
+	}
 
 	//Inserting and Upadating the Report Intake Form
 	for _, data := range reqVal.ReportIntakeForm {
@@ -1179,7 +1317,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		}, idValue)
 
 		if !status {
-			return status, message, []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return status, message, []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1196,7 +1334,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave Text Content: %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 
 	}
@@ -1214,7 +1352,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 
 	}
@@ -1231,7 +1369,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1247,11 +1385,9 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
-
-	fmt.Println("*************", reqVal.ImpressionAddtional)
 
 	//Update the ImpressionAddtional
 	if reqVal.ChangedOneState.ImpressionAddtional {
@@ -1265,7 +1401,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1281,7 +1417,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1297,7 +1433,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1313,7 +1449,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1329,7 +1465,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1345,7 +1481,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1361,7 +1497,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1377,7 +1513,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1393,7 +1529,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1409,7 +1545,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1425,7 +1561,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 
 		var updateSyncErr = tx.Exec(
@@ -1438,7 +1574,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 
 	}
@@ -1455,7 +1591,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1471,7 +1607,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1487,7 +1623,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1503,7 +1639,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1519,7 +1655,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1535,7 +1671,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1551,7 +1687,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1567,7 +1703,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1583,7 +1719,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1599,7 +1735,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateAutoerr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateAutoerr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1615,7 +1751,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1631,7 +1767,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1647,7 +1783,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1663,7 +1799,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1679,7 +1815,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1695,7 +1831,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1711,7 +1847,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1727,11 +1863,9 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
-
-	fmt.Println("BreastDensityLeft SyncStatus", reqVal.ChangedOneState.BreastDensityLeftSyncStatus, reqVal.ReportSyncStatus.BreastDensityLeftSyncStatus)
 
 	//Updte the BreastDensityLeft SyncStatus
 	if reqVal.ChangedOneState.BreastDensityLeftSyncStatus {
@@ -1745,7 +1879,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1761,7 +1895,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1777,7 +1911,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1793,7 +1927,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1809,7 +1943,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1825,7 +1959,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if updateSyncErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", updateSyncErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1841,7 +1975,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1857,7 +1991,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1873,7 +2007,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1889,7 +2023,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1905,7 +2039,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1921,7 +2055,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1937,7 +2071,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1953,7 +2087,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1969,7 +2103,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -1985,7 +2119,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -2001,7 +2135,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -2017,7 +2151,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -2033,7 +2167,7 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
@@ -2049,14 +2183,14 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		if reportTextErr != nil {
 			log.Printf("ERROR: Failed to Update Autosave %v\n", reportTextErr)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+			return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
 		tx.Rollback()
-		return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false
+		return false, "Something went wrong, Try Again", []model.GetReportIntakeData{}, []model.GetReportTextContent{}, []model.GetOneUserAppointmentModel{}, false, false, "", "", []model.ListAllSignatureModel{}
 	}
 
 	//Report Intake Form Table
@@ -2096,17 +2230,22 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 	}
 
 	var EaseQTReportAccess = false
+	var NASystemReportAccess = false
 
 	//Get the Ease QT Report Access Status
 	switch roleIdValue {
 	case 1: //Master Admin
 		EaseQTReportAccess = true
+		NASystemReportAccess = true
 	case 2: //Scan Center Technician
 		EaseQTReportAccess = false
+		NASystemReportAccess = true
 	case 3: //Scan Center Manager
 		EaseQTReportAccess = false
+		NASystemReportAccess = true
 	case 4: //Patient
 		EaseQTReportAccess = false
+		NASystemReportAccess = true
 	case 5: //Scan Center Doctor
 
 		var ReportStatus []model.DoctorReportAccessStatus
@@ -2121,11 +2260,14 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		}
 
 		EaseQTReportAccess = *ReportStatus[0].DDEaseQTReportAccess
+		NASystemReportAccess = *ReportStatus[0].DDNAsystemReportAccess
 
 	case 6: //Junior Doctor
 		EaseQTReportAccess = true
+		NASystemReportAccess = true
 	case 7: //Scribe
 		EaseQTReportAccess = true
+		NASystemReportAccess = true
 	case 8: //Scan Center Reviewer
 		var ReportStatus []model.CoDoctorReportAccessStatus
 		err := db.Raw(query.CoDoctorReportAccessSQL, idValue).Scan(&ReportStatus).Error
@@ -2139,15 +2281,20 @@ func AutosaveServicee(db *gorm.DB, reqVal model.AutoSubmitReportReq, idValue int
 		}
 
 		EaseQTReportAccess = *ReportStatus[0].CDEaseQTReportAccess
+		NASystemReportAccess = *ReportStatus[0].CDNAsystemReportAccess
+
 	case 9: //Manager
 		EaseQTReportAccess = true
+		NASystemReportAccess = true
 	case 10: //Performing Provider
 		EaseQTReportAccess = true
+		NASystemReportAccess = true
 	default:
 		EaseQTReportAccess = false
+		NASystemReportAccess = false
 	}
 
-	return true, "Successfully Changes Saved", ReportIntakeFormData, ReportTextContentData, OneUserAppointment, EaseQTReportAccess
+	return true, "Successfully Changes Saved", ReportIntakeFormData, ReportTextContentData, OneUserAppointment, EaseQTReportAccess, NASystemReportAccess, PerformingProviderName, VerifyingProviderName, ListAllSignatureService(db, reqVal.AppointmentId)
 }
 
 func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int, roleIdValue int) (bool, string) {
@@ -2208,18 +2355,6 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 	// 	}
 	// }
 
-	//Updating the Report Text Content
-	status, message := AnswerTextContentService(tx, model.AnswerTextContentReq{
-		PatientId:     reqVal.PatientId,
-		AppointmentId: reqVal.AppointmentId,
-		TextContent:   reqVal.ReportTextContent,
-		SyncStatus:    reqVal.SyncStatus,
-	}, idValue)
-
-	if !status {
-		return status, message
-	}
-
 	var reportStatus = reqVal.MovedStatus
 
 	if reqVal.LeaveStatus {
@@ -2227,6 +2362,8 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 	}
 
 	var MovedStatus = reqVal.MovedStatus
+
+	var TextContent = reqVal.ReportTextContent
 
 	if reqVal.MovedStatus == "Signed Off" {
 		//Get Addedum
@@ -2240,6 +2377,7 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 		if UserCount[0].Count > 0 {
 			MovedStatus = "Signed Off (A)"
 		}
+
 	}
 
 	if roleIdValue == 7 {
@@ -2366,7 +2504,7 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 		query.CompleteReportHistorySQL,
 		timeZone.GetPacificTime(),
 		reportStatus,
-		hashdb.Encrypt(reqVal.ReportTextContent),
+		hashdb.Encrypt(TextContent),
 		reqVal.AppointmentId,
 		idValue,
 		reqVal.PatientId,
@@ -2464,6 +2602,8 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 
 	}
 
+	var AddedumContent []string
+
 	//Send Mail for the Patient
 	if reqVal.PatientMailStatus {
 
@@ -2478,6 +2618,8 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 		for i, data := range PatientdataModel {
 			PatientdataModel[i].UserFirstName = hashdb.Decrypt(data.UserFirstName)
 		}
+
+		AddedumContent = append(AddedumContent, "The written report was emailed to "+PatientdataModel[0].Email+" on "+timeZone.GetPacificTime())
 
 		htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, PatientdataModel[0].SCCustId)
 
@@ -2510,6 +2652,8 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 		}
 
 		for _, data := range ManagerModel {
+			AddedumContent = append(AddedumContent, "The written report was emailed to "+data.Email+" on "+timeZone.GetPacificTime())
+
 			htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, data.SCCustId)
 
 			subject := "Your Report Status"
@@ -2522,6 +2666,59 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 			}
 		}
 
+	}
+
+	if reqVal.PatientMailStatus || reqVal.ManagerMailStatus {
+
+		//Get User Cust Id
+		var UserId []model.AddAddendumModel
+		UserIdErr := db.Raw(query.GetUserId, idValue).Scan(&UserId).Error
+		if UserIdErr != nil {
+			log.Printf("ERROR: Failed to fetch scan centers: %v", UserIdErr)
+		}
+
+		var AddedumList = ListAddendumService(db, reqVal.AppointmentId)
+
+		var userCustId = ""
+		if len(UserId) > 0 {
+			userCustId = UserId[0].CustId
+		}
+
+		if len(AddedumList) > 0 {
+			TextContent += "<br/>" + timeZone.GetPacificTime() + " - " + userCustId +
+				"<p>" + strings.Join(AddedumContent, ". ") + "</p>"
+		} else {
+			TextContent += "<br/><p><strong>ADDENDUM:</strong></p><br/><p>" +
+				timeZone.GetPacificTime() + " - " + userCustId +
+				"</p><p>" + strings.Join(AddedumContent, ". ") + "</p>"
+		}
+
+		InsertErr := tx.Exec(
+			query.InsertAddedumSQL,
+			reqVal.AppointmentId,
+			idValue,
+			strings.Join(AddedumContent, ". "),
+			timeZone.GetPacificTime(),
+		).Error
+		if InsertErr != nil {
+			log.Printf("ERROR: Failed to Insert Addendum: %v\n", InsertErr)
+			tx.Rollback()
+		}
+
+		fmt.Println("$$$$$$$$$$$$$$$$$$$$$$$$----------------------->")
+
+	}
+
+	//Updating the Report Text Content
+	status, message := AnswerTextContentService(tx, model.AnswerTextContentReq{
+		PatientId:     reqVal.PatientId,
+		AppointmentId: reqVal.AppointmentId,
+		TextContent:   TextContent,
+		SyncStatus:    reqVal.SyncStatus,
+	}, idValue)
+
+	if !status {
+		return status, message
 	}
 
 	if err := tx.Commit().Error; err != nil {
@@ -2815,7 +3012,7 @@ func ListRemarkService(db *gorm.DB, reqVal model.ListRemarkReq) []model.ListRema
 	return ListRewardModel
 }
 
-func SendMailReportService(db *gorm.DB, reqVal model.SendMailReportReq) (bool, string) {
+func SendMailReportService(db *gorm.DB, reqVal model.SendMailReportReq, idValue int) (bool, string) {
 	log := logger.InitLogger()
 
 	tx := db.Begin()
@@ -2858,7 +3055,11 @@ func SendMailReportService(db *gorm.DB, reqVal model.SendMailReportReq) (bool, s
 		PatientdataModel[i].UserFirstName = hashdb.Decrypt(data.UserFirstName)
 	}
 
+	var AddedumContent []string
+
 	if reqVal.PatientMailStatus {
+
+		AddedumContent = append(AddedumContent, "The written report was emailed to "+PatientdataModel[0].Email+" on "+timeZone.GetPacificTime())
 
 		htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, PatientdataModel[0].SCCustId)
 
@@ -2891,6 +3092,7 @@ func SendMailReportService(db *gorm.DB, reqVal model.SendMailReportReq) (bool, s
 		}
 
 		for _, data := range ManagerModel {
+			AddedumContent = append(AddedumContent, "The written report was emailed to "+data.Email+" on "+timeZone.GetPacificTime())
 			htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, data.SCCustId)
 
 			subject := "Your Report Status"
@@ -2901,6 +3103,63 @@ func SendMailReportService(db *gorm.DB, reqVal model.SendMailReportReq) (bool, s
 				log.Error("Sending Mail Meets Error")
 				return false, "Something went wrong, Try Again"
 			}
+		}
+
+	}
+
+	if reqVal.PatientMailStatus || reqVal.ManagerMailStatus {
+
+		//Get PatientContent
+		var PatientContent []model.GetReportTextContent
+		PatientContenterr := db.Raw(query.GetPatientContent, reqVal.AppointmentId).Scan(&PatientContent).Error
+		if PatientContenterr != nil {
+			log.Printf("ERROR: Failed to fetch scan centers: %v", PatientContenterr)
+		}
+
+		//Get User Cust Id
+		var UserId []model.AddAddendumModel
+		UserIdErr := db.Raw(query.GetUserId, idValue).Scan(&UserId).Error
+		if UserIdErr != nil {
+			log.Printf("ERROR: Failed to fetch scan centers: %v", UserIdErr)
+		}
+
+		var AddedumList = ListAddendumService(db, reqVal.AppointmentId)
+		var TextContent = ""
+
+		var userCustId = ""
+		if len(UserId) > 0 {
+			userCustId = UserId[0].CustId
+		}
+
+		if len(AddedumList) > 0 {
+			TextContent += "<br/>" + timeZone.GetPacificTime() + " - " + userCustId +
+				"<p>" + strings.Join(AddedumContent, ". ") + "</p>"
+		} else {
+			TextContent += "<br/><p><strong>ADDENDUM:</strong></p><br/><p>" +
+				timeZone.GetPacificTime() + " - " + userCustId +
+				"</p><p>" + strings.Join(AddedumContent, ". ") + "</p>"
+		}
+
+		InsertErr := tx.Exec(
+			query.InsertAddedumSQL,
+			reqVal.AppointmentId,
+			idValue,
+			strings.Join(AddedumContent, ". "),
+			timeZone.GetPacificTime(),
+		).Error
+		if InsertErr != nil {
+			log.Printf("ERROR: Failed to Insert Addendum: %v\n", InsertErr)
+			tx.Rollback()
+		}
+
+		//Update textContent
+		UpdateTextContentErr := tx.Exec(
+			query.UpdateReportTextContentSQL,
+			hashdb.Encrypt(hashdb.Decrypt(PatientContent[0].TextContent)+TextContent),
+			reqVal.AppointmentId,
+		).Error
+		if UpdateTextContentErr != nil {
+			log.Printf("ERROR: Failed to Update Report Text Content: %v\n", UpdateTextContentErr)
 		}
 
 	}
@@ -2975,6 +3234,13 @@ func AddAddendumService(db *gorm.DB, reqVal model.AddAddendumReq, idValue int) (
 		}
 	}()
 
+	//Get PatientContent
+	var PatientContent []model.GetReportTextContent
+	PatientContenterr := db.Raw(query.GetPatientContent, reqVal.AppointmentId).Scan(&PatientContent).Error
+	if PatientContenterr != nil {
+		log.Printf("ERROR: Failed to fetch scan centers: %v", PatientContenterr)
+	}
+
 	UpdateAppointmentErr := tx.Exec(
 		query.UpdateReportAppointmentSQL,
 		"Signed Off (A)",
@@ -2987,13 +3253,111 @@ func AddAddendumService(db *gorm.DB, reqVal model.AddAddendumReq, idValue int) (
 		return false, "Something went wrong, Try Again", []model.AddAddendumModel{}
 	}
 
-	fmt.Println("-------->", reqVal.AppointmentId)
+	var AddedumContent []string
+
+	//Send Mail for the Patient
+	if reqVal.PatientMailStatus {
+
+		var PatientdataModel []model.Patientdata
+
+		err := db.Raw(query.GetPatientData, reqVal.PatientId, reqVal.AppointmentId).Scan(&PatientdataModel).Error
+		if err != nil {
+			log.Printf("ERROR: Failed to fetch scan centers: %v", err)
+			return false, "Something went wrong, Try Again", []model.AddAddendumModel{}
+		}
+
+		for i, data := range PatientdataModel {
+			PatientdataModel[i].UserFirstName = hashdb.Decrypt(data.UserFirstName)
+		}
+
+		AddedumContent = append(AddedumContent, "The written report was emailed to "+PatientdataModel[0].Email+" on "+timeZone.GetPacificTime())
+
+		htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, PatientdataModel[0].SCCustId)
+
+		subject := "Your Report Status"
+
+		emailStatus := mailservice.MailService(PatientdataModel[0].Email, htmlContent, subject)
+
+		if !emailStatus {
+			log.Error("Sending Mail Meets Error")
+			return false, "Something went wrong, Try Again", []model.AddAddendumModel{}
+		}
+	}
+
+	//Send Mail for the Scan Center Manager
+	if reqVal.ManagerMailStatus {
+		var PatientdataModel []model.Patientdata
+
+		err := db.Raw(query.GetPatientData, reqVal.PatientId, reqVal.AppointmentId).Scan(&PatientdataModel).Error
+		if err != nil {
+			log.Printf("ERROR: Failed to fetch scan centers: %v", err)
+			return false, "Something went wrong, Try Again", []model.AddAddendumModel{}
+		}
+
+		var ManagerModel []model.ManagerData
+
+		Managererr := db.Raw(query.GetManagerData, 3, reqVal.AppointmentId).Scan(&ManagerModel).Error
+		if Managererr != nil {
+			log.Printf("ERROR: Failed to fetch scan centers: %v", Managererr)
+			return false, "Something went wrong, Try Again", []model.AddAddendumModel{}
+		}
+
+		for _, data := range ManagerModel {
+			AddedumContent = append(AddedumContent, "The written report was emailed to "+data.Email+" on "+timeZone.GetPacificTime())
+
+			htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, data.SCCustId)
+
+			subject := "Your Report Status"
+
+			emailStatus := mailservice.MailService(data.Email, htmlContent, subject)
+
+			if !emailStatus {
+				log.Error("Sending Mail Meets Error")
+				return false, "Something went wrong, Try Again", []model.AddAddendumModel{}
+			}
+		}
+
+	}
+
+	//Get User Cust Id
+	var UserId []model.AddAddendumModel
+	UserIdErr := db.Raw(query.GetUserId, idValue).Scan(&UserId).Error
+	if UserIdErr != nil {
+		log.Printf("ERROR: Failed to fetch scan centers: %v", UserIdErr)
+	}
+
+	var AddedumList = ListAddendumService(db, reqVal.AppointmentId)
+	var TextContent = ""
+	if len(PatientContent) > 0 {
+		TextContent = hashdb.Decrypt(PatientContent[0].TextContent)
+	}
+
+	var userCustId = ""
+	if len(UserId) > 0 {
+		userCustId = UserId[0].CustId
+	}
+
+	if len(AddedumList) > 0 {
+		TextContent += "<br/>" + timeZone.GetPacificTime() + " - " + userCustId + "" + reqVal.AddAddendumText + "<p>" + strings.Join(AddedumContent, ". ") + "</p>"
+	} else {
+		TextContent += "<br/><p><strong>ADDENDUM:</strong></p><br/><p>" + timeZone.GetPacificTime() + " - " + userCustId + "</p>" + reqVal.AddAddendumText + "<p>" + strings.Join(AddedumContent, ". ") + "</p>"
+	}
+
+	//Update textContent
+	UpdateTextContentErr := tx.Exec(
+		query.UpdateReportTextContentSQL,
+		hashdb.Encrypt(TextContent),
+		reqVal.AppointmentId,
+	).Error
+	if UpdateTextContentErr != nil {
+		log.Printf("ERROR: Failed to Update Report Text Content: %v\n", UpdateTextContentErr)
+	}
 
 	InsertErr := tx.Exec(
 		query.InsertAddedumSQL,
 		reqVal.AppointmentId,
 		idValue,
-		reqVal.AddAddendumText,
+		reqVal.AddAddendumText+"<p>"+strings.Join(AddedumContent, ". ")+"</p>",
 		timeZone.GetPacificTime(),
 	).Error
 	if InsertErr != nil {
@@ -3008,7 +3372,7 @@ func AddAddendumService(db *gorm.DB, reqVal model.AddAddendumReq, idValue int) (
 		return false, "Something went wrong, Try Again", []model.AddAddendumModel{}
 	}
 
-	return true, "Successfully Addedum Received", ListAddendumService(db, reqVal.AppointmentId)
+	return true, "Successfully Addedum Received", AddedumList
 
 }
 
@@ -3091,4 +3455,50 @@ func DeleteOldReportService(db *gorm.DB, reqVal model.DeleteOldReportModel) (boo
 	}
 
 	return true, "Successfully Deleted"
+}
+
+func ListAllSignatureService(db *gorm.DB, appointmentId int) []model.ListAllSignatureModel {
+	log := logger.InitLogger()
+
+	var ListAllSignatureModel []model.ListAllSignatureModel
+	ListAllSignatureErr := db.Raw(query.ListAllSignatureSQL, appointmentId).Scan(&ListAllSignatureModel).Error
+	if ListAllSignatureErr != nil {
+		log.Printf("ERROR: Failed to fetch scan centers: %v", ListAllSignatureErr)
+		return []model.ListAllSignatureModel{}
+	}
+
+	return ListAllSignatureModel
+
+}
+
+func InsertSignatureService(db *gorm.DB, reqVal model.AddSignatureReq) (bool, string, []model.ListAllSignatureModel) {
+	log := logger.InitLogger()
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
+		return false, "Something went wrong, Try Again", []model.ListAllSignatureModel{}
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("ERROR: Recovered from panic, rolling back transaction:", r)
+			tx.Rollback()
+		}
+	}()
+
+	var InsertSignatureServiceErr = tx.Exec(query.InsertSignatureSQL, reqVal.AppointmentId, reqVal.PatientId, reqVal.AddSignatureText, timeZone.GetPacificTime()).Error
+	if InsertSignatureServiceErr != nil {
+		log.Printf("ERROR: Failed to fetch scan centers: %v", InsertSignatureServiceErr)
+		return false, "Something went wrong, Try Again", []model.ListAllSignatureModel{}
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again", []model.ListAllSignatureModel{}
+	}
+
+	return true, "Successfully Deleted", ListAllSignatureService(db, reqVal.AppointmentId)
+
 }

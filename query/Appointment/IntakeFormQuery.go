@@ -126,10 +126,10 @@ INSERT INTO notes."refReportIntakeForm"
 SELECT
     $1 AS refUserId,          -- constant
     $2 AS refAppointmentId, -- constant
-    gs AS refRITFQId,        -- series 1 to 133
+    gs AS refRITFQId,        -- series 1 to 137
     $3 AS refRITFCreatedAt, -- constant
     $4 AS refRITFCreatedBy   -- constant
-FROM generate_series(1, 133) gs;
+FROM generate_series(1, 137) gs;
 `
 
 var InsertNewReportTextContentSQL = `
@@ -229,9 +229,11 @@ var TechnicianUserSQL = `
 SELECT
   *
 FROM
-  public."Users"
+  notes."refReportsHistory" rrh
+  JOIN public."Users" u ON u."refUserId" = rrh."refRHHandledUserId"
 WHERE
-  "refUserId" = $1
+  rrh."refRHHandleStatus" = 'Technologist Form Fill'
+  AND rrh."refAppointmentId" = $1;
 `
 
 var GetTextContent = `

@@ -209,7 +209,7 @@ func PostCoDoctorService(db *gorm.DB, reqVal model.DoctorRegisterReq, idValue in
 
 	htmlContent := mailservice.RegistrationMailContent(reqVal.FirstName+" "+reqVal.LastName, CustId, reqVal.Email, reqVal.DOB, "Scan Center Reviewer")
 
-	subject := "Welcome to Wellthgreen HealthCare Pvt Ltd – Your User ID & Login Details Inside"
+	subject := "Welcome to easeQT – Your User ID & Login Details Inside"
 
 	emailStatus := mailservice.MailService(reqVal.Email, htmlContent, subject)
 
@@ -364,6 +364,7 @@ func PatchCoDoctorService(db *gorm.DB, reqVal model.UpdateDoctorReq, idValue int
 		hashdb.Encrypt(reqVal.DigitalSignature),
 		hashdb.Encrypt(reqVal.Specialization),
 		reqVal.EaseQTReportAccess,
+		reqVal.NASystemReportAccess,
 		reqVal.ID,
 	).Error
 	if DoctorDomainerr != nil {

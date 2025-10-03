@@ -25,6 +25,7 @@ type GetDoctorOne struct {
 	Specialization              string                           `json:"Specialization" gorm:"column:refDDSpecialization"`
 	DigitalSignature            string                           `json:"digital_signature" gorm:"column:refDDDigitalSignature"`
 	DDEaseQTReportAccess        bool                             `json:"refDDEaseQTReportAccess" gorm:"column:refDDEaseQTReportAccess"`
+	DDNAsystemReportAccess      bool                             `json:"refDDNAsystemReportAccess" gorm:"column:refDDNAsystemReportAccess"`
 	NPI                         string                           `json:"refDDNPI" gorm:"column:refDDNPI"`
 	ProfileImgFile              *FileData                        `json:"profileImgFile" gorm:"-"`
 	DriversLicenseFile          *FileData                        `json:"driversLicenseFile"  gorm:"-"`

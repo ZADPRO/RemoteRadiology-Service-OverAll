@@ -63,10 +63,10 @@ func LoginOTPContent(otp int) string {
 <body>
   <div class="container">
     <div class="header">
-      <h1>Login Verification Code</h1>
+      <h1>easeQT Login Verification Code</h1>
     </div>
     <div class="content">
-      <p>Please use the verification code below to log in. This code will remain valid for 10 minutes:</p>
+      <p>Please use the easeQT verification code below to log in. This code will remain valid for 10 minutes:</p>
       <div class="otp">` + html.EscapeString(strconv.Itoa(otp)) + `</div>
       <p>If you did not request it, please ignore this email.</p>
     </div>
@@ -135,10 +135,10 @@ func ForgetPasswordOTPContent(otp int) string {
 <body>
   <div class="container">
     <div class="header">
-      <h1>Password Reset Code</h1>
+      <h1>easeQT Password Reset Code</h1>
     </div>
     <div class="content">
-      <p>Please use the verification code below to reset your password. This code will remain valid for 10 minutes:</p>
+      <p>Please use the easeQT verification code below to reset your password. This code will remain valid for 10 minutes:</p>
       <div class="otp">` + html.EscapeString(strconv.Itoa(otp)) + `</div>
       <p>If you did not request it, please ignore this email.</p>
     </div>
@@ -157,7 +157,6 @@ func RegisterationMailContent(userName string) string {
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Welcome to Wellthgreen HealthCare Pvt Ltd</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -238,7 +237,6 @@ func GetOTPMailContent(userName string, otp int) string {
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Welcome to Wellthgreen HealthCare Pvt Ltd</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -333,7 +331,6 @@ func RegistrationMailContent(userName, patientID, gmail, password string, role s
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Welcome to Wellthgreen HealthCare Pvt Ltd</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -436,7 +433,6 @@ func PatientReportSignOff(userName string, patientID string, AppintmentDate stri
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Your Report is Ready - Wellthgreen HealthCare Pvt Ltd</title>
     <style>
       body {
         font-family: Arial, sans-serif;
@@ -553,7 +549,6 @@ func ManagerReportSignOff(patientName string, patientID string, appointmentDate 
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Report Ready for Admin Review - Wellthgreen HealthCare Pvt Ltd</title>
     <style>
       body {
         font-family: Arial, sans-serif;

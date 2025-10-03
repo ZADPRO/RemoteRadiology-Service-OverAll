@@ -176,7 +176,7 @@ func PostTechnicianService(db *gorm.DB, reqVal model.TechnicianRegisterReq, idVa
 
 	htmlContent := mailservice.RegistrationMailContent(reqVal.FirstName+" "+reqVal.LastName, CustId, reqVal.Email, reqVal.DOB, "Scan Center Technician")
 
-	subject := "Welcome to Wellthgreen HealthCare Pvt Ltd – Your User ID & Login Details Inside"
+	subject := "Welcome to easeQT – Your User ID & Login Details Inside"
 
 	emailStatus := mailservice.MailService(reqVal.Email, htmlContent, subject)
 
