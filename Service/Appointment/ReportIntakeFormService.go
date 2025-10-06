@@ -2621,7 +2621,7 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 
 		AddedumContent = append(AddedumContent, "The written report was emailed to "+PatientdataModel[0].Email+" on "+timeZone.GetPacificTime())
 
-		htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, PatientdataModel[0].SCCustId)
+		htmlContent := mailservice.PatientReportSignOff(hashdb.Decrypt(PatientdataModel[0].UserFirstName), PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, PatientdataModel[0].SCCustId)
 
 		subject := "Your Report Status"
 
@@ -2652,17 +2652,19 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 		}
 
 		for _, data := range ManagerModel {
-			AddedumContent = append(AddedumContent, "The written report was emailed to "+data.Email+" on "+timeZone.GetPacificTime())
+			if data.UserStatus {
+				AddedumContent = append(AddedumContent, "The written report was emailed to "+data.Email+" on "+timeZone.GetPacificTime())
 
-			htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, data.SCCustId)
+				htmlContent := mailservice.ManagerReportSignOff(hashdb.Decrypt(PatientdataModel[0].UserFirstName), PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, data.SCCustId)
 
-			subject := "Your Report Status"
+				subject := "Report Status"
 
-			emailStatus := mailservice.MailService(data.Email, htmlContent, subject)
+				emailStatus := mailservice.MailService(data.Email, htmlContent, subject)
 
-			if !emailStatus {
-				log.Error("Sending Mail Meets Error")
-				return false, "Something went wrong, Try Again"
+				if !emailStatus {
+					log.Error("Sending Mail Meets Error")
+					return false, "Something went wrong, Try Again"
+				}
 			}
 		}
 
@@ -3092,16 +3094,18 @@ func SendMailReportService(db *gorm.DB, reqVal model.SendMailReportReq, idValue 
 		}
 
 		for _, data := range ManagerModel {
-			AddedumContent = append(AddedumContent, "The written report was emailed to "+data.Email+" on "+timeZone.GetPacificTime())
-			htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, data.SCCustId)
+			if data.UserStatus {
+				AddedumContent = append(AddedumContent, "The written report was emailed to "+data.Email+" on "+timeZone.GetPacificTime())
+				htmlContent := mailservice.ManagerReportSignOff(hashdb.Decrypt(PatientdataModel[0].UserFirstName), PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, data.SCCustId)
 
-			subject := "Your Report Status"
+				subject := "Report Status"
 
-			emailStatus := mailservice.MailService(data.Email, htmlContent, subject)
+				emailStatus := mailservice.MailService(data.Email, htmlContent, subject)
 
-			if !emailStatus {
-				log.Error("Sending Mail Meets Error")
-				return false, "Something went wrong, Try Again"
+				if !emailStatus {
+					log.Error("Sending Mail Meets Error")
+					return false, "Something went wrong, Try Again"
+				}
 			}
 		}
 
@@ -3272,7 +3276,7 @@ func AddAddendumService(db *gorm.DB, reqVal model.AddAddendumReq, idValue int) (
 
 		AddedumContent = append(AddedumContent, "The written report was emailed to "+PatientdataModel[0].Email+" on "+timeZone.GetPacificTime())
 
-		htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, PatientdataModel[0].SCCustId)
+		htmlContent := mailservice.PatientReportSignOff(hashdb.Decrypt(PatientdataModel[0].UserFirstName), PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, PatientdataModel[0].SCCustId)
 
 		subject := "Your Report Status"
 
@@ -3303,20 +3307,21 @@ func AddAddendumService(db *gorm.DB, reqVal model.AddAddendumReq, idValue int) (
 		}
 
 		for _, data := range ManagerModel {
-			AddedumContent = append(AddedumContent, "The written report was emailed to "+data.Email+" on "+timeZone.GetPacificTime())
+			if data.UserStatus {
+				AddedumContent = append(AddedumContent, "The written report was emailed to "+data.Email+" on "+timeZone.GetPacificTime())
 
-			htmlContent := mailservice.PatientReportSignOff(PatientdataModel[0].UserFirstName, PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, data.SCCustId)
+				htmlContent := mailservice.ManagerReportSignOff(hashdb.Decrypt(PatientdataModel[0].UserFirstName), PatientdataModel[0].CustId, PatientdataModel[0].AppointmentDate, data.SCCustId)
 
-			subject := "Your Report Status"
+				subject := "Report Status"
 
-			emailStatus := mailservice.MailService(data.Email, htmlContent, subject)
+				emailStatus := mailservice.MailService(data.Email, htmlContent, subject)
 
-			if !emailStatus {
-				log.Error("Sending Mail Meets Error")
-				return false, "Something went wrong, Try Again", []model.AddAddendumModel{}
+				if !emailStatus {
+					log.Error("Sending Mail Meets Error")
+					return false, "Something went wrong, Try Again", []model.AddAddendumModel{}
+				}
 			}
 		}
-
 	}
 
 	//Get User Cust Id

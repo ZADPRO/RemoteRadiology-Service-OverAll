@@ -68,7 +68,7 @@ func LoginOTPContent(otp int) string {
     <div class="content">
       <p>Please use the Wellthgreen Report Portal verification code below to log in. This code will remain valid for 10 minutes:</p>
       <div class="otp">` + html.EscapeString(strconv.Itoa(otp)) + `</div>
-      <p>If you did not request it, please ignore this email.</p>
+      <p style="text-align: justify;">This email is intended only for the individual or entity to which it is addressed, and may contain information that is privileged, confidential, and exempt from disclosure under applicable law. If the reader of this message is not the intended recipient, or the employee or agent responsible for delivering the message to the intended recipient, you are hereby informed that any use, disclosure, distribution, or copying of this communication is strictly prohibited. If you have received this communication in error, please notify us immediately by telephone and delete the original email message.</p>
     </div>
     <div class="footer">
       &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + ` Wellthgreen. All rights reserved.
@@ -140,7 +140,7 @@ func ForgetPasswordOTPContent(otp int) string {
     <div class="content">
       <p>Please use the Wellthgreen Report Portal verification code below to reset your password. This code will remain valid for 10 minutes:</p>
       <div class="otp">` + html.EscapeString(strconv.Itoa(otp)) + `</div>
-      <p>If you did not request it, please ignore this email.</p>
+      <p style="text-align: justify;">This email is intended only for the individual or entity to which it is addressed, and may contain information that is privileged, confidential, and exempt from disclosure under applicable law. If the reader of this message is not the intended recipient, or the employee or agent responsible for delivering the message to the intended recipient, you are hereby informed that any use, disclosure, distribution, or copying of this communication is strictly prohibited. If you have received this communication in error, please notify us immediately by telephone and delete the original email message.</p>
     </div>
     <div class="footer">
       &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + ` Wellthgreen. All rights reserved.
@@ -219,7 +219,7 @@ func RegisterationMailContent(userName string) string {
           registered email and the password you created.
         </p>
         <a href="https://reportportal.wellthgreen.com/" class="button">Login Now</a>
-        <p>If you didn’t register with us, please ignore this email.</p>
+        <p style="text-align: justify;">This email is intended only for the individual or entity to which it is addressed, and may contain information that is privileged, confidential, and exempt from disclosure under applicable law. If the reader of this message is not the intended recipient, or the employee or agent responsible for delivering the message to the intended recipient, you are hereby informed that any use, disclosure, distribution, or copying of this communication is strictly prohibited. If you have received this communication in error, please notify us immediately by telephone and delete the original email message.</p>
       </div>
       <div class="footer">
         &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + `
@@ -313,7 +313,7 @@ func GetOTPMailContent(userName string, otp int) string {
         </p>
         <div class="otp-box">` + html.EscapeString(strconv.Itoa(otp)) + `</div>
         <p>This Verification Code is valid for the next 10 minutes.</p>
-        <p>If you didn’t register with us, please ignore this email.</p>
+        <p style="text-align: justify;">This email is intended only for the individual or entity to which it is addressed, and may contain information that is privileged, confidential, and exempt from disclosure under applicable law. If the reader of this message is not the intended recipient, or the employee or agent responsible for delivering the message to the intended recipient, you are hereby informed that any use, disclosure, distribution, or copying of this communication is strictly prohibited. If you have received this communication in error, please notify us immediately by telephone and delete the original email message.</p>
       </div>
       <div class="footer">
         &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + `
@@ -412,9 +412,7 @@ func RegistrationMailContent(userName, patientID, gmail, password string, role s
         <a href="https://reportportal.wellthgreen.com/" class="button"
           >Login Now</a
         >
-        <p style="margin-top: 20px">
-          If you did not request it, please ignore this email.
-        </p>
+        <p style="text-align: justify;margin-top: 20px">This email is intended only for the individual or entity to which it is addressed, and may contain information that is privileged, confidential, and exempt from disclosure under applicable law. If the reader of this message is not the intended recipient, or the employee or agent responsible for delivering the message to the intended recipient, you are hereby informed that any use, disclosure, distribution, or copying of this communication is strictly prohibited. If you have received this communication in error, please notify us immediately by telephone and delete the original email message.</p>
       </div>
       <div class="footer">
         &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + `
@@ -528,9 +526,8 @@ func PatientReportSignOff(userName string, patientID string, AppintmentDate stri
           Login to View Report
         </a>
         
-        <p style="margin-top: 15px; font-size: 14px;">
-          If you have any questions about your report or need assistance accessing it, 
-          please contact your scan center.
+        <p style="margin-top: 15px; font-size: 14px;text-align:justify;">
+          This email is intended only for the individual or entity to which it is addressed, and may contain information that is privileged, confidential, and exempt from disclosure under applicable law. If the reader of this message is not the intended recipient, or the employee or agent responsible for delivering the message to the intended recipient, you are hereby informed that any use, disclosure, distribution, or copying of this communication is strictly prohibited. If you have received this communication in error, please notify us immediately by telephone and delete the original email message.
         </p>
       </div>
       <div class="footer">
@@ -575,16 +572,18 @@ func ManagerReportSignOff(patientName string, patientID string, appointmentDate 
       .content {
         font-size: 16px;
         color: #525252;
+        text-align: center;
         margin-bottom: 30px;
       }
       .report-info {
         background-color: #fff;
-        padding: 20px;
+        padding: 15px;
         border-radius: 5px;
-        margin: 20px 0;
-        border: 1px solid #ccc;
-        font-family: monospace;
+        margin: 20px auto;
+        width: fit-content;
         text-align: left;
+        font-family: monospace;
+        border: 1px solid #ccc;
       }
       .button {
         display: inline-block;
@@ -594,7 +593,7 @@ func ManagerReportSignOff(patientName string, patientID string, appointmentDate 
         border-radius: 5px;
         text-decoration: none;
         font-weight: bold;
-        margin: 10px 5px;
+        margin-top: 20px;
       }
       .highlight {
         background-color: #e8f5e8;
@@ -604,15 +603,6 @@ func ManagerReportSignOff(patientName string, patientID string, appointmentDate 
         margin: 20px 0;
         font-weight: bold;
         color: #155724;
-      }
-      .action-required {
-        background-color: #f8d7da;
-        padding: 15px;
-        border-radius: 5px;
-        border-left: 4px solid #dc3545;
-        margin: 20px 0;
-        font-weight: bold;
-        color: #721c24;
       }
       .footer {
         font-size: 12px;
@@ -626,40 +616,35 @@ func ManagerReportSignOff(patientName string, patientID string, appointmentDate 
   <body>
     <div class="container">
       <div class="header">
-        <h1>📋 Admin Notification - Report Ready</h1>
+        <h1>Report Ready - ` + html.EscapeString(patientName) + `!</h1>
       </div>
       <div class="content">
         <div class="highlight">
-          ✅ Medical report has been processed    </div>
-        
-        <p>Dear Scan Center Administrator,</p>
-        
-        <p>A medical report has been completed.</p>
+          📋 Scan report has been completed!
+        </div>
+        <p>
+          Report has been processed and is now available for download.
+        </p>
         
         <div class="report-info">
-          <h3 style="margin-top: 0; color: #525252;">Report Details</h3>
-          <p><strong>Patient Name:</strong> ` + html.EscapeString(patientName) + `</p>
           <p><strong>Patient ID:</strong> ` + html.EscapeString(patientID) + `</p>
           <p><strong>Appointment Date:</strong> ` + html.EscapeString(appointmentDate) + `</p>
           <p><strong>Scan Center Code:</strong> ` + html.EscapeString(scanCenterCode) + `</p>
-          <p><strong>Processing Status:</strong> <span style="color: #28a745;">Completed</span></p>
         </div>
 
-        <div style="text-align: center; margin: 25px 0;">
-          <a href="https://reportportal.wellthgreen.com/" class="button">
-            Login
-          </a>
-        </div>
+        <p>To access your report, please log in with your credentials:</p>
         
-        <p style="font-size: 14px;">
-          If you need assistance or have questions about this report, please contact 
-          wellthgreen theranostics.
+        <a href="https://reportportal.wellthgreen.com/" class="button">
+          Login to View Report
+        </a>
+        
+        <p style="margin-top: 15px; font-size: 14px;text-align:justify;">
+          This email is intended only for the individual or entity to which it is addressed, and may contain information that is privileged, confidential, and exempt from disclosure under applicable law. If the reader of this message is not the intended recipient, or the employee or agent responsible for delivering the message to the intended recipient, you are hereby informed that any use, disclosure, distribution, or copying of this communication is strictly prohibited. If you have received this communication in error, please notify us immediately by telephone and delete the original email message.
         </p>
       </div>
       <div class="footer">
         &copy; ` + html.EscapeString(strconv.Itoa(time.Now().In(timeZone.MustGetPacificLocation()).Year())) + `
         Wellthgreen. All rights reserved.<br>
-        <small>This is an automated notification. Please do not reply to this email.</small>
       </div>
     </div>
   </body>

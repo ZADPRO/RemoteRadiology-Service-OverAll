@@ -650,6 +650,8 @@ FROM
   public."Users" u
   JOIN userdomain."refCommunicationDomain" rc ON rc."refUserId" = u."refUserId"
   JOIN appointment."refAppointments" ra ON ra."refUserId" = u."refUserId"
+  JOIN map."refScanCenterMapPatient" rscmp ON rscmp."refUserId" = u."refUserId"
+  JOIN public."ScanCenter" sc ON sc."refSCId" = rscmp."refSCId"
 WHERE
   u."refUserId" = ?
   AND ra."refAppointmentId" = ?
