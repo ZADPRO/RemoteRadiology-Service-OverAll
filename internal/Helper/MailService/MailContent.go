@@ -63,10 +63,10 @@ func LoginOTPContent(otp int) string {
 <body>
   <div class="container">
     <div class="header">
-      <h1>easeQT Login Verification Code</h1>
+      <h1>Wellthgreen Report Portal Login Verification Code</h1>
     </div>
     <div class="content">
-      <p>Please use the easeQT verification code below to log in. This code will remain valid for 10 minutes:</p>
+      <p>Please use the Wellthgreen Report Portal verification code below to log in. This code will remain valid for 10 minutes:</p>
       <div class="otp">` + html.EscapeString(strconv.Itoa(otp)) + `</div>
       <p>If you did not request it, please ignore this email.</p>
     </div>
@@ -135,10 +135,10 @@ func ForgetPasswordOTPContent(otp int) string {
 <body>
   <div class="container">
     <div class="header">
-      <h1>easeQT Password Reset Code</h1>
+      <h1>Wellthgreen Report Portal Password Reset Code</h1>
     </div>
     <div class="content">
-      <p>Please use the easeQT verification code below to reset your password. This code will remain valid for 10 minutes:</p>
+      <p>Please use the Wellthgreen Report Portal verification code below to reset your password. This code will remain valid for 10 minutes:</p>
       <div class="otp">` + html.EscapeString(strconv.Itoa(otp)) + `</div>
       <p>If you did not request it, please ignore this email.</p>
     </div>
@@ -218,7 +218,7 @@ func RegisterationMailContent(userName string) string {
           We’re excited to have you on board. You can now log in using your
           registered email and the password you created.
         </p>
-        <a href="https://easeqt.wellthgreen.com/" class="button">Login Now</a>
+        <a href="https://reportportal.wellthgreen.com/" class="button">Login Now</a>
         <p>If you didn’t register with us, please ignore this email.</p>
       </div>
       <div class="footer">
@@ -305,7 +305,7 @@ func GetOTPMailContent(userName string, otp int) string {
       <div class="content">
         <p>
           Thank you for registering with
-          <strong>easeQT</strong>.
+          <strong>Wellthgreen Report Portal</strong>.
         </p>
         <p>
           Please use the Verification Code below to verify your email address and complete
@@ -396,7 +396,7 @@ func RegistrationMailContent(userName, patientID, gmail, password string, role s
       </div>
       <div class="content">
         <p>
-          You have successfully been onboarded as a ` + html.EscapeString(role) + ` on <strong>easeQT</strong>.
+          You have successfully been onboarded as a ` + html.EscapeString(role) + ` on <strong>Wellthgreen Report Portal</strong>.
         </p>
         <p>Your login credentials are as follows:</p>
         <div class="credentials">
@@ -409,7 +409,7 @@ func RegistrationMailContent(userName, patientID, gmail, password string, role s
           </p>
           <p><strong>Password:</strong> ` + html.EscapeString(password) + `</p>
         </div>
-        <a href="https://easeqt.wellthgreen.com/" class="button"
+        <a href="https://reportportal.wellthgreen.com/" class="button"
           >Login Now</a
         >
         <p style="margin-top: 20px">
@@ -524,7 +524,7 @@ func PatientReportSignOff(userName string, patientID string, AppintmentDate stri
 
         <p>To access your report, please log in with your credentials:</p>
         
-        <a href="https://easeqt.wellthgreen.com/" class="button">
+        <a href="https://reportportal.wellthgreen.com/" class="button">
           Login to View Report
         </a>
         
@@ -646,7 +646,7 @@ func ManagerReportSignOff(patientName string, patientID string, appointmentDate 
         </div>
 
         <div style="text-align: center; margin: 25px 0;">
-          <a href="https://easeqt.wellthgreen.com/" class="button">
+          <a href="https://reportportal.wellthgreen.com/" class="button">
             Login
           </a>
         </div>
