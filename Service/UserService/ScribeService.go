@@ -163,7 +163,7 @@ func PostScribeService(db *gorm.DB, reqVal model.ScribeRegisterReq, idValue int)
 
 	htmlContent := mailservice.RegistrationMailContent(reqVal.FirstName+" "+reqVal.LastName, CustId, reqVal.Email, reqVal.DOB, "Wellthgreen Scribe")
 
-	subject := "Welcome to easeQT – Your User ID & Login Details Inside"
+	subject := "Welcome to Wellthgreen Report Portal – Your User ID & Login Details Inside"
 
 	emailStatus := mailservice.MailService(reqVal.Email, htmlContent, subject)
 

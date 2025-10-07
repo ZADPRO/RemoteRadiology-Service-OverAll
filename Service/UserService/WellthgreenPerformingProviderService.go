@@ -217,9 +217,9 @@ func PostWellgreenPerformingProviderService(db *gorm.DB, reqVal model.Radiologis
 		return false, "Something went wrong, Try Again"
 	}
 
-	htmlContent := mailservice.RegistrationMailContent(reqVal.FirstName+" "+reqVal.LastName, CustId, reqVal.Email, reqVal.DOB, "Radiologist")
+	htmlContent := mailservice.RegistrationMailContent(reqVal.FirstName+" "+reqVal.LastName, CustId, reqVal.Email, reqVal.DOB, "Performing Provider")
 
-	subject := "Welcome to easeQT – Your User ID & Login Details Inside"
+	subject := "Welcome to Wellthgreen Report Portal – Your User ID & Login Details Inside"
 
 	emailStatus := mailservice.MailService(reqVal.Email, htmlContent, subject)
 

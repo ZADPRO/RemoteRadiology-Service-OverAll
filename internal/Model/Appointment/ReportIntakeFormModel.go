@@ -446,8 +446,9 @@ type Patientdata struct {
 }
 
 type ManagerData struct {
-	SCCustId string `json:"refSCCustId" gorm:"column:refSCCustId"`
-	Email    string `json:"refCODOEmail" gorm:"column:refCODOEmail"`
+	SCCustId   string `json:"refSCCustId" gorm:"column:refSCCustId"`
+	UserStatus bool   `json:"refUserStatus" gorm:"column:refUserStatus"`
+	Email      string `json:"refCODOEmail" gorm:"column:refCODOEmail"`
 }
 
 type SendMailReportReq struct {
