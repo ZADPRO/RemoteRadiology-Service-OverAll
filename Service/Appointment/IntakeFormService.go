@@ -370,6 +370,14 @@ func ViewIntakeService(db *gorm.DB, reqVal model.ViewIntakeReq) ([]model.GetView
 		// }
 	}
 
+	var PatientData []model.PatientCustId
+
+	PatientDataErr := tx.Raw(query.GetPatientData, reqVal.UserId, reqVal.AppointmentId).Scan(&PatientData).Error
+	if PatientDataErr != nil {
+		log.Printf("ERROR: Failed to fetch Patient Data: %v", PatientDataErr)
+		return []model.GetViewIntakeData{}, []model.AduitModel{}
+	}
+
 	if err := tx.Commit().Error; err != nil {
 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
 		tx.Rollback()

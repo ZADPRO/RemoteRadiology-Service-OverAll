@@ -431,6 +431,8 @@ type PatientCustId struct {
 	UserFirstName string `json:"refUserFirstName" gorm:"column:refUserFirstName"`
 	UserDOB       string `json:"refUserDOB" gorm:"column:refUserDOB"`
 	UserGender    string `json:"refUserGender" gorm:"column:refUserGender"`
+	CODOEmail     string `json:"refCODOEmail" gorm:"column:refCODOEmail"`
+	CODOPhoneNo1  string `json:"refCODOPhoneNo1" gorm:"column:refCODOPhoneNo1"`
 }
 
 type ListUserModel struct {
