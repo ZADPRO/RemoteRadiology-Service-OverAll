@@ -168,36 +168,80 @@ SELECT
   COUNT(DISTINCT rrh."refAppointmentId") AS total_appointments,
   COUNT(
     CASE
-      WHEN ra."refCategoryId" = 1 THEN 1
+      WHEN (
+        ra."refCategoryId" = 1
+        AND rrh."refRHHandleEdit" = 1
+      ) THEN 1
     END
-  ) AS "SForm",
+  ) AS "SFormEdit",
   COUNT(
     CASE
-      WHEN ra."refCategoryId" = 2 THEN 1
+      WHEN (
+        ra."refCategoryId" = 1
+        AND rrh."refRHHandleCorrect" = 1
+      ) THEN 1
     END
-  ) AS "DaForm",
+  ) AS "SFormCorrect",
   COUNT(
     CASE
-      WHEN ra."refCategoryId" = 3 THEN 1
+      WHEN (
+        ra."refCategoryId" = 2
+        AND rrh."refRHHandleEdit" = 1
+      ) THEN 1
     END
-  ) AS "DbForm",
+  ) AS "DaFormEdit",
   COUNT(
     CASE
-      WHEN ra."refCategoryId" = 4 THEN 1
+      WHEN (
+        ra."refCategoryId" = 2
+        AND rrh."refRHHandleCorrect" = 1
+      ) THEN 1
     END
-  ) AS "DcForm"
+  ) AS "DaFormCorrect",
+  COUNT(
+    CASE
+      WHEN (
+        ra."refCategoryId" = 3
+        AND rrh."refRHHandleEdit" = 1
+      ) THEN 1
+    END
+  ) AS "DbFormEdit",
+  COUNT(
+    CASE
+      WHEN (
+        ra."refCategoryId" = 4
+        AND rrh."refRHHandleCorrect" = 1
+      ) THEN 1
+    END
+  ) AS "DcFormCorrect",
+  COUNT(
+    CASE
+      WHEN (
+        ra."refCategoryId" = 4
+        AND rrh."refRHHandleEdit" = 1
+      ) THEN 1
+    END
+  ) AS "DcFormEdit",
+  COUNT(
+    CASE
+      WHEN (
+        ra."refCategoryId" = 3
+        AND rrh."refRHHandleCorrect" = 1
+      ) THEN 1
+    END
+  ) AS "DbFormCorrect"
 FROM
   notes."refReportsHistory" rrh
   JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
 WHERE
-  rrh."refRHHandledUserId" = ?
+  rrh."refRHHandledUserId" = $1
   AND TO_CHAR(
     TO_DATE(
       rrh."refRHHandleStartTime",
       'YYYY-MM-DD HH24:MI:SS'
     ),
     'YYYY-MM'
-  ) = ?;
+  ) = $2;
 `
 
 var WellGreenUserIndicatesAnalayticsSQL = `

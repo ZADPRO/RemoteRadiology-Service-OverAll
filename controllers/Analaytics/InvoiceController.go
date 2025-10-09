@@ -33,15 +33,14 @@ func GetAmountController() gin.HandlerFunc {
 		defer sqlDB.Close()
 
 		//Request Pass to the Service and Get the Retrun Value
-		Status, ScancenterAmount, UserAmount, ScancenterData, UserData := service.GetAmountService(dbConn)
+		Status, AmountModel, ScancenterData, UserData := service.GetAmountService(dbConn)
 
 		//Load the Payload
 		payload := map[string]interface{}{
-			"status":           Status,
-			"ScancenterAmount": ScancenterAmount,
-			"UserAmount":       UserAmount,
-			"scancenterData":   ScancenterData,
-			"userData":         UserData,
+			"status":         Status,
+			"AmountModel":    AmountModel,
+			"scancenterData": ScancenterData,
+			"userData":       UserData,
 		}
 
 		//Create a tokens
@@ -136,22 +135,38 @@ func GetInvoiceDataController() gin.HandlerFunc {
 		switch data.Type {
 		case 1:
 			payload = map[string]interface{}{
-				"status":          true,
-				"amount":          response.AmountModel[0].ScancenterAmount,
-				"ScancenterData":  response.ScanCenterModel,
-				"ScanCenterCount": response.GetCountScanCenterMonthModel,
-				"UserData":        nil,
-				"UserCount":       nil,
+				"status":                true,
+				"refTASformEdit":        response.AmountModel[0].TASformEdit,
+				"refTASformCorrect":     response.AmountModel[0].TASformCorrect,
+				"refTADaformEdit":       response.AmountModel[0].TADaformEdit,
+				"refTADaformCorrect":    response.AmountModel[0].TADaformCorrect,
+				"refTADbformEdit":       response.AmountModel[0].TADbformEdit,
+				"refTADbformCorrect":    response.AmountModel[0].TADbformCorrect,
+				"refTADcformEdit":       response.AmountModel[0].TADcformEdit,
+				"refTADcformCorrect":    response.AmountModel[0].TADcformCorrect,
+				"refTADScribeTotalcase": response.AmountModel[0].TADScribeTotalcase,
+				"ScancenterData":        response.ScanCenterModel,
+				"ScanCenterCount":       response.GetCountScanCenterMonthModel,
+				"UserData":              nil,
+				"UserCount":             nil,
 			}
 
 		case 2:
 			payload = map[string]interface{}{
-				"status":          true,
-				"amount":          response.AmountModel[0].UserAmount,
-				"ScancenterData":  nil,
-				"ScanCenterCount": nil,
-				"UserData":        response.GetUserModel,
-				"UserCount":       response.AdminOverallScanIndicatesAnalayticsModel,
+				"status":                true,
+				"refTASformEdit":        response.AmountModel[0].TASformEdit,
+				"refTASformCorrect":     response.AmountModel[0].TASformCorrect,
+				"refTADaformEdit":       response.AmountModel[0].TADaformEdit,
+				"refTADaformCorrect":    response.AmountModel[0].TADaformCorrect,
+				"refTADbformEdit":       response.AmountModel[0].TADbformEdit,
+				"refTADbformCorrect":    response.AmountModel[0].TADbformCorrect,
+				"refTADcformEdit":       response.AmountModel[0].TADcformEdit,
+				"refTADcformCorrect":    response.AmountModel[0].TADcformCorrect,
+				"refTADScribeTotalcase": response.AmountModel[0].TADScribeTotalcase,
+				"ScancenterData":        nil,
+				"ScanCenterCount":       nil,
+				"UserData":              response.GetUserModel,
+				"UserCount":             response.AdminOverallScanIndicatesAnalayticsModel,
 			}
 
 		}
@@ -285,7 +300,7 @@ func GetInvoiceOverAllHistoryController() gin.HandlerFunc {
 		defer sqlDB.Close()
 
 		//Request Pass to the Service and Get the Retrun Value
-		resVal := service.GetInvoiceOverAllHistoryService(dbConn, data,  int(roleIdValue.(float64)))
+		resVal := service.GetInvoiceOverAllHistoryService(dbConn, data, int(roleIdValue.(float64)))
 
 		payload := map[string]interface{}{
 			"status":         true,
