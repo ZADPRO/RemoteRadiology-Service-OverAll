@@ -207,6 +207,7 @@ type ScanCenterConsultantModel struct {
 	SCGuidelines       string `json:"refSCGuidelines" gorm:"column:refSCGuidelines"`
 	SCStatus           bool   `json:"refSCStatus" gorm:"column:refSCStatus"`
 	SCConsultantStatus bool   `json:"refSCConsultantStatus" gorm:"column:refSCConsultantStatus"`
+	SCConsultantLink   string `json:"refSCConsultantLink" gorm:"column:refSCConsultantLink"`
 }
 
 type MapScanCenterPatientModel struct {
@@ -214,4 +215,3 @@ type MapScanCenterPatientModel struct {
 	UserId int `json:"refUserId" gorm:"column:refUserId"`
 	SCId   int `json:"refSCId" gorm:"column:refSCId"`
 }
-

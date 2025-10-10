@@ -26,6 +26,7 @@ type ScanCenterModel struct {
 	Appointments        bool   `json:"refSCAppointments" gorm:"column:refSCAppointments"`
 	SCStatus            bool   `json:"refSCStatus" gorm:"column:refSCStatus"`
 	SCConsultantStatus  bool   `json:"refSCConsultantStatus" gorm:"column:refSCConsultantStatus"`
+	SCConsultantLink    string `json:"refSCConsultantLink" gorm:"column:refSCConsultantLink"`
 }
 
 func (ScanCenterModel) TableName() string {
@@ -43,4 +44,5 @@ type UpdateScanCentertReq struct {
 	Appointments       bool   `json:"appointments" mapstructure:"appointments"`
 	Status             bool   `json:"status" mapstructure:"status"`
 	SCConsultantStatus bool   `json:"refSCConsultantStatus" mapstructure:"refSCConsultantStatus"`
+	SCConsultantLink   string `json:"refSCConsultantLink" mapstructure:"refSCConsultantLink"`
 }
