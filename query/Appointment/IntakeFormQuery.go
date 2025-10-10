@@ -92,6 +92,16 @@ WHERE
   "refITFId" = ?
 `
 
+var GetTechnicianIntakeDataSQL = `
+SELECT
+  *
+FROM
+  notes."refTechnicianIntakeForm"
+WHERE
+  "refTITFQId" = ?
+  AND "refAppointmentId" = ?
+`
+
 var GetIntakeAppointmentDataSQL = `
 SELECT
   *
@@ -100,6 +110,20 @@ FROM
 WHERE
   "refAppointmentId" = $1
   AND "refITFQId" = $2
+`
+
+var InsertTechnicianIntakeDataSQL = `
+INSERT INTO
+  notes."refTechnicianIntakeForm" (
+    "refUserId",
+    "refAppointmentId",
+    "refTITFQId",
+    "refTITFAnswer",
+    "refTITFCreatedAt",
+    "refTITFCreatedBy"
+  )
+VALUES
+  ($1, $2, $3, $4, $5, $6);
 `
 
 var InsertTransactionDataSQL = `
@@ -214,6 +238,18 @@ SET
   "refITFVerifiedTechnician" = ?      
 WHERE
   "refITFId" = ?                     
+`
+
+var UpdateTechnicianIntakeDataSQL = `
+UPDATE
+  notes."refTechnicianIntakeForm"
+SET
+  "refTITFAnswer" = ?,
+  "refTITFUpdatedBy" = ?,                
+  "refTITFUpdatedAt" = ?
+WHERE
+  "refTITFQId" = ?
+  AND "refAppointmentId" = ?           
 `
 
 var GetAuditforIntakeForm = `

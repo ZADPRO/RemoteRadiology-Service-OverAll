@@ -61,7 +61,7 @@ func AddIntakeFormService(db *gorm.DB, reqVal model.AddIntakeFormReq, idValue in
 			//Inserting New Question
 			InsertIntakeErr := tx.Exec(
 				query.InsertIntakeSQL,
-				idValue,
+				reqVal.PatientId,
 				reqVal.AppointmentId,
 				answer.QuestionId,
 				hashdb.Encrypt(answer.Answer),
@@ -152,114 +152,47 @@ func AddIntakeFormService(db *gorm.DB, reqVal model.AddIntakeFormReq, idValue in
 	// 	return false, "Something went wrong, Try Again"
 	// }
 
-	UpdateAppointmenterr := tx.Exec(
-		query.UpdateAppointment,
-		reqVal.CategoryId,
-		reqVal.Consent,
-		reqVal.AppointmentId,
-	).Error
-	if UpdateAppointmenterr != nil {
-		log.Printf("ERROR: Failed to Update Appointment: %v\n", UpdateAppointmenterr)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again"
-	}
+	fmt.Println("===========>", reqVal.SaveStatus)
 
-	var CheckOverride []model.OverrideRequestModel
+	if !reqVal.SaveStatus {
 
-	var CheckOverrideErr = tx.Raw(query.CheckOverride, reqVal.AppointmentId).Scan(&CheckOverride).Error
-	if CheckOverrideErr != nil {
-		log.Printf("ERROR: Failed to Check Override: %v\n", CheckOverrideErr)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again"
-	}
-
-	var UpdateAppointmentStatus = "technologistformfill"
-	var oversideStatus = "success"
-
-	if len(CheckOverride) == 1 && CheckOverride[0].ApprovedStatus == "approved" {
-
-		UpdateAppointmentStatuserr := tx.Exec(
-			query.UpdateAppointmentStatus,
-			UpdateAppointmentStatus,
+		UpdateAppointmenterr := tx.Exec(
+			query.UpdateAppointment,
+			reqVal.CategoryId,
+			reqVal.Consent,
 			reqVal.AppointmentId,
 		).Error
-		if UpdateAppointmentStatuserr != nil {
-			log.Printf("ERROR: Failed to Update Appointment Status: %v\n", UpdateAppointmentStatuserr)
+		if UpdateAppointmenterr != nil {
+			log.Printf("ERROR: Failed to Update Appointment: %v\n", UpdateAppointmenterr)
 			tx.Rollback()
 			return false, "Something went wrong, Try Again"
 		}
 
-		history := model.RefTransHistory{
-			TransTypeId: 23,
-			THData:      "Intake Form Created Successfully",
-			UserId:      idValue,
-			THActionBy:  idValue,
-		}
+		var CheckOverride []model.OverrideRequestModel
 
-		errhistory := db.Create(&history).Error
-		if errhistory != nil {
-			log.Error("LoginService INSERT ERROR at Trnasaction: " + errhistory.Error())
-			return false, "Something went wrong, Try Again"
-		}
-
-		ReportHistoryErr := tx.Exec(
-			query.ReportHistorySQL,
-			idValue,
-			reqVal.AppointmentId,
-			idValue,
-			reqVal.PatientIntakeStartTime,
-			timeZone.GetPacificTime(),
-			"Patient Intake Override Form Fill",
-		).Error
-		if ReportHistoryErr != nil {
-			log.Printf("ERROR: Failed to Insert Report History: %v\n", ReportHistoryErr)
+		var CheckOverrideErr = tx.Raw(query.CheckOverride, reqVal.AppointmentId).Scan(&CheckOverride).Error
+		if CheckOverrideErr != nil {
+			log.Printf("ERROR: Failed to Check Override: %v\n", CheckOverrideErr)
 			tx.Rollback()
 			return false, "Something went wrong, Try Again"
 		}
 
-	} else {
+		var UpdateAppointmentStatus = "technologistformfill"
+		var oversideStatus = "success"
 
-		if reqVal.OverrideRequest {
-			UpdateAppointmentStatus = "noteligible"
-			oversideStatus = "pending"
-		}
-		override := model.OverrideRequestModel{
-			UserId:         idValue,
-			AppointmentId:  reqVal.AppointmentId,
-			ApprovedStatus: oversideStatus,
-		}
+		if len(CheckOverride) == 1 && CheckOverride[0].ApprovedStatus == "approved" {
 
-		overrideerr := db.Create(&override).Error
-		if overrideerr != nil {
-			log.Error("LoginService INSERT ERROR at Trnasaction: " + overrideerr.Error())
-			return false, "Something went wrong, Try Again"
-		}
-
-		UpdateAppointmentStatuserr := tx.Exec(
-			query.UpdateAppointmentStatus,
-			UpdateAppointmentStatus,
-			reqVal.AppointmentId,
-		).Error
-		if UpdateAppointmentStatuserr != nil {
-			log.Printf("ERROR: Failed to Update Appointment Status: %v\n", UpdateAppointmentStatuserr)
-			tx.Rollback()
-			return false, "Something went wrong, Try Again"
-		}
-
-		if reqVal.OverrideRequest {
-			history := model.RefTransHistory{
-				TransTypeId: 23,
-				THData:      "Applied Override Request",
-				UserId:      idValue,
-				THActionBy:  idValue,
-			}
-
-			errhistory := db.Create(&history).Error
-			if errhistory != nil {
-				log.Error("LoginService INSERT ERROR at Trnasaction: " + errhistory.Error())
+			UpdateAppointmentStatuserr := tx.Exec(
+				query.UpdateAppointmentStatus,
+				UpdateAppointmentStatus,
+				reqVal.AppointmentId,
+			).Error
+			if UpdateAppointmentStatuserr != nil {
+				log.Printf("ERROR: Failed to Update Appointment Status: %v\n", UpdateAppointmentStatuserr)
+				tx.Rollback()
 				return false, "Something went wrong, Try Again"
 			}
-		} else {
+
 			history := model.RefTransHistory{
 				TransTypeId: 23,
 				THData:      "Intake Form Created Successfully",
@@ -272,34 +205,107 @@ func AddIntakeFormService(db *gorm.DB, reqVal model.AddIntakeFormReq, idValue in
 				log.Error("LoginService INSERT ERROR at Trnasaction: " + errhistory.Error())
 				return false, "Something went wrong, Try Again"
 			}
-		}
 
-		reportStatus := model.RefTransHistory{
-			TransTypeId: 25,
-			THData:      "Patient Intake Filled Successfully",
-			UserId:      idValue,
-			THActionBy:  idValue,
-		}
+			ReportHistoryErr := tx.Exec(
+				query.ReportHistorySQL,
+				idValue,
+				reqVal.AppointmentId,
+				idValue,
+				reqVal.PatientIntakeStartTime,
+				timeZone.GetPacificTime(),
+				"Patient Intake Override Form Fill",
+			).Error
+			if ReportHistoryErr != nil {
+				log.Printf("ERROR: Failed to Insert Report History: %v\n", ReportHistoryErr)
+				tx.Rollback()
+				return false, "Something went wrong, Try Again"
+			}
 
-		errreportStatus := db.Create(&reportStatus).Error
-		if errreportStatus != nil {
-			log.Error("errreportStatus INSERT ERROR at Trnasaction: " + errreportStatus.Error())
-			return false, "Something went wrong, Try Again"
-		}
+		} else {
 
-		ReportHistoryErr := tx.Exec(
-			query.ReportHistorySQL,
-			idValue,
-			reqVal.AppointmentId,
-			idValue,
-			reqVal.PatientIntakeStartTime,
-			timeZone.GetPacificTime(),
-			"Patient Intake Form Fill",
-		).Error
-		if ReportHistoryErr != nil {
-			log.Printf("ERROR: Failed to Insert Report History: %v\n", ReportHistoryErr)
-			tx.Rollback()
-			return false, "Something went wrong, Try Again"
+			if reqVal.OverrideRequest {
+				UpdateAppointmentStatus = "noteligible"
+				oversideStatus = "pending"
+			}
+			override := model.OverrideRequestModel{
+				UserId:         idValue,
+				AppointmentId:  reqVal.AppointmentId,
+				ApprovedStatus: oversideStatus,
+			}
+
+			overrideerr := db.Create(&override).Error
+			if overrideerr != nil {
+				log.Error("LoginService INSERT ERROR at Trnasaction: " + overrideerr.Error())
+				return false, "Something went wrong, Try Again"
+			}
+
+			UpdateAppointmentStatuserr := tx.Exec(
+				query.UpdateAppointmentStatus,
+				UpdateAppointmentStatus,
+				reqVal.AppointmentId,
+			).Error
+			if UpdateAppointmentStatuserr != nil {
+				log.Printf("ERROR: Failed to Update Appointment Status: %v\n", UpdateAppointmentStatuserr)
+				tx.Rollback()
+				return false, "Something went wrong, Try Again"
+			}
+
+			if reqVal.OverrideRequest {
+				history := model.RefTransHistory{
+					TransTypeId: 23,
+					THData:      "Applied Override Request",
+					UserId:      idValue,
+					THActionBy:  idValue,
+				}
+
+				errhistory := db.Create(&history).Error
+				if errhistory != nil {
+					log.Error("LoginService INSERT ERROR at Trnasaction: " + errhistory.Error())
+					return false, "Something went wrong, Try Again"
+				}
+			} else {
+				history := model.RefTransHistory{
+					TransTypeId: 23,
+					THData:      "Intake Form Created Successfully",
+					UserId:      idValue,
+					THActionBy:  idValue,
+				}
+
+				errhistory := db.Create(&history).Error
+				if errhistory != nil {
+					log.Error("LoginService INSERT ERROR at Trnasaction: " + errhistory.Error())
+					return false, "Something went wrong, Try Again"
+				}
+			}
+
+			reportStatus := model.RefTransHistory{
+				TransTypeId: 25,
+				THData:      "Patient Intake Filled Successfully",
+				UserId:      idValue,
+				THActionBy:  idValue,
+			}
+
+			errreportStatus := db.Create(&reportStatus).Error
+			if errreportStatus != nil {
+				log.Error("errreportStatus INSERT ERROR at Trnasaction: " + errreportStatus.Error())
+				return false, "Something went wrong, Try Again"
+			}
+
+			ReportHistoryErr := tx.Exec(
+				query.ReportHistorySQL,
+				idValue,
+				reqVal.AppointmentId,
+				idValue,
+				reqVal.PatientIntakeStartTime,
+				timeZone.GetPacificTime(),
+				"Patient Intake Form Fill",
+			).Error
+			if ReportHistoryErr != nil {
+				log.Printf("ERROR: Failed to Insert Report History: %v\n", ReportHistoryErr)
+				tx.Rollback()
+				return false, "Something went wrong, Try Again"
+			}
+
 		}
 
 	}
@@ -311,6 +317,25 @@ func AddIntakeFormService(db *gorm.DB, reqVal model.AddIntakeFormReq, idValue in
 	}
 
 	return true, "Successfully Intake Form Created"
+}
+
+func ViewPatientService(db *gorm.DB, reqVal model.ViewIntakeReq) model.PatientCustId {
+	log := logger.InitLogger()
+
+	fmt.Println(reqVal)
+
+	var PatientData []model.PatientCustId
+
+	PatientDataErr := db.Raw(query.GetOnlyPatientData, reqVal.UserId).Scan(&PatientData).Error
+	if PatientDataErr != nil {
+		log.Printf("ERROR: Failed to fetch Patient Data: %v", PatientDataErr)
+		return model.PatientCustId{}
+	}
+
+	PatientData[0].UserFirstName = hashdb.Decrypt(PatientData[0].UserFirstName)
+	PatientData[0].UserDOB = hashdb.Decrypt(PatientData[0].UserDOB)
+
+	return PatientData[0]
 }
 
 func ViewIntakeService(db *gorm.DB, reqVal model.ViewIntakeReq) ([]model.GetViewIntakeData, []model.AduitModel) {

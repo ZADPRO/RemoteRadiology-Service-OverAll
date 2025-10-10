@@ -7,17 +7,18 @@ import (
 	helper "AuthenticationService/internal/Helper/ViewFile"
 	model "AuthenticationService/internal/Model/Analaytics"
 	query "AuthenticationService/query/Analaytics"
+	"fmt"
 
 	"gorm.io/gorm"
 )
 
-func GetAmountService(db *gorm.DB) (bool, int, int, []model.ScanCenterModel, []model.UserModel) {
+func GetAmountService(db *gorm.DB) (bool, []model.AmountModel, []model.ScanCenterModel, []model.UserModel) {
 	log := logger.InitLogger()
 
 	tx := db.Begin()
 	if tx.Error != nil {
 		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
-		return false, 0, 0, []model.ScanCenterModel{}, []model.UserModel{}
+		return false, []model.AmountModel{}, []model.ScanCenterModel{}, []model.UserModel{}
 	}
 
 	defer func() {
@@ -33,7 +34,7 @@ func GetAmountService(db *gorm.DB) (bool, int, int, []model.ScanCenterModel, []m
 	AmountValueErr := tx.Raw(query.GetAmountSQL).Scan(&AmountModel).Error
 	if AmountValueErr != nil {
 		log.Error(AmountValueErr.Error())
-		return false, 0, 0, []model.ScanCenterModel{}, []model.UserModel{}
+		return false, []model.AmountModel{}, []model.ScanCenterModel{}, []model.UserModel{}
 	}
 
 	//List of Scan Center
@@ -41,7 +42,7 @@ func GetAmountService(db *gorm.DB) (bool, int, int, []model.ScanCenterModel, []m
 	ScancenterDataErr := tx.Raw(query.ListAllScanCenter).Scan(&ScancenterData).Error
 	if ScancenterDataErr != nil {
 		log.Error(ScancenterDataErr.Error())
-		return false, 0, 0, []model.ScanCenterModel{}, []model.UserModel{}
+		return false, []model.AmountModel{}, []model.ScanCenterModel{}, []model.UserModel{}
 	}
 
 	//List of User
@@ -49,16 +50,16 @@ func GetAmountService(db *gorm.DB) (bool, int, int, []model.ScanCenterModel, []m
 	UserDataErr := tx.Raw(query.ListUserSQL).Scan(&UserData).Error
 	if UserDataErr != nil {
 		log.Error(UserDataErr.Error())
-		return false, 0, 0, []model.ScanCenterModel{}, []model.UserModel{}
+		return false, []model.AmountModel{}, []model.ScanCenterModel{}, []model.UserModel{}
 	}
 
 	if err := tx.Commit().Error; err != nil {
 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
 		tx.Rollback()
-		return false, 0, 0, []model.ScanCenterModel{}, []model.UserModel{}
+		return false, []model.AmountModel{}, []model.ScanCenterModel{}, []model.UserModel{}
 	}
 
-	return true, AmountModel[0].ScancenterAmount, AmountModel[0].UserAmount, ScancenterData, UserData
+	return true, AmountModel, ScancenterData, UserData
 }
 
 func UpdateAmountService(db *gorm.DB, reqVal model.AmountModel) (bool, string) {
@@ -77,7 +78,21 @@ func UpdateAmountService(db *gorm.DB, reqVal model.AmountModel) (bool, string) {
 		}
 	}()
 
-	UpdateErr := tx.Exec(query.UpdateAmountSQL, reqVal.ScancenterAmount, reqVal.UserAmount).Error
+	fmt.Println("==================>", reqVal)
+
+	UpdateErr := tx.Exec(
+		query.UpdateAmountSQL,
+		reqVal.TASformEdit,
+		reqVal.TASformCorrect,
+		reqVal.TADaformEdit,
+		reqVal.TADaformCorrect,
+		reqVal.TADbformEdit,
+		reqVal.TADbformCorrect,
+		reqVal.TADcformEdit,
+		reqVal.TADcformCorrect,
+		reqVal.TADScribeTotalcase,
+		1,
+	).Error
 	if UpdateErr != nil {
 		log.Error(UpdateErr)
 		return false, "Something went wrong, Try Again"
@@ -149,6 +164,7 @@ func GetInvoiceDataService(db *gorm.DB, reqVal model.GetInvoiceDataReq) model.Ge
 		// Decrypt User Details
 		for i, data := range response.GetUserModel {
 			response.GetUserModel[i].Name = hashdb.Decrypt(data.Name)
+			response.GetUserModel[i].Pan = hashdb.Decrypt(data.Pan)
 		}
 
 		// Total Count for User
@@ -188,7 +204,11 @@ func GenerateInvoiceDataService(db *gorm.DB, reqVal model.GenerateInvoiceReq, id
 		}
 	}()
 
-	InsertInvoiceErr := tx.Exec(
+	fmt.Println("==================>", reqVal)
+
+	var invoiceHistory []model.InvoiceHistory
+
+	InsertInvoiceErr := tx.Raw(
 		query.InsertInvoiceSQL,
 		reqVal.SCId,
 		reqVal.UserId,
@@ -210,17 +230,47 @@ func GenerateInvoiceDataService(db *gorm.DB, reqVal model.GenerateInvoiceReq, id
 		reqVal.Bank,
 		reqVal.Branch,
 		reqVal.IFSC,
-		reqVal.Quantity,
-		reqVal.Amount,
-		reqVal.Total,
 		timeZone.GetPacificTime(),
 		idValue,
 		reqVal.ToAddress,
 		reqVal.Signature,
-	).Error
+		reqVal.SformEditquantity,
+		reqVal.SformEditamount,
+		reqVal.SformCorrectquantity,
+		reqVal.SformCorrectamount,
+		reqVal.DaformEditquantity,
+		reqVal.DaformEditamount,
+		reqVal.DaformCorrectquantity,
+		reqVal.DaformCorrectamount,
+		reqVal.DbformEditquantity,
+		reqVal.DbformEditamount,
+		reqVal.DbformCorrectquantity,
+		reqVal.DbformCorrectamount,
+		reqVal.DcformEditquantity,
+		reqVal.DcformEditamount,
+		reqVal.DcformCorrectquantity,
+		reqVal.DcformCorrectamount,
+		reqVal.ScribeTotalcasequantity,
+		reqVal.ScribeTotalcaseamount,
+		reqVal.OtherExpensiveName,
+		reqVal.OtherAmount,
+		reqVal.ScanCenterTotalCase,
+		reqVal.ScancentercaseAmount,
+		reqVal.Total,
+	).Scan(&invoiceHistory).Error
 	if InsertInvoiceErr != nil {
 		log.Error(InsertInvoiceErr)
 		return false, "Something went wrong, Try Again"
+	}
+
+	if len(invoiceHistory) > 0 {
+		for _, data := range reqVal.OtherExpenses {
+			InsertOtherInvoiceErr := tx.Exec(query.InsertOtherInvoiceAmount, invoiceHistory[0].RefIHId, data.Name, data.Amount).Error
+			if InsertOtherInvoiceErr != nil {
+				log.Error(InsertOtherInvoiceErr)
+				return false, "Something went wrong, Try Again"
+			}
+		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
@@ -266,6 +316,11 @@ func GetInvoiceHistoryService(db *gorm.DB, reqVal model.GetInvoiceHistoryReq, id
 	}
 
 	for i, data := range invoiceHistory {
+		invoiceOtherExpensesErr := tx.Raw(query.GetInvoiceOtherAmount, data.RefIHId).Scan(&invoiceHistory[i].OtherExpenses).Error
+		if invoiceOtherExpensesErr != nil {
+			log.Error(invoiceOtherExpensesErr)
+			return []model.InvoiceHistory{}, []model.TakenDate{}
+		}
 		if len(data.RefIHSignature) > 0 {
 			DriversLicenseNoImgHelperData, viewErr := helper.ViewFile("./Assets/Files/" + data.RefIHSignature)
 			if viewErr != nil {
@@ -300,11 +355,11 @@ func GetInvoiceHistoryService(db *gorm.DB, reqVal model.GetInvoiceHistoryReq, id
 	return invoiceHistory, invoiceHistoryTakenDate
 }
 
-func GetInvoiceOverAllHistoryService(db *gorm.DB, reqVal model.GetInvoiceOverAllHistoryReq, roleIdValue int) []model.InvoiceHistoryOverAll {
+func GetInvoiceOverAllHistoryService(db *gorm.DB, reqVal model.GetInvoiceOverAllHistoryReq, roleIdValue int) []model.InvoiceHistory {
 	log := logger.InitLogger()
 
 	//Get OverAll Invoice
-	var AllInvoiceModel []model.InvoiceHistoryOverAll
+	var AllInvoiceModel []model.InvoiceHistory
 
 	var FromDate = ""
 	if len(reqVal.FromDate) > 0 {
@@ -318,7 +373,25 @@ func GetInvoiceOverAllHistoryService(db *gorm.DB, reqVal model.GetInvoiceOverAll
 	AllInvoiceErr := db.Raw(query.GetInvoiceOverAllHistorySQL, roleIdValue, FromDate, ToDate).Scan(&AllInvoiceModel).Error
 	if AllInvoiceErr != nil {
 		log.Error(AllInvoiceErr.Error())
-		return []model.InvoiceHistoryOverAll{}
+		return []model.InvoiceHistory{}
+	}
+
+	for i, data := range AllInvoiceModel {
+		if len(data.RefIHSignature) > 0 {
+			DriversLicenseNoImgHelperData, viewErr := helper.ViewFile("./Assets/Files/" + data.RefIHSignature)
+			if viewErr != nil {
+				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
+				log.Errorf("Failed to read DrivingLicense file: %v", viewErr)
+			}
+			if DriversLicenseNoImgHelperData != nil {
+				AllInvoiceModel[i].RefIHSignatureFile = &model.FileData{
+					Base64Data:  DriversLicenseNoImgHelperData.Base64Data,
+					ContentType: DriversLicenseNoImgHelperData.ContentType,
+				}
+			}
+		} else {
+			AllInvoiceModel[i].RefIHSignatureFile = nil
+		}
 	}
 
 	return AllInvoiceModel

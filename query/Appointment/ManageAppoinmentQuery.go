@@ -218,6 +218,7 @@ FROM
   FULL JOIN map."refScanCenterMap" rscm ON rscm."refUserId" = u."refUserId"
 WHERE
   u."refRTId" IN (1, 2, 3, 5, 8, 10)
+  AND u."refUserStatus" = true
 ORDER BY
   u."refRTId"
 `

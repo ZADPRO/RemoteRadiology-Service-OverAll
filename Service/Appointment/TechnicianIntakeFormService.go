@@ -89,7 +89,6 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 	}
 
 	//Store the Aduit Row for Answers
-
 	for _, answer := range reqVal.UpdatedAnswers {
 
 		PrevData := model.GetViewIntakeData{}
@@ -168,138 +167,233 @@ func AddTechnicianIntakeFormService(db *gorm.DB, reqVal model.AddTechnicianIntak
 	}
 
 	//Preparing the Encryption for the Technician Intake Form
-	for i, answer := range reqVal.TechnicianAnswers {
-		reqVal.TechnicianAnswers[i].Answer = hashdb.Encrypt(answer.Answer)
-	}
+	// for i, answer := range reqVal.TechnicianAnswers {
+	// 	reqVal.TechnicianAnswers[i].Answer = hashdb.Encrypt(answer.Answer)
+	// }
 
-	jsonAnswers, err := json.Marshal(reqVal.TechnicianAnswers)
-	if err != nil {
-		log.Printf("ERROR: Failed to marshal answers: %v\n", err)
-		tx.Rollback()
-		return false, "Invalid input format"
-	}
+	// jsonAnswers, err := json.Marshal(reqVal.TechnicianAnswers)
+	// if err != nil {
+	// 	log.Printf("ERROR: Failed to marshal answers: %v\n", err)
+	// 	tx.Rollback()
+	// 	return false, "Invalid input format"
+	// }
 
-	//Inserting the Technician Intake Form
-	InsertAnswer := tx.Exec(
-		query.TechnicianInsertAnswerSQL,
-		reqVal.PatientId,
-		reqVal.AppointmentId,
-		idValue,
-		timeZone.GetPacificTime(),
-		string(jsonAnswers),
-	).Error
-	if InsertAnswer != nil {
-		log.Printf("ERROR: Failed to Insert Answers: %v\n", InsertAnswer)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again"
+	// //Inserting the Technician Intake Form
+	// InsertAnswer := tx.Exec(
+	// 	query.TechnicianInsertAnswerSQL,
+	// 	reqVal.PatientId,
+	// 	reqVal.AppointmentId,
+	// 	idValue,
+	// 	timeZone.GetPacificTime(),
+	// 	string(jsonAnswers),
+	// ).Error
+	// if InsertAnswer != nil {
+	// 	log.Printf("ERROR: Failed to Insert Answers: %v\n", InsertAnswer)
+	// 	tx.Rollback()
+	// 	return false, "Something went wrong, Try Again"
+	// }
+
+	//Update and Insert the technician intake
+	for _, answer := range reqVal.TechnicianAnswers {
+
+		PrevData := model.GetViewTechnicianIntakeData{}
+		errPrev := tx.Raw(query.GetTechnicianIntakeDataSQL, answer.QuestionId, reqVal.AppointmentId).Scan(&PrevData).Error
+		if errPrev != nil {
+			log.Printf("ERROR: Failed to Get Intake: %v\n", PrevData)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again"
+		}
+
+		if PrevData.QuestionId != 0 {
+
+			oldData := map[string]interface{}{
+				fmt.Sprintf("%d", answer.QuestionId): hashdb.Decrypt(PrevData.Answer),
+			}
+
+			updatedData := map[string]interface{}{
+				fmt.Sprintf("%d", answer.QuestionId): answer.Answer,
+			}
+
+			ChangesData := helper.GetChanges(updatedData, oldData)
+
+			if len(ChangesData) > 0 {
+				var ChangesDataJSON []byte
+				var errChange error
+				ChangesDataJSON, errChange = json.Marshal(ChangesData)
+				if errChange != nil {
+					// Corrected log message
+					log.Printf("ERROR: Failed to marshal ChangesData to JSON: %v\n", errChange)
+					tx.Rollback()
+					return false, "Something went wrong, Try Again"
+				}
+
+				// combined := string(ChangesDataJSON) + "," + fmt.Sprintf(`"questionId": %d}`, answer.QuestionId)
+				//Insert Aduit Row for Answers Update
+				transData := 27
+
+				// errTrans := tx.Exec(query.InsertTransactionDataSQL, int(transData), int(reqVal.PatientId), int(idValue), hashdb.Encrypt(string(ChangesDataJSON))).Error
+				// if errTrans != nil {
+				// 	log.Printf("ERROR: Failed to Transaction History: %v\n", errTrans)
+				// 	tx.Rollback()
+				// 	return false, "Something went wrong, Try Again"
+				// }
+
+				errTrans := model.RefTransHistory{
+					TransTypeId: transData,
+					THData:      hashdb.Encrypt(string(ChangesDataJSON)),
+					UserId:      reqVal.PatientId,
+					THActionBy:  idValue,
+				}
+
+				errTransStatus := db.Create(&errTrans).Error
+				if errTransStatus != nil {
+					log.Error("errreportStatus INSERT ERROR at Trnasaction: " + errTransStatus.Error())
+					return false, "Something went wrong, Try Again"
+				}
+
+				//Updating Answers
+				updatedIntakeErr := tx.Exec(
+					query.UpdateTechnicianIntakeDataSQL,
+					hashdb.Encrypt(answer.Answer),
+					idValue,
+					timeZone.GetPacificTime(),
+					answer.QuestionId,
+					reqVal.AppointmentId,
+				).Error
+
+				if updatedIntakeErr != nil {
+					log.Printf("ERROR: Failed to UpdatedIntake: %v\n", updatedIntakeErr)
+					tx.Rollback()
+					return false, "Something went wrong, Try Again"
+				}
+			}
+		} else {
+			fmt.Println("++++++++++++++++++++")
+			InsertTechErr := tx.Exec(
+				query.InsertTechnicianIntakeDataSQL,
+				reqVal.PatientId,
+				reqVal.AppointmentId,
+				answer.QuestionId,
+				answer.Answer,
+				timeZone.GetPacificTime(),
+				idValue,
+			).Error
+			if InsertTechErr != nil {
+				log.Printf("ERROR: Failed to Insert Answers: %v\n", InsertTechErr)
+				tx.Rollback()
+				return false, "Something went wrong, Try Again"
+			}
+		}
 	}
 
 	// Storing the Technician Aduit Row for Answers
 
-	var techallChangeLogs []any
+	// var techallChangeLogs []any
 
-	for _, answer := range reqVal.TechnicianAnswers {
+	// for _, answer := range reqVal.TechnicianAnswers {
 
-		oldData := map[string]interface{}{
-			fmt.Sprintf("%d", answer.QuestionId): "",
+	// 	oldData := map[string]interface{}{
+	// 		fmt.Sprintf("%d", answer.QuestionId): "",
+	// 	}
+
+	// 	updatedData := map[string]interface{}{
+	// 		fmt.Sprintf("%d", answer.QuestionId): answer.Answer,
+	// 	}
+
+	// 	ChangesData := helper.GetChanges(updatedData, oldData)
+
+	// 	if len(ChangesData) > 0 {
+	// 		var ChangesDataJSON []byte
+	// 		var errChange error
+	// 		ChangesDataJSON, errChange = json.Marshal(ChangesData)
+	// 		if errChange != nil {
+	// 			// Corrected log message
+	// 			log.Printf("ERROR: Failed to marshal ChangesData to JSON: %v\n", errChange)
+	// 			tx.Rollback()
+	// 			return false, "Something went wrong, Try Again"
+	// 		}
+
+	// 		techallChangeLogs = append(techallChangeLogs, hashdb.Encrypt(string(ChangesDataJSON)))
+
+	// 	}
+	// }
+
+	// technfinalJSON, techerr := json.Marshal(techallChangeLogs)
+	// if techerr != nil {
+	// 	log.Printf("ERROR: Failed to marshal allChangeLogs: %v\n", techerr)
+	// 	tx.Rollback()
+	// 	return false, "Something went wrong, Try Again"
+	// }
+
+	// transData := 26
+
+	// errTrans := tx.Exec(query.InsertTransactionDataSQL, int(transData), int(idValue), int(idValue), string(technfinalJSON)).Error
+	// if errTrans != nil {
+	// 	log.Printf("ERROR: Failed to Transaction History: %v\n", errTrans)
+	// 	tx.Rollback()
+	// 	return false, "Something went wrong, Try Again"
+	// }
+
+	if !reqVal.SaveStatus {
+		reportStatus := model.RefTransHistory{
+			TransTypeId: 26,
+			THData:      "Technician Form Filled Successfully",
+			UserId:      idValue,
+			THActionBy:  idValue,
 		}
 
-		updatedData := map[string]interface{}{
-			fmt.Sprintf("%d", answer.QuestionId): answer.Answer,
+		errreportStatus := db.Create(&reportStatus).Error
+		if errreportStatus != nil {
+			log.Error("errreportStatus INSERT ERROR at Trnasaction: " + errreportStatus.Error())
+			return false, "Something went wrong, Try Again"
 		}
 
-		ChangesData := helper.GetChanges(updatedData, oldData)
-
-		if len(ChangesData) > 0 {
-			var ChangesDataJSON []byte
-			var errChange error
-			ChangesDataJSON, errChange = json.Marshal(ChangesData)
-			if errChange != nil {
-				// Corrected log message
-				log.Printf("ERROR: Failed to marshal ChangesData to JSON: %v\n", errChange)
-				tx.Rollback()
-				return false, "Something went wrong, Try Again"
-			}
-
-			techallChangeLogs = append(techallChangeLogs, hashdb.Encrypt(string(ChangesDataJSON)))
-
+		//Updating a Appointment Status
+		UpdateAppointmentStatuserr := tx.Exec(
+			query.UpdateTechnicianAppointmentStatus,
+			timeZone.GetPacificTimeDateOnly(),
+			"reportformfill",
+			reqVal.Priority,
+			reqVal.ArtificatsLeft,
+			reqVal.ArtificatsRight,
+			reqVal.AppointmentId,
+		).Error
+		if UpdateAppointmentStatuserr != nil {
+			log.Printf("ERROR: Failed to Update Appointment Status: %v\n", UpdateAppointmentStatuserr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again"
 		}
-	}
 
-	technfinalJSON, techerr := json.Marshal(techallChangeLogs)
-	if techerr != nil {
-		log.Printf("ERROR: Failed to marshal allChangeLogs: %v\n", techerr)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again"
-	}
+		//Updating Report Hstory
+		//Inserting the Audit for the Report Accessing
+		HistoryoldDataCat := map[string]interface{}{
+			"Report Access ID": idValue,
+		}
 
-	transData := 26
+		HistoryupdatedDataCat := map[string]interface{}{
+			"Report Access ID": "",
+		}
 
-	errTrans := tx.Exec(query.InsertTransactionDataSQL, int(transData), int(idValue), int(idValue), string(technfinalJSON)).Error
-	if errTrans != nil {
-		log.Printf("ERROR: Failed to Transaction History: %v\n", errTrans)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again"
-	}
+		HistoryChangesDataCat := helper.GetChanges(HistoryupdatedDataCat, HistoryoldDataCat)
 
-	reportStatus := model.RefTransHistory{
-		TransTypeId: 25,
-		THData:      "Technician Form Filled Successfully",
-		UserId:      idValue,
-		THActionBy:  idValue,
-	}
+		var HistoryChangesDataJSON []byte
+		var HistoryerrChange error
+		HistoryChangesDataJSON, HistoryerrChange = json.Marshal(HistoryChangesDataCat)
+		if HistoryerrChange != nil {
+			// Corrected log message
+			log.Printf("ERROR: Failed to marshal ChangesData to JSON: %v\n", HistoryerrChange)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again"
+		}
 
-	errreportStatus := db.Create(&reportStatus).Error
-	if errreportStatus != nil {
-		log.Error("errreportStatus INSERT ERROR at Trnasaction: " + errreportStatus.Error())
-		return false, "Something went wrong, Try Again"
-	}
+		HistorytransData := 28
 
-	//Updating a Appointment Status
-	UpdateAppointmentStatuserr := tx.Exec(
-		query.UpdateTechnicianAppointmentStatus,
-		timeZone.GetPacificTimeDateOnly(),
-		"reportformfill",
-		reqVal.Priority,
-		reqVal.ArtificatsLeft,
-		reqVal.ArtificatsRight,
-		reqVal.AppointmentId,
-	).Error
-	if UpdateAppointmentStatuserr != nil {
-		log.Printf("ERROR: Failed to Update Appointment Status: %v\n", UpdateAppointmentStatuserr)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again"
-	}
-
-	//Updating Report Hstory
-	//Inserting the Audit for the Report Accessing
-	HistoryoldDataCat := map[string]interface{}{
-		"Report Access ID": idValue,
-	}
-
-	HistoryupdatedDataCat := map[string]interface{}{
-		"Report Access ID": "",
-	}
-
-	HistoryChangesDataCat := helper.GetChanges(HistoryupdatedDataCat, HistoryoldDataCat)
-
-	var HistoryChangesDataJSON []byte
-	var HistoryerrChange error
-	HistoryChangesDataJSON, HistoryerrChange = json.Marshal(HistoryChangesDataCat)
-	if HistoryerrChange != nil {
-		// Corrected log message
-		log.Printf("ERROR: Failed to marshal ChangesData to JSON: %v\n", HistoryerrChange)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again"
-	}
-
-	HistorytransData := 28
-
-	HistoryerrTrans := tx.Exec(query.InsertTransactionDataSQL, int(HistorytransData), int(reqVal.PatientId), int(idValue), string(HistoryChangesDataJSON)).Error
-	if HistoryerrTrans != nil {
-		log.Printf("ERROR: Failed to Transaction History: %v\n", HistoryerrTrans)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again"
+		HistoryerrTrans := tx.Exec(query.InsertTransactionDataSQL, int(HistorytransData), int(reqVal.PatientId), int(idValue), string(HistoryChangesDataJSON)).Error
+		if HistoryerrTrans != nil {
+			log.Printf("ERROR: Failed to Transaction History: %v\n", HistoryerrTrans)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again"
+		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
