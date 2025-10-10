@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"gorm.io/gorm"
+
 )
 
 func CheckAccessService(db *gorm.DB, reqVal model.CheckAccessReq, idValue int, roleIdValue int) (bool, string, int, string) {
@@ -522,16 +523,47 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 
 		var ScanCenterProfileImg *model.FileData
 
+		// if len(GetScanCenterImg) > 0 {
+		// 	viewedFile, viewErr := helperView.ViewFile("./Assets/Profile/" + hashdb.Decrypt(GetScanCenterImg[0].ProfileImg))
+		// 	if viewErr != nil {
+		// 		log.Errorf("Failed to read ScanCenter profile image: %v", viewErr)
+		// 	}
+
+		// 	ScanCenterProfileImg = &model.FileData{
+		// 		Base64Data:  viewedFile.Base64Data,
+		// 		ContentType: viewedFile.ContentType,
+		// 	}
+		// } else {
+		// 	ScanCenterProfileImg = &model.FileData{}
+		// }
 		if len(GetScanCenterImg) > 0 {
-			viewedFile, viewErr := helperView.ViewFile("./Assets/Profile/" + hashdb.Decrypt(GetScanCenterImg[0].ProfileImg))
-			if viewErr != nil {
-				log.Errorf("Failed to read ScanCenter profile image: %v", viewErr)
+			profilePath := hashdb.Decrypt(GetScanCenterImg[0].ProfileImg)
+
+			// Check if it's a remote URL (S3)
+			if strings.HasPrefix(profilePath, "http://") || strings.HasPrefix(profilePath, "https://") {
+				// If it's already a public URL, just return it directly
+				ScanCenterProfileImg = &model.FileData{
+					Base64Data:  "",
+					ContentType: "url",
+				}
+
+				// You can also store the URL separately if your model supports it
+				// e.g., ScanCenterProfileImg.URL = profilePath
+
+			} else {
+				// Local file — read from ./Assets/Profile
+				viewedFile, viewErr := helperView.ViewFile("./Assets/Profile/" + profilePath)
+				if viewErr != nil {
+					log.Errorf("Failed to read ScanCenter profile image: %v", viewErr)
+					ScanCenterProfileImg = &model.FileData{}
+				} else {
+					ScanCenterProfileImg = &model.FileData{
+						Base64Data:  viewedFile.Base64Data,
+						ContentType: viewedFile.ContentType,
+					}
+				}
 			}
 
-			ScanCenterProfileImg = &model.FileData{
-				Base64Data:  viewedFile.Base64Data,
-				ContentType: viewedFile.ContentType,
-			}
 		} else {
 			ScanCenterProfileImg = &model.FileData{}
 		}

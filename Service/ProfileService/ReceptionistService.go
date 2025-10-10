@@ -1,14 +1,23 @@
 package service
 
 import (
+	s3Service "AuthenticationService/Service/S3"
 	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
 	helper "AuthenticationService/internal/Helper/ViewFile"
 	model "AuthenticationService/internal/Model/ProfileService"
 	query "AuthenticationService/query/ProfileService"
+	"context"
+	"strings"
+	"time"
 
 	"gorm.io/gorm"
 )
+
+func extractS3Key(s3URL string) string {
+	prefix := "https://easeqt-health-archive.s3.us-east-2.amazonaws.com/"
+	return strings.TrimPrefix(s3URL, prefix)
+}
 
 func GetAllReceptionistDataService(db *gorm.DB, reqVal model.GetReceptionistReq) []model.GetAllRadiologist {
 	log := logger.InitLogger()
@@ -81,26 +90,24 @@ func GetOneReceptionistDataService(db *gorm.DB, reqVal model.GetOneReceptionistR
 					ContentType: profileImgHelperData.ContentType,
 				}
 			}
-		} else {
-			RadiologistData[i].ProfileImgFile = nil
 		}
 
-		if len(hashdb.Decrypt(tech.DrivingLicense)) > 0 {
-			DriversLicenseNoImgHelperData, viewErr := helper.ViewFile("./Assets/Files/" + hashdb.Decrypt(tech.DrivingLicense))
-			if viewErr != nil {
-				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-				log.Errorf("Failed to read DrivingLicense file: %v", viewErr)
+		// Driving License
+		if isS3URL(RadiologistData[i].DrivingLicense) {
+			key := extractS3Key(RadiologistData[i].DrivingLicense) // "documents/ee84d792-71c8-4a39-9d6d-747316c9084b_20251009234001.pdf"
+			presignedURL, err := s3Service.GeneratePresignGetURL(context.Background(), key, 10*time.Minute)
+			if err == nil {
+				RadiologistData[i].DrivingLicense = presignedURL
 			}
-			if DriversLicenseNoImgHelperData != nil {
+		} else if len(RadiologistData[i].DrivingLicense) > 0 {
+			data, err := helper.ViewFile("./Assets/Files/" + RadiologistData[i].DrivingLicense)
+			if err == nil {
 				RadiologistData[i].DrivingLicenseFile = &model.FileData{
-					Base64Data:  DriversLicenseNoImgHelperData.Base64Data,
-					ContentType: DriversLicenseNoImgHelperData.ContentType,
+					Base64Data:  data.Base64Data,
+					ContentType: data.ContentType,
 				}
 			}
-		} else {
-			RadiologistData[i].DrivingLicenseFile = nil
 		}
-
 	}
 
 	return RadiologistData

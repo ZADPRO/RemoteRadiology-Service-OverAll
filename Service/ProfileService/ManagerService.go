@@ -3,11 +3,13 @@ package service
 import (
 	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
+	s3path "AuthenticationService/internal/Helper/S3"
 	helper "AuthenticationService/internal/Helper/ViewFile"
 	model "AuthenticationService/internal/Model/ProfileService"
 	query "AuthenticationService/query/ProfileService"
 
 	"gorm.io/gorm"
+
 )
 
 func GetAllManagerDataService(db *gorm.DB) []model.GetAllRadiologist {
@@ -55,61 +57,62 @@ func GetManagerDataService(db *gorm.DB, reqVal model.GetRadiologistreq, idValue 
 		RadiologistData[i].Aadhar = hashdb.Decrypt(tech.Aadhar)
 		RadiologistData[i].DrivingLicense = hashdb.Decrypt(tech.DrivingLicense)
 
-		if len(hashdb.Decrypt(tech.ProfileImg)) > 0 {
-			profileImgHelperData, viewErr := helper.ViewFile("./Assets/Profile/" + hashdb.Decrypt(tech.ProfileImg))
-			if viewErr != nil {
-				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-				log.Errorf("Failed to read profile image file: %v", viewErr)
-			}
-			if profileImgHelperData != nil {
+		if len(RadiologistData[i].ProfileImg) > 0 {
+			s3Key := "images/" + RadiologistData[i].ProfileImg
+			log.Printf("\n\n\nS3KEY -> %v", s3Key)
+			url, err := s3path.GetS3FileURL(s3Key)
+			if err != nil {
+				log.Errorf("Failed to generate S3 URL for profile image: %v", err)
+			} else {
 				RadiologistData[i].ProfileImgFile = &model.FileData{
-					Base64Data:  profileImgHelperData.Base64Data,
-					ContentType: profileImgHelperData.ContentType,
+					Base64Data:  "",
+					ContentType: "image/jpeg",
 				}
+				RadiologistData[i].ProfileImgFile.Base64Data = url
 			}
 		} else {
 			RadiologistData[i].ProfileImgFile = nil
 		}
 
-		if len(hashdb.Decrypt(tech.Pan)) > 0 {
-			panFileHelperData, panFileErr := helper.ViewFile("./Assets/Files/" + hashdb.Decrypt(tech.Pan))
-			if panFileErr != nil {
-				log.Errorf("Failed to read PAN file: %v", panFileErr)
-			}
-			if panFileHelperData != nil {
+		if len(RadiologistData[i].Pan) > 0 {
+			s3Key := "documents/" + RadiologistData[i].Pan
+			url, err := s3path.GetS3FileURL(s3Key)
+			if err != nil {
+				log.Errorf("Failed to generate S3 URL for PAN file: %v", err)
+			} else {
 				RadiologistData[i].PanFile = &model.FileData{
-					Base64Data:  panFileHelperData.Base64Data,
-					ContentType: panFileHelperData.ContentType,
+					Base64Data:  url,
+					ContentType: "application/pdf",
 				}
 			}
 		} else {
 			RadiologistData[i].PanFile = nil
 		}
 
-		if len(hashdb.Decrypt(tech.Aadhar)) > 0 {
-			aadharFileHelperData, aadharFileErr := helper.ViewFile("./Assets/Files/" + hashdb.Decrypt(tech.Aadhar))
-			if aadharFileErr != nil {
-				log.Errorf("Failed to read Aadhar file: %v", aadharFileErr)
-			}
-			if aadharFileHelperData != nil {
+		if len(RadiologistData[i].Aadhar) > 0 {
+			s3Key := "documents/" + RadiologistData[i].Aadhar
+			url, err := s3path.GetS3FileURL(s3Key)
+			if err != nil {
+				log.Errorf("Failed to generate S3 URL for Aadhar file: %v", err)
+			} else {
 				RadiologistData[i].AadharFile = &model.FileData{
-					Base64Data:  aadharFileHelperData.Base64Data,
-					ContentType: aadharFileHelperData.ContentType,
+					Base64Data:  url,
+					ContentType: "application/pdf",
 				}
 			}
 		} else {
 			RadiologistData[i].AadharFile = nil
 		}
 
-		if len(hashdb.Decrypt(tech.DrivingLicense)) > 0 {
-			drivingLicenseFileHelperData, drivingLicenseErr := helper.ViewFile("./Assets/Files/" + hashdb.Decrypt(tech.DrivingLicense))
-			if drivingLicenseErr != nil {
-				log.Errorf("Failed to read Driving License file: %v", drivingLicenseErr)
-			}
-			if drivingLicenseFileHelperData != nil {
+		if len(RadiologistData[i].DrivingLicense) > 0 {
+			s3Key := "documents/" + RadiologistData[i].DrivingLicense
+			url, err := s3path.GetS3FileURL(s3Key)
+			if err != nil {
+				log.Errorf("Failed to generate S3 URL for Driving License: %v", err)
+			} else {
 				RadiologistData[i].DrivingLicenseFile = &model.FileData{
-					Base64Data:  drivingLicenseFileHelperData.Base64Data,
-					ContentType: drivingLicenseFileHelperData.ContentType,
+					Base64Data:  url,
+					ContentType: "application/pdf",
 				}
 			}
 		} else {

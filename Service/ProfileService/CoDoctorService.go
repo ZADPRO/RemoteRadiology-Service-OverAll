@@ -6,9 +6,17 @@ import (
 	helper "AuthenticationService/internal/Helper/ViewFile"
 	model "AuthenticationService/internal/Model/ProfileService"
 	query "AuthenticationService/query/ProfileService"
+	"log"
+	"strings"
 
 	"gorm.io/gorm"
+
 )
+
+func isS3URL(path string) bool {
+	log.Printf("IS S3 URL checkin : %v", path)
+	return strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://")
+}
 
 func GetAllCoDoctorDataService(db *gorm.DB, reqVal model.GetReceptionistReq) []model.GetAllRadiologist {
 	log := logger.InitLogger()
@@ -31,7 +39,6 @@ func GetAllCoDoctorDataService(db *gorm.DB, reqVal model.GetReceptionistReq) []m
 
 func GetDoctorCoDataService(db *gorm.DB, reqVal model.GetOneReceptionistReq, idValue int) []model.GetCoDoctorOne {
 	log := logger.InitLogger()
-
 	var RadiologistData []model.GetCoDoctorOne
 
 	UserId := reqVal.UserId
@@ -40,8 +47,7 @@ func GetDoctorCoDataService(db *gorm.DB, reqVal model.GetOneReceptionistReq, idV
 	if reqVal.UserId == 0 {
 		UserId = idValue
 		var MappingData []model.Mapping
-		err := db.Raw(query.IdentifyScanCenterMapping, idValue).Scan(&MappingData).Error
-		if err != nil {
+		if err := db.Raw(query.IdentifyScanCenterMapping, idValue).Scan(&MappingData).Error; err != nil {
 			log.Printf("ERROR: Failed to fetch scan centers: %v", err)
 			return []model.GetCoDoctorOne{}
 		}
@@ -52,13 +58,13 @@ func GetDoctorCoDataService(db *gorm.DB, reqVal model.GetOneReceptionistReq, idV
 		}
 	}
 
-	err := db.Raw(query.GetListofCoDoctorOneSQL, UserId, ScanCenterId).Scan(&RadiologistData).Error
-	if err != nil {
-		log.Printf("ERROR: Failed to fetch scan centers: %v", err)
+	if err := db.Raw(query.GetListofCoDoctorOneSQL, UserId, ScanCenterId).Scan(&RadiologistData).Error; err != nil {
+		log.Printf("ERROR: Failed to fetch co-doctors: %v", err)
 		return []model.GetCoDoctorOne{}
 	}
 
 	for i, tech := range RadiologistData {
+		// 🔹 Decrypt all fields
 		RadiologistData[i].FirstName = hashdb.Decrypt(tech.FirstName)
 		RadiologistData[i].LastName = hashdb.Decrypt(tech.LastName)
 		RadiologistData[i].ProfileImg = hashdb.Decrypt(tech.ProfileImg)
@@ -69,134 +75,101 @@ func GetDoctorCoDataService(db *gorm.DB, reqVal model.GetOneReceptionistReq, idV
 		RadiologistData[i].DigitalSignature = hashdb.Decrypt(tech.DigitalSignature)
 		RadiologistData[i].NPI = hashdb.Decrypt(tech.NPI)
 
-		if len(hashdb.Decrypt(tech.DriversLicenseNo)) > 0 {
-			DriversLicenseNoImgHelperData, viewErr := helper.ViewFile("./Assets/Files/" + hashdb.Decrypt(tech.DriversLicenseNo))
-			if viewErr != nil {
-				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-				log.Errorf("Failed to read DrivingLicense file: %v", viewErr)
-			}
-			if DriversLicenseNoImgHelperData != nil {
-				RadiologistData[i].DriversLicenseFile = &model.FileData{
-					Base64Data:  DriversLicenseNoImgHelperData.Base64Data,
-					ContentType: DriversLicenseNoImgHelperData.ContentType,
-				}
-			}
-		} else {
-			RadiologistData[i].DriversLicenseFile = nil
-		}
-
-		if len(hashdb.Decrypt(tech.DigitalSignature)) > 0 {
-			DigitalSignatureHelper, viewErr := helper.ViewFile("./Assets/Profile/" + hashdb.Decrypt(tech.DigitalSignature))
-			if viewErr != nil {
-				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-				log.Errorf("Failed to read DigitalSignature file: %v", viewErr)
-			}
-			if DigitalSignatureHelper != nil {
-				RadiologistData[i].DigitalSignatureFile = &model.FileData{
-					Base64Data:  DigitalSignatureHelper.Base64Data,
-					ContentType: DigitalSignatureHelper.ContentType,
-				}
-			}
-		} else {
-			RadiologistData[i].DigitalSignatureFile = nil
-		}
-
-		if len(hashdb.Decrypt(tech.ProfileImg)) > 0 {
-			profileImgHelperData, viewErr := helper.ViewFile("./Assets/Profile/" + hashdb.Decrypt(tech.ProfileImg))
-			if viewErr != nil {
-				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-				log.Errorf("Failed to read profile image file: %v", viewErr)
-			}
-			if profileImgHelperData != nil {
-				RadiologistData[i].ProfileImgFile = &model.FileData{
-					Base64Data:  profileImgHelperData.Base64Data,
-					ContentType: profileImgHelperData.ContentType,
-				}
-			}
-		} else {
-			RadiologistData[i].ProfileImgFile = nil
-		}
-
-		var MedicalLicenseSecurity []model.GetMedicalLicenseSecurityModel
-
-		MedicalLicenseSecurityerr := db.Raw(query.GetMedicalLicenseSecuritySQL, reqVal.UserId).Scan(&MedicalLicenseSecurity).Error
-		if MedicalLicenseSecurityerr != nil {
-			log.Printf("ERROR: Failed to fetch scan centers: %v", MedicalLicenseSecurityerr)
-			return []model.GetCoDoctorOne{}
-		}
-
-		RadiologistData[i].MedicalLicenseSecurity = make([]model.GetMedicalLicenseSecurityModel, 0, len(MedicalLicenseSecurity))
-
-		for _, file := range MedicalLicenseSecurity {
-			RadiologistData[i].MedicalLicenseSecurity = append(RadiologistData[i].MedicalLicenseSecurity, model.GetMedicalLicenseSecurityModel{
-				MLSId:    file.MLSId,
-				MLSState: hashdb.Decrypt(file.MLSState),
-				MLSNo:    hashdb.Decrypt(file.MLSNo),
-			})
-		}
-
-		var databaseLicenseFiles []model.LicenseFilesModel
-		LicenseErr := db.Raw(query.GetLicenseFilesSQL, reqVal.UserId).Scan(&databaseLicenseFiles).Error
-		if LicenseErr != nil {
-			log.Printf("ERROR: Failed to fetch License files for user ID %d: %v", reqVal.UserId, LicenseErr)
-			return []model.GetCoDoctorOne{}
-		}
-
-		if len(databaseLicenseFiles) > 0 {
-			RadiologistData[i].LicenseFiles = make([]model.LicenseFilesModel, 0, len(databaseLicenseFiles))
-			for _, dbLicenseItem := range databaseLicenseFiles {
-				processedLicenseItem := model.LicenseFilesModel{
-					LId:          dbLicenseItem.LId,
-					LFileName:    hashdb.Decrypt(dbLicenseItem.LFileName),
-					LOldFileName: hashdb.Decrypt(dbLicenseItem.LOldFileName),
-				}
-				licenseHelperFileData, licenseFileReadErr := helper.ViewFile("./Assets/Files/" + processedLicenseItem.LFileName)
-				if licenseFileReadErr != nil {
-					log.Printf("WARNING: Failed to read License file %s: %v. Skipping file data.", processedLicenseItem.LFileName, licenseFileReadErr)
-					processedLicenseItem.LFileData = nil
-				} else if licenseHelperFileData != nil {
-					processedLicenseItem.LFileData = &model.FileData{
-						Base64Data:  licenseHelperFileData.Base64Data,
-						ContentType: licenseHelperFileData.ContentType,
+		// ---------- PROFILE IMAGE ----------
+		profilePath := RadiologistData[i].ProfileImg
+		if len(profilePath) > 0 {
+			if isS3URL(profilePath) {
+				log.Printf("\n\nProfile path -> if condition %v", profilePath)
+				// S3 URL → directly use it
+				RadiologistData[i].ProfileImgFile = &model.FileData{Base64Data: profilePath, ContentType: "url"}
+			} else {
+				log.Printf("\n\nProfile path -> else condition %v", profilePath)
+				// Local file fallback
+				profileImgHelperData, err := helper.ViewFile("./Assets/Profile/" + profilePath)
+				if err != nil {
+					log.Errorf("\n\n\nFailed to read profile image: %v", err)
+				} else if profileImgHelperData != nil {
+					RadiologistData[i].ProfileImgFile = &model.FileData{
+						Base64Data:  profileImgHelperData.Base64Data,
+						ContentType: profileImgHelperData.ContentType,
 					}
-				} else {
-					processedLicenseItem.LFileData = nil // Should ideally not happen if error is nil
 				}
-				RadiologistData[i].LicenseFiles = append(RadiologistData[i].LicenseFiles, processedLicenseItem)
 			}
 		}
 
-		var databaseMalpracticeFiles []model.MalpracticeModel
-		MalpracticeErr := db.Raw(query.GetMalpracticeFilesSQL, reqVal.UserId).Scan(&databaseMalpracticeFiles).Error
-		if MalpracticeErr != nil {
-			log.Printf("ERROR: Failed to fetch License files for user ID %d: %v", reqVal.UserId, MalpracticeErr)
-			return []model.GetCoDoctorOne{}
-		}
-
-		if len(databaseMalpracticeFiles) > 0 {
-			RadiologistData[i].MalpracticeInsuranceDetails = make([]model.MalpracticeModel, 0, len(databaseMalpracticeFiles))
-			for _, dbLicenseItem := range databaseMalpracticeFiles {
-				processedLicenseItem := model.MalpracticeModel{
-					MPId:          dbLicenseItem.MPId,
-					MPFileName:    hashdb.Decrypt(dbLicenseItem.MPFileName),
-					MPOldFileName: hashdb.Decrypt(dbLicenseItem.MPOldFileName),
-				}
-				licenseHelperFileData, licenseFileReadErr := helper.ViewFile("./Assets/Files/" + processedLicenseItem.MPFileName)
-				if licenseFileReadErr != nil {
-					log.Printf("WARNING: Failed to read License file %s: %v. Skipping file data.", processedLicenseItem.MPFileName, licenseFileReadErr)
-					processedLicenseItem.MPFileData = nil
-				} else if licenseHelperFileData != nil {
-					processedLicenseItem.MPFileData = &model.FileData{
-						Base64Data:  licenseHelperFileData.Base64Data,
-						ContentType: licenseHelperFileData.ContentType,
+		// ---------- DRIVER LICENSE ----------
+		driverPath := RadiologistData[i].DriversLicenseNo
+		if len(driverPath) > 0 {
+			if isS3URL(driverPath) {
+				RadiologistData[i].DriversLicenseFile = &model.FileData{Base64Data: driverPath, ContentType: "url"}
+			} else {
+				driverData, err := helper.ViewFile("./Assets/Files/" + driverPath)
+				if err != nil {
+					log.Errorf("Failed to read DrivingLicense file: %v", err)
+				} else if driverData != nil {
+					RadiologistData[i].DriversLicenseFile = &model.FileData{
+						Base64Data:  driverData.Base64Data,
+						ContentType: driverData.ContentType,
 					}
-				} else {
-					processedLicenseItem.MPFileData = nil // Should ideally not happen if error is nil
 				}
-				RadiologistData[i].MalpracticeInsuranceDetails = append(RadiologistData[i].MalpracticeInsuranceDetails, processedLicenseItem)
 			}
 		}
 
+		// ---------- DIGITAL SIGNATURE ----------
+		signPath := RadiologistData[i].DigitalSignature
+		if len(signPath) > 0 {
+			if isS3URL(signPath) {
+				RadiologistData[i].DigitalSignatureFile = &model.FileData{Base64Data: signPath, ContentType: "url"}
+			} else {
+				signData, err := helper.ViewFile("./Assets/Profile/" + signPath)
+				if err != nil {
+					log.Errorf("Failed to read DigitalSignature: %v", err)
+				} else if signData != nil {
+					RadiologistData[i].DigitalSignatureFile = &model.FileData{
+						Base64Data:  signData.Base64Data,
+						ContentType: signData.ContentType,
+					}
+				}
+			}
+		}
+
+		// ---------- LICENSE FILES ----------
+		var licenseFiles []model.LicenseFilesModel
+		if err := db.Raw(query.GetLicenseFilesSQL, reqVal.UserId).Scan(&licenseFiles).Error; err == nil {
+			for _, lf := range licenseFiles {
+				lf.LFileName = hashdb.Decrypt(lf.LFileName)
+				if isS3URL(lf.LFileName) {
+					lf.LFileData = &model.FileData{Base64Data: lf.LFileName, ContentType: "url"}
+				} else {
+					if data, err := helper.ViewFile("./Assets/Files/" + lf.LFileName); err == nil && data != nil {
+						lf.LFileData = &model.FileData{
+							Base64Data:  data.Base64Data,
+							ContentType: data.ContentType,
+						}
+					}
+				}
+				RadiologistData[i].LicenseFiles = append(RadiologistData[i].LicenseFiles, lf)
+			}
+		}
+
+		// ---------- MALPRACTICE FILES ----------
+		var malpracticeFiles []model.MalpracticeModel
+		if err := db.Raw(query.GetMalpracticeFilesSQL, reqVal.UserId).Scan(&malpracticeFiles).Error; err == nil {
+			for _, mp := range malpracticeFiles {
+				mp.MPFileName = hashdb.Decrypt(mp.MPFileName)
+				if isS3URL(mp.MPFileName) {
+					mp.MPFileData = &model.FileData{Base64Data: mp.MPFileName, ContentType: "url"}
+				} else {
+					if data, err := helper.ViewFile("./Assets/Files/" + mp.MPFileName); err == nil && data != nil {
+						mp.MPFileData = &model.FileData{
+							Base64Data:  data.Base64Data,
+							ContentType: data.ContentType,
+						}
+					}
+				}
+				RadiologistData[i].MalpracticeInsuranceDetails = append(RadiologistData[i].MalpracticeInsuranceDetails, mp)
+			}
+		}
 	}
 
 	return RadiologistData
