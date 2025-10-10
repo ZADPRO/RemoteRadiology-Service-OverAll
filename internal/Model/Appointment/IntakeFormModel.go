@@ -12,11 +12,13 @@ type AnswersReqModel struct {
 
 type AddIntakeFormReq struct {
 	CategoryId             int               `json:"categoryId" mapstructure:"categoryId"`
+	PatientId              int               `json:"patientId" mapstructure:"patientId"`
 	AppointmentId          int               `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
 	Answers                []AnswersReqModel `json:"answers" binding:"required" mapstructure:"answers"`
 	Consent                string            `json:"consent" binding:"required" mapstructure:"consent"`
 	OverrideRequest        bool              `json:"overriderequest" mapstructure:"overriderequest"`
 	PatientIntakeStartTime string            `json:"patientIntakeStartTime" mapstructure:"patientIntakeStartTime"`
+	SaveStatus             bool              `json:"saveStatus" mapstructure:"saveStatus"`
 }
 
 func (RefTransHistory) TableName() string {
@@ -39,6 +41,12 @@ type GetViewIntakeData struct {
 	Answer           string    `json:"answer" gorm:"column:refITFAnswer"`
 	File             *FileData `json:"file" gorm:"-"`
 	VerifyTechnician bool      `json:"verifyTechnician" gorm:"column:refITFVerifiedTechnician"`
+}
+
+type GetViewTechnicianIntakeData struct {
+	RefTITFId  int    `json:"refITFId" gorm:"column:refITFId"`
+	QuestionId int    `json:"questionId" gorm:"column:refTITFQId"`
+	Answer     string `json:"answer" gorm:"column:refTITFAnswer"`
 }
 
 type OverrideRequestModel struct {

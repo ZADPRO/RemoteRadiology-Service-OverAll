@@ -29,6 +29,7 @@ type AddTechnicianIntakeFormReq struct {
 	ArtificatsRight   bool                    `json:"artificatsRight" mapstructure:"artificatsRight"`
 	UpdatedAnswers    []UpdateAnswersReqModel `json:"updatedAnswers" binding:"required" mapstructure:"updatedAnswers"`
 	TechnicianAnswers []AnswersReqModel       `json:"technicianAnswers" binding:"required" mapstructure:"technicianAnswers"`
+	SaveStatus        bool                    `json:"saveStatus" mapstructure:"saveStatus"`
 	// DicomFiles        []DicomFile             `json:"dicom_files" binding:"required" mapstructure:"dicom_files"`
 }
 
