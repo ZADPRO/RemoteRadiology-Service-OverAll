@@ -301,7 +301,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 					var starttime = ReportHistory[0].HandleEndTime
 
 					if len(ReportHistory[0].HandleEndTime) == 0 {
-						starttime = ReportHistory[1].HandleEndTime
+						starttime = ReportHistory[0].HandleEndTime
 					}
 
 					//Insert the History
