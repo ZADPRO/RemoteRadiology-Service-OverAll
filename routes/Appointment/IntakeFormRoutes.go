@@ -10,6 +10,7 @@ import (
 func InitIntakeFormRoutes(router *gin.Engine) {
 	route := router.Group("/api/v1/intakeform")
 	route.POST("/add", accesstoken.JWTMiddleware(), controllers.AddIntakeFormController())
+	route.POST("/viewpatient", accesstoken.JWTMiddleware(), controllers.ViewPatientController())
 	route.POST("/view", accesstoken.JWTMiddleware(), controllers.ViewIntakeFormController())
 	route.POST("/verify", accesstoken.JWTMiddleware(), controllers.VerifyIntakeFormController())
 	route.POST("/update", accesstoken.JWTMiddleware(), controllers.UpdateIntakeFormController())
