@@ -195,7 +195,7 @@ func ViewTechnicianPatientQueueService(db *gorm.DB, idValue int, roleIdValue int
 			FinalStaffAvailable = StaffAvailable
 		} else if roleIdValue == 2 || roleIdValue == 3 || roleIdValue == 5 || roleIdValue == 8 {
 			for _, data := range StaffAvailable {
-				if data.RoleId == 10 || data.RoleId == 5 || data.RoleId == 8 || data.RoleId == 3 {
+				if data.RoleId == 10 || data.RoleId == 5 || data.RoleId == 8 || data.RoleId == 3 || data.RoleId == 2 {
 					FinalStaffAvailable = append(FinalStaffAvailable, data)
 				}
 			}
