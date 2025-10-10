@@ -16,6 +16,7 @@ type GetAllScaCenter struct {
 	ProfileImgFile     *FileData `json:"profileImgFile" gorm:"-"`
 	SCStatus           bool      `json:"refSCStatus" gorm:"column:refSCStatus"`
 	SCConsultantStatus bool      `json:"refSCConsultantStatus" gorm:"column:refSCConsultantStatus"`
+	SCConsultantLink   string    `json:"refSCConsultantLink" gorm:"column:refSCConsultantLink"`
 }
 
 type Mapping struct {
