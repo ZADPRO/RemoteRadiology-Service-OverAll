@@ -100,12 +100,13 @@ func ViewPatientHistory() gin.HandlerFunc {
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
 
-		historyData, ConsultantStatus := service.ViewPatientHistoryService(dbConn, int(idValue.(float64)))
+		historyData, ConsultantStatus, ConsultantLink := service.ViewPatientHistoryService(dbConn, int(idValue.(float64)))
 
 		payload := map[string]interface{}{
 			"status":           true,
 			"data":             historyData,
 			"consultantStatus": ConsultantStatus,
+			"consultantLink":   ConsultantLink,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)
