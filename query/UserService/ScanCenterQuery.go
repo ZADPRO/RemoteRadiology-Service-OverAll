@@ -28,7 +28,8 @@ SET
   "refSCWebsite" = ?,
   "refSCAppointments" = ?,
   "refSCStatus" = ?,
-  "refSCConsultantStatus" = ?
+  "refSCConsultantStatus" = ?,
+  "refSCConsultantLink" = ?
 WHERE
   "refSCId" = ?
 `

@@ -102,8 +102,6 @@ func PostScanCenterService(db *gorm.DB, reqVal model.ScanCenterRegisterReq, idVa
 func PatchScanCenterService(db *gorm.DB, reqVal model.UpdateScanCentertReq, idValue int) (bool, string) {
 	log := logger.InitLogger()
 
-	fmt.Println("----------------->", reqVal.SCConsultantStatus)
-
 	tx := db.Begin()
 	if tx.Error != nil {
 		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
@@ -116,6 +114,8 @@ func PatchScanCenterService(db *gorm.DB, reqVal model.UpdateScanCentertReq, idVa
 			tx.Rollback()
 		}
 	}()
+
+	fmt.Println("=======>", reqVal.SCConsultantLink)
 
 	var verifyData []model.ScanCenterVerifyData
 
@@ -154,6 +154,7 @@ func PatchScanCenterService(db *gorm.DB, reqVal model.UpdateScanCentertReq, idVa
 		"Appointment Status": PreviousData.Appointments,
 		"SCStatus":           PreviousData.SCStatus,
 		"SCConsultantStatus": PreviousData.SCConsultantStatus,
+		"SCConsultantLink":   PreviousData.SCConsultantLink,
 	}
 
 	updatedData := map[string]interface{}{
@@ -166,6 +167,7 @@ func PatchScanCenterService(db *gorm.DB, reqVal model.UpdateScanCentertReq, idVa
 		"Appointment Status": reqVal.Appointments,
 		"SCStatus":           reqVal.Status,
 		"SCConsultantStatus": reqVal.SCConsultantStatus,
+		"SCConsultantLink":   reqVal.SCConsultantLink,
 	}
 
 	ChangesData := helper.GetChanges(updatedData, oldData)
@@ -202,6 +204,7 @@ func PatchScanCenterService(db *gorm.DB, reqVal model.UpdateScanCentertReq, idVa
 		reqVal.Appointments,
 		reqVal.Status,
 		reqVal.SCConsultantStatus,
+		reqVal.SCConsultantLink,
 		reqVal.ID,
 	).Error
 	if ScanCenterErr != nil {

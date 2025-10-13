@@ -1,13 +1,16 @@
 package service
 
 import (
+	s3Service "AuthenticationService/Service/S3"
 	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
 	helper "AuthenticationService/internal/Helper/ViewFile"
 	model "AuthenticationService/internal/Model/ProfileService"
 	query "AuthenticationService/query/ProfileService"
+	"context"
 	"log"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 
@@ -44,6 +47,7 @@ func GetDoctorCoDataService(db *gorm.DB, reqVal model.GetOneReceptionistReq, idV
 	UserId := reqVal.UserId
 	ScanCenterId := reqVal.ScanID
 
+	// Determine UserId and ScanCenterId if UserId not provided
 	if reqVal.UserId == 0 {
 		UserId = idValue
 		var MappingData []model.Mapping
@@ -58,13 +62,36 @@ func GetDoctorCoDataService(db *gorm.DB, reqVal model.GetOneReceptionistReq, idV
 		}
 	}
 
+	// Fetch co-doctor data
 	if err := db.Raw(query.GetListofCoDoctorOneSQL, UserId, ScanCenterId).Scan(&RadiologistData).Error; err != nil {
 		log.Printf("ERROR: Failed to fetch co-doctors: %v", err)
 		return []model.GetCoDoctorOne{}
 	}
 
+	// Helper function: return presigned URL if S3, else local file
+	getFile := func(filePath, localDir string) (string, *model.FileData) {
+		if filePath == "" {
+			return "", nil
+		}
+		if isS3URL(filePath) {
+			key := extractS3Key(filePath)
+			presignedURL, err := s3Service.GeneratePresignGetURL(context.Background(), key, 10*time.Minute)
+			if err != nil {
+				log.Errorf("Failed to generate presigned URL for %s: %v", filePath, err)
+				return "", nil
+			}
+			return presignedURL, &model.FileData{Base64Data: presignedURL, ContentType: "url"}
+		}
+		fileData, err := helper.ViewFile(localDir + "/" + filePath)
+		if err != nil {
+			log.Errorf("Failed to read local file %s: %v", filePath, err)
+			return "", nil
+		}
+		return "", (*model.FileData)(fileData)
+	}
+
 	for i, tech := range RadiologistData {
-		// 🔹 Decrypt all fields
+		// Decrypt basic fields
 		RadiologistData[i].FirstName = hashdb.Decrypt(tech.FirstName)
 		RadiologistData[i].LastName = hashdb.Decrypt(tech.LastName)
 		RadiologistData[i].ProfileImg = hashdb.Decrypt(tech.ProfileImg)
@@ -75,98 +102,38 @@ func GetDoctorCoDataService(db *gorm.DB, reqVal model.GetOneReceptionistReq, idV
 		RadiologistData[i].DigitalSignature = hashdb.Decrypt(tech.DigitalSignature)
 		RadiologistData[i].NPI = hashdb.Decrypt(tech.NPI)
 
-		// ---------- PROFILE IMAGE ----------
-		profilePath := RadiologistData[i].ProfileImg
-		if len(profilePath) > 0 {
-			if isS3URL(profilePath) {
-				log.Printf("\n\nProfile path -> if condition %v", profilePath)
-				// S3 URL → directly use it
-				RadiologistData[i].ProfileImgFile = &model.FileData{Base64Data: profilePath, ContentType: "url"}
-			} else {
-				log.Printf("\n\nProfile path -> else condition %v", profilePath)
-				// Local file fallback
-				profileImgHelperData, err := helper.ViewFile("./Assets/Profile/" + profilePath)
-				if err != nil {
-					log.Errorf("\n\n\nFailed to read profile image: %v", err)
-				} else if profileImgHelperData != nil {
-					RadiologistData[i].ProfileImgFile = &model.FileData{
-						Base64Data:  profileImgHelperData.Base64Data,
-						ContentType: profileImgHelperData.ContentType,
-					}
-				}
-			}
-		}
+		// Profile Image
+		RadiologistData[i].ProfileImg, RadiologistData[i].ProfileImgFile =
+			getFile(RadiologistData[i].ProfileImg, "./Assets/Profile")
 
-		// ---------- DRIVER LICENSE ----------
-		driverPath := RadiologistData[i].DriversLicenseNo
-		if len(driverPath) > 0 {
-			if isS3URL(driverPath) {
-				RadiologistData[i].DriversLicenseFile = &model.FileData{Base64Data: driverPath, ContentType: "url"}
-			} else {
-				driverData, err := helper.ViewFile("./Assets/Files/" + driverPath)
-				if err != nil {
-					log.Errorf("Failed to read DrivingLicense file: %v", err)
-				} else if driverData != nil {
-					RadiologistData[i].DriversLicenseFile = &model.FileData{
-						Base64Data:  driverData.Base64Data,
-						ContentType: driverData.ContentType,
-					}
-				}
-			}
-		}
+		// Driving License
+		RadiologistData[i].DriversLicenseNo, RadiologistData[i].DriversLicenseFile =
+			getFile(RadiologistData[i].DriversLicenseNo, "./Assets/Files")
 
-		// ---------- DIGITAL SIGNATURE ----------
-		signPath := RadiologistData[i].DigitalSignature
-		if len(signPath) > 0 {
-			if isS3URL(signPath) {
-				RadiologistData[i].DigitalSignatureFile = &model.FileData{Base64Data: signPath, ContentType: "url"}
-			} else {
-				signData, err := helper.ViewFile("./Assets/Profile/" + signPath)
-				if err != nil {
-					log.Errorf("Failed to read DigitalSignature: %v", err)
-				} else if signData != nil {
-					RadiologistData[i].DigitalSignatureFile = &model.FileData{
-						Base64Data:  signData.Base64Data,
-						ContentType: signData.ContentType,
-					}
-				}
-			}
-		}
+		// Digital Signature
+		RadiologistData[i].DigitalSignature, RadiologistData[i].DigitalSignatureFile =
+			getFile(RadiologistData[i].DigitalSignature, "./Assets/Profile")
 
-		// ---------- LICENSE FILES ----------
-		var licenseFiles []model.LicenseFilesModel
-		if err := db.Raw(query.GetLicenseFilesSQL, reqVal.UserId).Scan(&licenseFiles).Error; err == nil {
-			for _, lf := range licenseFiles {
+		// License Files
+		var databaseLicenseFiles []model.LicenseFilesModel
+		if err := db.Raw(query.GetLicenseFilesSQL, UserId).Scan(&databaseLicenseFiles).Error; err == nil && len(databaseLicenseFiles) > 0 {
+			RadiologistData[i].LicenseFiles = make([]model.LicenseFilesModel, 0, len(databaseLicenseFiles))
+			for _, lf := range databaseLicenseFiles {
 				lf.LFileName = hashdb.Decrypt(lf.LFileName)
-				if isS3URL(lf.LFileName) {
-					lf.LFileData = &model.FileData{Base64Data: lf.LFileName, ContentType: "url"}
-				} else {
-					if data, err := helper.ViewFile("./Assets/Files/" + lf.LFileName); err == nil && data != nil {
-						lf.LFileData = &model.FileData{
-							Base64Data:  data.Base64Data,
-							ContentType: data.ContentType,
-						}
-					}
-				}
+				lf.LOldFileName = hashdb.Decrypt(lf.LOldFileName)
+				lf.LFileName, lf.LFileData = getFile(lf.LFileName, "./Assets/Files")
 				RadiologistData[i].LicenseFiles = append(RadiologistData[i].LicenseFiles, lf)
 			}
 		}
 
-		// ---------- MALPRACTICE FILES ----------
-		var malpracticeFiles []model.MalpracticeModel
-		if err := db.Raw(query.GetMalpracticeFilesSQL, reqVal.UserId).Scan(&malpracticeFiles).Error; err == nil {
-			for _, mp := range malpracticeFiles {
+		// Malpractice Files
+		var databaseMalpracticeFiles []model.MalpracticeModel
+		if err := db.Raw(query.GetMalpracticeFilesSQL, UserId).Scan(&databaseMalpracticeFiles).Error; err == nil && len(databaseMalpracticeFiles) > 0 {
+			RadiologistData[i].MalpracticeInsuranceDetails = make([]model.MalpracticeModel, 0, len(databaseMalpracticeFiles))
+			for _, mp := range databaseMalpracticeFiles {
 				mp.MPFileName = hashdb.Decrypt(mp.MPFileName)
-				if isS3URL(mp.MPFileName) {
-					mp.MPFileData = &model.FileData{Base64Data: mp.MPFileName, ContentType: "url"}
-				} else {
-					if data, err := helper.ViewFile("./Assets/Files/" + mp.MPFileName); err == nil && data != nil {
-						mp.MPFileData = &model.FileData{
-							Base64Data:  data.Base64Data,
-							ContentType: data.ContentType,
-						}
-					}
-				}
+				mp.MPOldFileName = hashdb.Decrypt(mp.MPOldFileName)
+				mp.MPFileName, mp.MPFileData = getFile(mp.MPFileName, "./Assets/Files")
 				RadiologistData[i].MalpracticeInsuranceDetails = append(RadiologistData[i].MalpracticeInsuranceDetails, mp)
 			}
 		}

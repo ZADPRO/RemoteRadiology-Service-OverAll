@@ -4,9 +4,9 @@ import (
 	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
 	s3path "AuthenticationService/internal/Helper/S3"
-	helper "AuthenticationService/internal/Helper/ViewFile"
 	model "AuthenticationService/internal/Model/ProfileService"
 	query "AuthenticationService/query/ProfileService"
+	"strings"
 
 	"gorm.io/gorm"
 
@@ -37,7 +37,6 @@ func GetManagerDataService(db *gorm.DB, reqVal model.GetRadiologistreq, idValue 
 	var RadiologistData []model.GetManagerOne
 
 	UserId := reqVal.Id
-
 	if UserId == 0 {
 		UserId = idValue
 	}
@@ -46,6 +45,37 @@ func GetManagerDataService(db *gorm.DB, reqVal model.GetRadiologistreq, idValue 
 	if err != nil {
 		log.Printf("ERROR: Failed to fetch scan centers: %v", err)
 		return []model.GetManagerOne{}
+	}
+
+	// Helper function to determine if a string is an S3 URL
+	isS3URL := func(url string) bool {
+		return strings.HasPrefix(url, "https://easeqt-health-archive.s3")
+	}
+
+	// Helper to generate FileData
+	generateFileData := func(fileName, fileType, folder string) *model.FileData {
+		if len(fileName) == 0 {
+			return nil
+		}
+
+		// If it's already a valid S3 URL
+		if isS3URL(fileName) {
+			return &model.FileData{
+				Base64Data:  fileName,
+				ContentType: fileType,
+			}
+		}
+
+		s3Key := folder + "/" + fileName
+		url, err := s3path.GetS3FileURL(s3Key)
+		if err != nil {
+			log.Errorf("Failed to generate S3 URL for %s: %v", fileName, err)
+			return nil
+		}
+		return &model.FileData{
+			Base64Data:  url,
+			ContentType: fileType,
+		}
 	}
 
 	for i, tech := range RadiologistData {
@@ -57,72 +87,19 @@ func GetManagerDataService(db *gorm.DB, reqVal model.GetRadiologistreq, idValue 
 		RadiologistData[i].Aadhar = hashdb.Decrypt(tech.Aadhar)
 		RadiologistData[i].DrivingLicense = hashdb.Decrypt(tech.DrivingLicense)
 
-		if len(RadiologistData[i].ProfileImg) > 0 {
-			s3Key := "images/" + RadiologistData[i].ProfileImg
-			log.Printf("\n\n\nS3KEY -> %v", s3Key)
-			url, err := s3path.GetS3FileURL(s3Key)
-			if err != nil {
-				log.Errorf("Failed to generate S3 URL for profile image: %v", err)
-			} else {
-				RadiologistData[i].ProfileImgFile = &model.FileData{
-					Base64Data:  "",
-					ContentType: "image/jpeg",
-				}
-				RadiologistData[i].ProfileImgFile.Base64Data = url
-			}
-		} else {
-			RadiologistData[i].ProfileImgFile = nil
-		}
+		// Profile image (image type, no token needed if S3 URL)
+		RadiologistData[i].ProfileImgFile = generateFileData(RadiologistData[i].ProfileImg, "image/jpeg", "images")
 
-		if len(RadiologistData[i].Pan) > 0 {
-			s3Key := "documents/" + RadiologistData[i].Pan
-			url, err := s3path.GetS3FileURL(s3Key)
-			if err != nil {
-				log.Errorf("Failed to generate S3 URL for PAN file: %v", err)
-			} else {
-				RadiologistData[i].PanFile = &model.FileData{
-					Base64Data:  url,
-					ContentType: "application/pdf",
-				}
-			}
-		} else {
-			RadiologistData[i].PanFile = nil
-		}
+		// Documents (PDF type)
+		RadiologistData[i].PanFile = generateFileData(RadiologistData[i].Pan, "application/pdf", "documents")
+		RadiologistData[i].AadharFile = generateFileData(RadiologistData[i].Aadhar, "application/pdf", "documents")
+		RadiologistData[i].DrivingLicenseFile = generateFileData(RadiologistData[i].DrivingLicense, "application/pdf", "documents")
 
-		if len(RadiologistData[i].Aadhar) > 0 {
-			s3Key := "documents/" + RadiologistData[i].Aadhar
-			url, err := s3path.GetS3FileURL(s3Key)
-			if err != nil {
-				log.Errorf("Failed to generate S3 URL for Aadhar file: %v", err)
-			} else {
-				RadiologistData[i].AadharFile = &model.FileData{
-					Base64Data:  url,
-					ContentType: "application/pdf",
-				}
-			}
-		} else {
-			RadiologistData[i].AadharFile = nil
-		}
-
-		if len(RadiologistData[i].DrivingLicense) > 0 {
-			s3Key := "documents/" + RadiologistData[i].DrivingLicense
-			url, err := s3path.GetS3FileURL(s3Key)
-			if err != nil {
-				log.Errorf("Failed to generate S3 URL for Driving License: %v", err)
-			} else {
-				RadiologistData[i].DrivingLicenseFile = &model.FileData{
-					Base64Data:  url,
-					ContentType: "application/pdf",
-				}
-			}
-		} else {
-			RadiologistData[i].DrivingLicenseFile = nil
-		}
-
+		// Education Certificates
 		var databaseECFiles []model.GetEducationCertificateFilesModel
-		CVFileserr := db.Raw(query.GetECFilesSQL, reqVal.Id).Scan(&databaseECFiles).Error
+		CVFileserr := db.Raw(query.GetECFilesSQL, UserId).Scan(&databaseECFiles).Error
 		if CVFileserr != nil {
-			log.Printf("ERROR: Failed to fetch CV files for user ID %d: %v", reqVal.Id, CVFileserr)
+			log.Printf("ERROR: Failed to fetch CV files for user ID %d: %v", UserId, CVFileserr)
 			return []model.GetManagerOne{}
 		}
 
@@ -134,22 +111,12 @@ func GetManagerDataService(db *gorm.DB, reqVal model.GetRadiologistreq, idValue 
 					ECFileName:    hashdb.Decrypt(dbCvItem.ECFileName),
 					ECOldFileName: hashdb.Decrypt(dbCvItem.ECOldFileName),
 				}
-				ECHelperFileData, ECFileReadErr := helper.ViewFile("./Assets/Files/" + processedCvItem.ECFileName)
-				if ECFileReadErr != nil {
-					log.Printf("WARNING: Failed to read CV file %s: %v. Skipping file data.", processedCvItem.ECFileName, ECFileReadErr)
-					processedCvItem.ECFileData = nil
-				} else if ECHelperFileData != nil {
-					processedCvItem.ECFileData = &model.FileData{
-						Base64Data:  ECHelperFileData.Base64Data,
-						ContentType: ECHelperFileData.ContentType,
-					}
-				} else {
-					processedCvItem.ECFileData = nil // Should ideally not happen if error is nil
-				}
+
+				// Generate presigned URL for document
+				processedCvItem.ECFileData = generateFileData(processedCvItem.ECFileName, "application/pdf", "documents")
 				RadiologistData[i].EducationCertificateFile = append(RadiologistData[i].EducationCertificateFile, processedCvItem)
 			}
 		}
-
 	}
 
 	return RadiologistData

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"gorm.io/gorm"
+
 )
 
 func extractS3Key(s3URL string) string {
@@ -94,6 +95,7 @@ func GetOneReceptionistDataService(db *gorm.DB, reqVal model.GetOneReceptionistR
 
 		// Driving License
 		if isS3URL(RadiologistData[i].DrivingLicense) {
+			log.Print("\n\n\nDriving License path => %v", RadiologistData[i].DrivingLicense)
 			key := extractS3Key(RadiologistData[i].DrivingLicense) // "documents/ee84d792-71c8-4a39-9d6d-747316c9084b_20251009234001.pdf"
 			presignedURL, err := s3Service.GeneratePresignGetURL(context.Background(), key, 10*time.Minute)
 			if err == nil {
