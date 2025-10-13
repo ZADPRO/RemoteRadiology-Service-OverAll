@@ -661,21 +661,41 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 			ext,
 		)
 
-		oldPath := filepath.Join("./Assets/Dicom/", file.FilesName)
-		newPath := filepath.Join("./Assets/Dicom/", newFilename)
+		// oldPath := filepath.Join("./Assets/Dicom/", file.FilesName)
+		// newPath := filepath.Join("./Assets/Dicom/", newFilename)
 
-		// Ensure old file exists
-		if _, err := os.Stat(oldPath); os.IsNotExist(err) {
-			log.Printf("ERROR: Source file does not exist: %s\n", oldPath)
-			tx.Rollback()
-			return false, "DICOM source file not found"
-		}
+		// // Ensure old file exists
+		// if _, err := os.Stat(oldPath); os.IsNotExist(err) {
+		// 	log.Printf("ERROR: Source file does not exist: %s\n", oldPath)
+		// 	tx.Rollback()
+		// 	return false, "DICOM source file not found"
+		// }
 
-		// Try renaming
-		if err := os.Rename(oldPath, newPath); err != nil {
-			log.Printf("ERROR: Failed to rename DICOM file from %s to %s: %v\n", oldPath, newPath, err)
-			tx.Rollback()
-			return false, "Failed to process DICOM file"
+		// // Try renaming
+		// if err := os.Rename(oldPath, newPath); err != nil {
+		// 	log.Printf("ERROR: Failed to rename DICOM file from %s to %s: %v\n", oldPath, newPath, err)
+		// 	tx.Rollback()
+		// 	return false, "Failed to process DICOM file"
+		// }
+
+		// If the file is an S3 URL, skip rename and just store it
+		if strings.HasPrefix(file.FilesName, "http") {
+			DicomFile := model.DicomFileModel{
+				UserId:        reqVal.PatientId,
+				AppointmentId: reqVal.AppointmentId,
+				FileName:      file.FilesName, // store full S3 URL
+				CreatedAt:     time.Now().In(timeZone.MustGetPacificLocation()),
+				CreatedBy:     idValue,
+				Side:          file.Side,
+			}
+
+			if err := db.Create(&DicomFile).Error; err != nil {
+				log.Error("DicomFile INSERT ERROR at Technician Intake: " + err.Error())
+				tx.Rollback()
+				return false, "Something went wrong, Try Again"
+			}
+
+			continue // skip local rename
 		}
 
 		DicomFile := model.DicomFileModel{
