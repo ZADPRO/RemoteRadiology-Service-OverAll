@@ -1,14 +1,19 @@
 package service
 
 import (
+	s3Service "AuthenticationService/Service/S3"
 	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
 	helper "AuthenticationService/internal/Helper/ViewFile"
 	model "AuthenticationService/internal/Model/ProfileService"
 	query "AuthenticationService/query/ProfileService"
+	"context"
 	"fmt"
+	"strings"
+	"time"
 
 	"gorm.io/gorm"
+
 )
 
 func GetAllPerformingProviderDataService(db *gorm.DB) []model.GetAllRadiologist {
@@ -79,14 +84,26 @@ func GetPerformingProviderDataService(db *gorm.DB, reqVal model.GetRadiologistre
 		}
 
 		if len(hashdb.Decrypt(tech.Pan)) > 0 {
-			panFileHelperData, panFileErr := helper.ViewFile("./Assets/Files/" + hashdb.Decrypt(tech.Pan))
-			if panFileErr != nil {
-				log.Errorf("Failed to read PAN file: %v", panFileErr)
-			}
-			if panFileHelperData != nil {
-				RadiologistData[i].PanFile = &model.FileData{
-					Base64Data:  panFileHelperData.Base64Data,
-					ContentType: panFileHelperData.ContentType,
+			decryptedPan := hashdb.Decrypt(tech.Pan)
+			if isS3URL(decryptedPan) {
+				key := extractS3Key(decryptedPan)
+				presignedURL, err := s3Service.GeneratePresignGetURL(context.Background(), key, 10*time.Minute)
+				if err != nil {
+					log.Errorf("Failed to generate presigned URL for PAN: %v", err)
+				} else {
+					RadiologistData[i].Pan = presignedURL
+				}
+				RadiologistData[i].PanFile = nil
+			} else {
+				panFileHelperData, panFileErr := helper.ViewFile("./Assets/Files/" + decryptedPan)
+				if panFileErr != nil {
+					log.Errorf("Failed to read PAN file: %v", panFileErr)
+				}
+				if panFileHelperData != nil {
+					RadiologistData[i].PanFile = &model.FileData{
+						Base64Data:  panFileHelperData.Base64Data,
+						ContentType: panFileHelperData.ContentType,
+					}
 				}
 			}
 		} else {
@@ -94,14 +111,26 @@ func GetPerformingProviderDataService(db *gorm.DB, reqVal model.GetRadiologistre
 		}
 
 		if len(hashdb.Decrypt(tech.Aadhar)) > 0 {
-			aadharFileHelperData, aadharFileErr := helper.ViewFile("./Assets/Files/" + hashdb.Decrypt(tech.Aadhar))
-			if aadharFileErr != nil {
-				log.Errorf("Failed to read Aadhar file: %v", aadharFileErr)
-			}
-			if aadharFileHelperData != nil {
-				RadiologistData[i].AadharFile = &model.FileData{
-					Base64Data:  aadharFileHelperData.Base64Data,
-					ContentType: aadharFileHelperData.ContentType,
+			decryptedAadhar := hashdb.Decrypt(tech.Aadhar)
+			if isS3URL(decryptedAadhar) {
+				key := extractS3Key(decryptedAadhar)
+				presignedURL, err := s3Service.GeneratePresignGetURL(context.Background(), key, 10*time.Minute)
+				if err != nil {
+					log.Errorf("Failed to generate presigned URL for Aadhar: %v", err)
+				} else {
+					RadiologistData[i].Aadhar = presignedURL
+				}
+				RadiologistData[i].AadharFile = nil
+			} else {
+				aadharFileHelperData, aadharFileErr := helper.ViewFile("./Assets/Files/" + decryptedAadhar)
+				if aadharFileErr != nil {
+					log.Errorf("Failed to read Aadhar file: %v", aadharFileErr)
+				}
+				if aadharFileHelperData != nil {
+					RadiologistData[i].AadharFile = &model.FileData{
+						Base64Data:  aadharFileHelperData.Base64Data,
+						ContentType: aadharFileHelperData.ContentType,
+					}
 				}
 			}
 		} else {
@@ -109,15 +138,26 @@ func GetPerformingProviderDataService(db *gorm.DB, reqVal model.GetRadiologistre
 		}
 
 		if len(hashdb.Decrypt(tech.DrivingLicense)) > 0 {
-			DriversLicenseNoImgHelperData, viewErr := helper.ViewFile("./Assets/Files/" + hashdb.Decrypt(tech.DrivingLicense))
-			if viewErr != nil {
-				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-				log.Errorf("Failed to read DrivingLicense file: %v", viewErr)
-			}
-			if DriversLicenseNoImgHelperData != nil {
-				RadiologistData[i].DrivingLicenseFile = &model.FileData{
-					Base64Data:  DriversLicenseNoImgHelperData.Base64Data,
-					ContentType: DriversLicenseNoImgHelperData.ContentType,
+			decryptedDL := hashdb.Decrypt(tech.DrivingLicense)
+			if isS3URL(decryptedDL) {
+				key := extractS3Key(decryptedDL)
+				presignedURL, err := s3Service.GeneratePresignGetURL(context.Background(), key, 10*time.Minute)
+				if err != nil {
+					log.Errorf("Failed to generate presigned URL for Driving License: %v", err)
+				} else {
+					RadiologistData[i].DrivingLicense = presignedURL
+				}
+				RadiologistData[i].DrivingLicenseFile = nil
+			} else {
+				dlHelperData, viewErr := helper.ViewFile("./Assets/Files/" + decryptedDL)
+				if viewErr != nil {
+					log.Errorf("Failed to read DrivingLicense file: %v", viewErr)
+				}
+				if dlHelperData != nil {
+					RadiologistData[i].DrivingLicenseFile = &model.FileData{
+						Base64Data:  dlHelperData.Base64Data,
+						ContentType: dlHelperData.ContentType,
+					}
 				}
 			}
 		} else {
@@ -172,17 +212,31 @@ func GetPerformingProviderDataService(db *gorm.DB, reqVal model.GetRadiologistre
 					CVFileName:    hashdb.Decrypt(dbCvItem.CVFileName),
 					CVOldFileName: hashdb.Decrypt(dbCvItem.CVOldFileName),
 				}
-				cvHelperFileData, cvFileReadErr := helper.ViewFile("./Assets/Files/" + processedCvItem.CVFileName)
-				if cvFileReadErr != nil {
-					log.Printf("WARNING: Failed to read CV file %s: %v. Skipping file data.", processedCvItem.CVFileName, cvFileReadErr)
-					processedCvItem.CVFileData = nil
-				} else if cvHelperFileData != nil {
-					processedCvItem.CVFileData = &model.FileData{
-						Base64Data:  cvHelperFileData.Base64Data,
-						ContentType: cvHelperFileData.ContentType,
+
+				fileName := processedCvItem.CVFileName
+
+				if strings.HasPrefix(fileName, "https://") {
+					// File stored in S3 → Generate presigned URL
+					key := extractS3Key(fileName)
+					if presignedURL, err := s3Service.GeneratePresignGetURL(context.Background(), key, 15*time.Minute); err == nil {
+						processedCvItem.CVFileData = &model.FileData{
+							Base64Data:  presignedURL,
+							ContentType: "application/pdf",
+						}
+					} else {
+						log.Errorf("Failed to generate presigned URL for CV: %v", err)
 					}
 				} else {
-					processedCvItem.CVFileData = nil // Should ideally not happen if error is nil
+					// Local file → Use helper.ViewFile
+					cvHelperFileData, cvFileReadErr := helper.ViewFile("./Assets/Files/" + fileName)
+					if cvFileReadErr != nil {
+						log.Printf("WARNING: Failed to read CV file %s: %v. Skipping file data.", fileName, cvFileReadErr)
+					} else if cvHelperFileData != nil {
+						processedCvItem.CVFileData = &model.FileData{
+							Base64Data:  cvHelperFileData.Base64Data,
+							ContentType: cvHelperFileData.ContentType,
+						}
+					}
 				}
 				RadiologistData[i].CVFiles = append(RadiologistData[i].CVFiles, processedCvItem)
 			}
@@ -203,18 +257,31 @@ func GetPerformingProviderDataService(db *gorm.DB, reqVal model.GetRadiologistre
 					MPFileName:    hashdb.Decrypt(dbLicenseItem.MPFileName),
 					MPOldFileName: hashdb.Decrypt(dbLicenseItem.MPOldFileName),
 				}
-				licenseHelperFileData, licenseFileReadErr := helper.ViewFile("./Assets/Files/" + processedLicenseItem.MPFileName)
-				if licenseFileReadErr != nil {
-					log.Printf("WARNING: Failed to read License file %s: %v. Skipping file data.", processedLicenseItem.MPFileName, licenseFileReadErr)
-					processedLicenseItem.MPFileData = nil
-				} else if licenseHelperFileData != nil {
-					processedLicenseItem.MPFileData = &model.FileData{
-						Base64Data:  licenseHelperFileData.Base64Data,
-						ContentType: licenseHelperFileData.ContentType,
+
+				fileName := processedLicenseItem.MPFileName
+
+				if strings.HasPrefix(fileName, "https://") {
+					key := extractS3Key(fileName)
+					if presignedURL, err := s3Service.GeneratePresignGetURL(context.Background(), key, 15*time.Minute); err == nil {
+						processedLicenseItem.MPFileData = &model.FileData{
+							Base64Data:  presignedURL,
+							ContentType: "application/pdf",
+						}
+					} else {
+						log.Errorf("Failed to generate presigned URL for Malpractice file: %v", err)
 					}
 				} else {
-					processedLicenseItem.MPFileData = nil // Should ideally not happen if error is nil
+					licenseHelperFileData, licenseFileReadErr := helper.ViewFile("./Assets/Files/" + fileName)
+					if licenseFileReadErr != nil {
+						log.Printf("WARNING: Failed to read License file %s: %v. Skipping file data.", fileName, licenseFileReadErr)
+					} else if licenseHelperFileData != nil {
+						processedLicenseItem.MPFileData = &model.FileData{
+							Base64Data:  licenseHelperFileData.Base64Data,
+							ContentType: licenseHelperFileData.ContentType,
+						}
+					}
 				}
+
 				RadiologistData[i].MalpracticeInsuranceDetails = append(RadiologistData[i].MalpracticeInsuranceDetails, processedLicenseItem)
 			}
 		}
@@ -234,18 +301,31 @@ func GetPerformingProviderDataService(db *gorm.DB, reqVal model.GetRadiologistre
 					LFileName:    hashdb.Decrypt(dbLicenseItem.LFileName),
 					LOldFileName: hashdb.Decrypt(dbLicenseItem.LOldFileName),
 				}
-				licenseHelperFileData, licenseFileReadErr := helper.ViewFile("./Assets/Files/" + processedLicenseItem.LFileName)
-				if licenseFileReadErr != nil {
-					log.Printf("WARNING: Failed to read License file %s: %v. Skipping file data.", processedLicenseItem.LFileName, licenseFileReadErr)
-					processedLicenseItem.LFileData = nil
-				} else if licenseHelperFileData != nil {
-					processedLicenseItem.LFileData = &model.FileData{
-						Base64Data:  licenseHelperFileData.Base64Data,
-						ContentType: licenseHelperFileData.ContentType,
+
+				fileName := processedLicenseItem.LFileName
+
+				if strings.HasPrefix(fileName, "https://") {
+					key := extractS3Key(fileName)
+					if presignedURL, err := s3Service.GeneratePresignGetURL(context.Background(), key, 15*time.Minute); err == nil {
+						processedLicenseItem.LFileData = &model.FileData{
+							Base64Data:  presignedURL,
+							ContentType: "application/pdf",
+						}
+					} else {
+						log.Errorf("Failed to generate presigned URL for License file: %v", err)
 					}
 				} else {
-					processedLicenseItem.LFileData = nil // Should ideally not happen if error is nil
+					licenseHelperFileData, licenseFileReadErr := helper.ViewFile("./Assets/Files/" + fileName)
+					if licenseFileReadErr != nil {
+						log.Printf("WARNING: Failed to read License file %s: %v. Skipping file data.", fileName, licenseFileReadErr)
+					} else if licenseHelperFileData != nil {
+						processedLicenseItem.LFileData = &model.FileData{
+							Base64Data:  licenseHelperFileData.Base64Data,
+							ContentType: licenseHelperFileData.ContentType,
+						}
+					}
 				}
+
 				RadiologistData[i].LicenseFiles = append(RadiologistData[i].LicenseFiles, processedLicenseItem)
 			}
 		}
