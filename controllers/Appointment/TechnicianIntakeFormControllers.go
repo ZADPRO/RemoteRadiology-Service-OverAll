@@ -9,8 +9,10 @@ import (
 	helper "AuthenticationService/internal/Helper/RequestHandler"
 	timeZone "AuthenticationService/internal/Helper/TimeZone"
 	model "AuthenticationService/internal/Model/Appointment"
+	s3config "AuthenticationService/internal/Storage/s3"
 	query "AuthenticationService/query/Appointment"
 	"archive/zip"
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -18,9 +20,14 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+
 )
 
 func AddTechnicianIntakeFormController() gin.HandlerFunc {
@@ -170,25 +177,22 @@ func PostUploadDicomFileController() gin.HandlerFunc {
 
 		idValue, idExists := c.Get("id")
 		roleIdValue, roleIdExists := c.Get("roleId")
-
 		if !idExists || !roleIdExists {
-			// Handle error: ID is missing from context (e.g., middleware didn't set it)
-			c.JSON(http.StatusUnauthorized, gin.H{ // Or StatusInternalServerError depending on why it's missing
+			c.JSON(http.StatusUnauthorized, gin.H{
 				"status":  false,
-				"message": "User ID, RoleID, Branch ID not found in request context.",
+				"message": "User ID, RoleID not found in request context.",
 			})
-			return // Stop processing
+			return
 		}
-
-		uploadPath := "./Assets/Dicom/"
 
 		log := logger.InitLogger()
 
+		// Retrieve file from multipart form
 		file, err := c.FormFile("file")
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{
 				"status":  false,
-				"message": "Error retrieving profile image from request: " + err.Error(),
+				"message": "Error retrieving file: " + err.Error(),
 			})
 			return
 		}
@@ -203,49 +207,138 @@ func PostUploadDicomFileController() gin.HandlerFunc {
 		}
 
 		ext := filepath.Ext(file.Filename)
-		// if ext != ".zip" {
-		// 	c.JSON(http.StatusBadRequest, gin.H{
-		// 		"status":  false,
-		// 		"message": "Invalid file type. Only .zip files are allowed.",
-		// 	})
-		// 	return
-		// }
-
 		uniqueFilename := fmt.Sprintf("%s_%s%s",
-			uuid.New().String(),                           // Generate a random UUID
-			timeZone.GetTimeWithFormate("20060102150405"), // Add timestamp (YYYYMMDDHHMMSS)
-			ext) // Keep original file extension
-		destinationPath := filepath.Join(uploadPath, uniqueFilename)
+			uuid.New().String(),
+			timeZone.GetTimeWithFormate("20060102150405"),
+			ext,
+		)
 
-		if err := os.MkdirAll(uploadPath, os.ModePerm); err != nil {
-			log.Printf("Error creating upload directory '%s': %v\n", uploadPath, err)
+		// S3 Key: store under /dicom/
+		s3Key := fmt.Sprintf("dicom/%s", uniqueFilename)
+
+		// Open the uploaded file
+		srcFile, err := file.Open()
+		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status":  false,
-				"message": "Server error: Could not prepare image storage.",
+				"message": "Failed to open uploaded file",
+			})
+			return
+		}
+		defer srcFile.Close()
+
+		// Initialize S3 client
+		ctx := c.Request.Context()
+		s3Client, err := s3config.New(ctx)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": "Failed to initialize S3 client",
 			})
 			return
 		}
 
-		if err := c.SaveUploadedFile(file, destinationPath); err != nil {
-			log.Printf("Error saving uploaded file to '%s': %v\n", destinationPath, err)
+		// Upload file to S3
+		if err := s3Client.UploadFromReader(ctx, s3Key, srcFile, file.Header.Get("Content-Type")); err != nil {
+			log.Printf("Error uploading file to S3: %v", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status":  false,
-				"message": "Server error: Could not save profile image.",
+				"message": "Failed to upload file to S3",
 			})
 			return
 		}
 
-		log.Printf("Successfully uploaded image: %s\n", destinationPath)
+		// Generate a presigned GET URL (optional) for temporary access
+		viewURL, err := s3Client.PresignGet(ctx, s3Key, 15*time.Minute)
+		if err != nil {
+			log.Printf("Error generating presigned GET URL: %v", err)
+			viewURL = "" // optional, fallback
+		}
 
 		payload := map[string]interface{}{
 			"status":      true,
-			"message":     "Dicom File uploaded successfully!",
+			"message":     "Dicom file uploaded successfully!",
 			"fileName":    uniqueFilename,
+			"s3Key":       s3Key,
+			"viewURL":     viewURL,
 			"oldFilename": file.Filename,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)
+		c.JSON(http.StatusOK, gin.H{
+			"data":  hashapi.Encrypt(payload, true, token),
+			"token": token,
+		})
+	}
+}
 
+func PostGenerateDicomUploadURLController() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idValue, idExists := c.Get("id")
+		roleIdValue, roleIdExists := c.Get("roleId")
+		if !idExists || !roleIdExists {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"status":  false,
+				"message": "User ID, RoleID not found in request context.",
+			})
+			return
+		}
+
+		var req struct {
+			FileName string `json:"fileName"`
+		}
+		if err := c.BindJSON(&req); err != nil || req.FileName == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  false,
+				"message": "Missing or invalid file name.",
+			})
+			return
+		}
+
+		ext := filepath.Ext(req.FileName)
+		uniqueFilename := fmt.Sprintf("%s_%s%s",
+			uuid.New().String(),
+			timeZone.GetTimeWithFormate("20060102150405"),
+			ext,
+		)
+
+		s3Key := fmt.Sprintf("dicom/%s", uniqueFilename)
+		ctx := c.Request.Context()
+
+		s3Client, err := s3config.New(ctx)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": "Failed to initialize S3 client.",
+			})
+			return
+		}
+
+		uploadURL, err := s3Client.PresignPut(ctx, s3Key, 15*time.Minute)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": "Failed to generate presigned upload URL.",
+			})
+			return
+		}
+
+		viewURL, err := s3Client.PresignGet(ctx, s3Key, 24*time.Hour)
+		if err != nil {
+			viewURL = ""
+		}
+
+		payload := map[string]interface{}{
+			"status":      true,
+			"message":     "Presigned URLs generated successfully!",
+			"uploadURL":   uploadURL,
+			"viewURL":     viewURL,
+			"s3Key":       s3Key,
+			"fileName":    uniqueFilename,
+			"oldFileName": req.FileName,
+		}
+
+		token := accesstoken.CreateToken(idValue, roleIdValue)
 		c.JSON(http.StatusOK, gin.H{
 			"data":  hashapi.Encrypt(payload, true, token),
 			"token": token,
@@ -469,6 +562,73 @@ func DownloadDicomFileController() gin.HandlerFunc {
 	}
 }
 
+// func DownloadMultipleDicomFilesController() gin.HandlerFunc {
+// 	return func(c *gin.Context) {
+// 		data, ok := helper.GetRequestBody[model.OneDownloadDicomReq](c, true)
+// 		if !ok {
+// 			return
+// 		}
+
+// 		dbConn, sqlDB := db.InitDB()
+// 		defer sqlDB.Close()
+
+// 		var files []model.DicomFileModel
+// 		err := dbConn.Raw(query.GetDicomFile, data.AppointmentId, data.UserId, data.Side).Scan(&files).Error
+// 		if err != nil || len(files) == 0 {
+// 			c.JSON(http.StatusBadRequest, gin.H{
+// 				"status":  false,
+// 				"message": "Failed to retrieve DICOM files.",
+// 			})
+// 			return
+// 		}
+
+// 		zipFilename := strings.Join(strings.Split(files[0].FileName, "_")[:len(strings.Split(files[0].FileName, "_"))-2], "_") + ".zip"
+// 		// Set headers before writing data
+// 		c.Writer.Header().Set("Content-Disposition", "attachment; filename="+zipFilename)
+// 		c.Writer.Header().Set("Content-Type", "application/zip")
+// 		c.Writer.Header().Set("Content-Transfer-Encoding", "binary")
+// 		c.Writer.Header().Set("Cache-Control", "no-cache")
+
+// 		// Create zip writer directly on response writer
+// 		zipWriter := zip.NewWriter(c.Writer)
+
+// 		for _, file := range files {
+// 			filePath := "./Assets/Dicom/" + file.FileName
+
+// 			if _, err := os.Stat(filePath); os.IsNotExist(err) {
+// 				continue
+// 			}
+
+// 			fileToZip, err := os.Open(filePath)
+// 			if err != nil {
+// 				continue
+// 			}
+
+// 			writer, err := zipWriter.Create(file.FileName)
+// 			if err != nil {
+// 				fileToZip.Close()
+// 				continue
+// 			}
+
+// 			_, err = io.Copy(writer, fileToZip)
+// 			fileToZip.Close()
+// 			if err != nil {
+// 				continue
+// 			}
+// 		}
+
+// 		// Close zip writer to flush all data to response
+// 		if err := zipWriter.Close(); err != nil {
+// 			log.Println("Error closing zip writer:", err)
+// 		}
+
+// 		// Flush the response writer to ensure all data is sent
+// 		if flusher, ok := c.Writer.(http.Flusher); ok {
+// 			flusher.Flush()
+// 		}
+// 	}
+// }
+
 func DownloadMultipleDicomFilesController() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		data, ok := helper.GetRequestBody[model.OneDownloadDicomReq](c, true)
@@ -482,58 +642,98 @@ func DownloadMultipleDicomFilesController() gin.HandlerFunc {
 		var files []model.DicomFileModel
 		err := dbConn.Raw(query.GetDicomFile, data.AppointmentId, data.UserId, data.Side).Scan(&files).Error
 		if err != nil || len(files) == 0 {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"status":  false,
-				"message": "Failed to retrieve DICOM files.",
-			})
+			c.JSON(http.StatusBadRequest, gin.H{"status": false, "message": "Failed to retrieve DICOM files."})
 			return
 		}
 
 		zipFilename := strings.Join(strings.Split(files[0].FileName, "_")[:len(strings.Split(files[0].FileName, "_"))-2], "_") + ".zip"
-		// Set headers before writing data
+
 		c.Writer.Header().Set("Content-Disposition", "attachment; filename="+zipFilename)
 		c.Writer.Header().Set("Content-Type", "application/zip")
 		c.Writer.Header().Set("Content-Transfer-Encoding", "binary")
-		c.Writer.Header().Set("Cache-Control", "no-cache")
+		c.Writer.Header().Set("Cache-Control", "no-cache")	
 
-		// Create zip writer directly on response writer
 		zipWriter := zip.NewWriter(c.Writer)
+
+		// ✅ Initialize AWS SDK config (only once)
+		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-2"))
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": false, "message": "Failed to load AWS config"})
+			return
+		}
+		s3Client := s3.NewFromConfig(cfg)
 
 		for _, file := range files {
 			filePath := "./Assets/Dicom/" + file.FileName
 
-			if _, err := os.Stat(filePath); os.IsNotExist(err) {
-				continue
-			}
+			if strings.HasPrefix(file.FileName, "http") || strings.Contains(file.FileName, "amazonaws.com") {
+				// ✅ Download from S3
+				bucket, key := parseS3URL(file.FileName)
+				obj, err := s3Client.GetObject(context.TODO(), &s3.GetObjectInput{
+					Bucket: aws.String(bucket),
+					Key:    aws.String(key),
+				})
+				if err != nil {
+					log.Println("❌ Failed to get object from S3:", err)
+					continue
+				}
 
-			fileToZip, err := os.Open(filePath)
-			if err != nil {
-				continue
-			}
+				writer, err := zipWriter.Create(key[strings.LastIndex(key, "/")+1:])
+				if err != nil {
+					log.Println("❌ Failed to create zip entry:", err)
+					obj.Body.Close()
+					continue
+				}
 
-			writer, err := zipWriter.Create(file.FileName)
-			if err != nil {
+				_, err = io.Copy(writer, obj.Body)
+				obj.Body.Close()
+				if err != nil {
+					log.Println("❌ Failed to copy S3 object:", err)
+					continue
+				}
+
+			} else {
+				// ✅ Local file handling (unchanged)
+				if _, err := os.Stat(filePath); os.IsNotExist(err) {
+					continue
+				}
+
+				fileToZip, err := os.Open(filePath)
+				if err != nil {
+					continue
+				}
+
+				writer, err := zipWriter.Create(file.FileName)
+				if err != nil {
+					fileToZip.Close()
+					continue
+				}
+
+				_, err = io.Copy(writer, fileToZip)
 				fileToZip.Close()
-				continue
-			}
-
-			_, err = io.Copy(writer, fileToZip)
-			fileToZip.Close()
-			if err != nil {
-				continue
+				if err != nil {
+					continue
+				}
 			}
 		}
 
-		// Close zip writer to flush all data to response
 		if err := zipWriter.Close(); err != nil {
 			log.Println("Error closing zip writer:", err)
 		}
 
-		// Flush the response writer to ensure all data is sent
 		if flusher, ok := c.Writer.(http.Flusher); ok {
 			flusher.Flush()
 		}
 	}
+}
+
+// Helper to extract bucket and key from full S3 URL
+func parseS3URL(url string) (bucket string, key string) {
+	parts := strings.Split(url, ".s3.")
+	bucket = strings.TrimPrefix(parts[0], "https://")
+	keyParts := strings.SplitN(parts[1], "/", 2)
+	key = keyParts[1]
+	return
 }
 
 func AllDownloadDicomFileController() gin.HandlerFunc {
