@@ -8,15 +8,16 @@ import (
 	logger "AuthenticationService/internal/Helper/Logger"
 	helper "AuthenticationService/internal/Helper/RequestHandler"
 	timeZone "AuthenticationService/internal/Helper/TimeZone"
+	helperView "AuthenticationService/internal/Helper/ViewFile"
 	model "AuthenticationService/internal/Model/Appointment"
+	s3config "AuthenticationService/internal/Storage/s3"
 	query "AuthenticationService/query/Appointment"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-
-	helperView "AuthenticationService/internal/Helper/ViewFile"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -991,6 +992,106 @@ func PostOldReportUploadFileController() gin.HandlerFunc {
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)
 
+		c.JSON(http.StatusOK, gin.H{
+			"data":  hashapi.Encrypt(payload, true, token),
+			"token": token,
+		})
+	}
+}
+
+func PostGenerateOldReportUploadURLController() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idValue, idExists := c.Get("id")
+		roleIdValue, roleIdExists := c.Get("roleId")
+
+		if !idExists || !roleIdExists {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"status":  false,
+				"message": "User ID or Role ID not found.",
+			})
+			return
+		}
+
+		var req struct {
+			FileName      string `json:"fileName"`
+			PatientId     string `json:"patientId"`
+			CategoryId    string `json:"categoryId"`
+			AppointmentId string `json:"appointmentId"`
+		}
+
+		if err := c.BindJSON(&req); err != nil || req.FileName == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  false,
+				"message": "Invalid request. File name missing.",
+			})
+			return
+		}
+
+		ext := filepath.Ext(req.FileName)
+		allowedExts := []string{".jpg", ".jpeg", ".png", ".pdf"}
+		isAllowed := false
+		for _, a := range allowedExts {
+			if strings.EqualFold(ext, a) {
+				isAllowed = true
+				break
+			}
+		}
+
+		if !isAllowed {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  false,
+				"message": "Invalid file type. Only JPG, JPEG, PNG, PDF allowed.",
+			})
+			return
+		}
+
+		uniqueFilename := fmt.Sprintf("%s_%s%s",
+			uuid.New().String(),
+			timeZone.GetTimeWithFormate("20060102150405"),
+			ext,
+		)
+
+		s3Key := fmt.Sprintf("oldReportsPatient/%s", uniqueFilename)
+		ctx := c.Request.Context()
+
+		s3Client, err := s3config.New(ctx)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": "Failed to initialize S3 client.",
+			})
+			return
+		}
+
+		// Presigned URLs
+		uploadURL, err := s3Client.PresignPut(ctx, s3Key, 15*time.Minute)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": "Failed to generate upload URL.",
+			})
+			return
+		}
+
+		viewURL, err := s3Client.PresignGet(ctx, s3Key, 10*time.Minute)
+		if err != nil {
+			viewURL = ""
+		}
+
+		payload := map[string]interface{}{
+			"status":        true,
+			"message":       "Old Report Upload URL generated successfully!",
+			"uploadURL":     uploadURL,
+			"viewURL":       viewURL,
+			"s3Key":         s3Key,
+			"fileName":      uniqueFilename,
+			"oldFileName":   req.FileName,
+			"patientId":     req.PatientId,
+			"categoryId":    req.CategoryId,
+			"appointmentId": req.AppointmentId,
+		}
+
+		token := accesstoken.CreateToken(idValue, roleIdValue)
 		c.JSON(http.StatusOK, gin.H{
 			"data":  hashapi.Encrypt(payload, true, token),
 			"token": token,
