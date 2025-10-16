@@ -14,4 +14,5 @@ func InitRegisterPatientRoutes(router *gin.Engine) {
 	route.PATCH("/update", accesstoken.JWTMiddleware(), controllers.PatchUpdatePatientController())
 	route.PATCH("/createAppointment", accesstoken.JWTMiddleware(), controllers.PostCreatePatientController())
 	route.PATCH("/sendMailAppointment", accesstoken.JWTMiddleware(), controllers.PostSendMailPatientController())
+	route.POST("/cancelReschduleAppointment", accesstoken.JWTMiddleware(), controllers.PostCancelResheduleAppointmentController())
 }

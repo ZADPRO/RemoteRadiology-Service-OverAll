@@ -25,6 +25,7 @@ type PatientAppointmentModel struct {
 	AppointmentDate string `json:"refAppointmentDate" gorm:"column:refAppointmentDate"`
 	RefSCId         int    `json:"refSCId" gorm:"column:refSCId"`
 	RefSCCustId     string `json:"refSCCustId" gorm:"column:refSCCustId"`
+	AllowCancelReSh bool   `json:"allowCancelResh" gorm:"column:allowCancelResh"`
 }
 
 type PatientOneModel struct {

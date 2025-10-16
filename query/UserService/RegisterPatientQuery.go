@@ -26,6 +26,7 @@ var UpdatePatientQuery = `
 UPDATE
   public."Users"
 SET
+  "refUserCustId" = ?,
   "refUserFirstName" = ?,
   "refUserProfileImg" = ?,
   "refUserDOB" = ?,

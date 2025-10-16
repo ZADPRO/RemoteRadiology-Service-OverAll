@@ -10,7 +10,6 @@ import (
 	model "AuthenticationService/internal/Model/UserService"
 	query "AuthenticationService/query/UserService"
 	"encoding/json"
-	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -244,14 +243,13 @@ func PatchPatientService(db *gorm.DB, reqVal model.UpdatePatientReq, idValue int
 		}
 	}()
 
-	fmt.Println("--------->", reqVal)
-
 	var verifyData []model.VerifyData
 
 	verifyDataerr := db.Raw(
-		query.VerifyDataSQL,
+		query.VerifyUserDataSQL,
 		reqVal.PhoneNumber,
 		reqVal.Email,
+		reqVal.RefUserCustId,
 	).Scan(&verifyData).Error
 
 	if verifyDataerr != nil {
@@ -262,8 +260,10 @@ func PatchPatientService(db *gorm.DB, reqVal model.UpdatePatientReq, idValue int
 	if len(verifyData) > 0 {
 		if verifyData[0].Email == reqVal.Email && verifyData[0].UserId != int(reqVal.RefUserId) {
 			return false, "Email Already Exists"
-		} else if verifyData[0].UserId != int(reqVal.RefUserId) {
+		} else if verifyData[0].PhoneNumber1 == reqVal.PhoneNumber && verifyData[0].UserId != int(reqVal.RefUserId) {
 			return false, "Mobile Number Already Exists"
+		} else if verifyData[0].UserCustId == reqVal.RefUserCustId && verifyData[0].UserId != int(reqVal.RefUserId) {
+			return false, "Patient ID Already Exists"
 		}
 	}
 
@@ -277,6 +277,7 @@ func PatchPatientService(db *gorm.DB, reqVal model.UpdatePatientReq, idValue int
 	}
 
 	oldData := map[string]interface{}{
+		"Cust Id":              hashdb.Decrypt(PreviousData.RefUserCustId),
 		"FirstName":            hashdb.Decrypt(PreviousData.FirstName),
 		"UserProfileImg":       hashdb.Decrypt(PreviousData.ProfileImg),
 		"DOB":                  hashdb.Decrypt(PreviousData.DOB),
@@ -288,6 +289,7 @@ func PatchPatientService(db *gorm.DB, reqVal model.UpdatePatientReq, idValue int
 	}
 
 	updatedData := map[string]interface{}{
+		"Cust Id":              PreviousData.RefUserCustId,
 		"FirstName":            reqVal.FirstName,
 		"UserProfileImg":       reqVal.ProfileImg,
 		"DOB":                  reqVal.DOB,
@@ -323,6 +325,7 @@ func PatchPatientService(db *gorm.DB, reqVal model.UpdatePatientReq, idValue int
 
 	usererr := tx.Exec(
 		query.UpdatePatientQuery,
+		reqVal.RefUserCustId,
 		hashdb.Encrypt(reqVal.FirstName),
 		hashdb.Encrypt(reqVal.ProfileImg),
 		hashdb.Encrypt(reqVal.DOB),
@@ -473,4 +476,57 @@ func PostSendMailPatientService(db *gorm.DB, reqVal model.CreateAppointmentPatie
 	}
 
 	return true, "Succcessfully Account Created"
+}
+
+func PostCancelResheduleAppointmentService(db *gorm.DB, reqVal model.CancelResheduleAppointmentReq, idValue int) (bool, string) {
+	log := logger.InitLogger()
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
+		return false, "Something went wrong, Try Again"
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("ERROR: Recovered from panic, rolling back transaction:", r)
+			tx.Rollback()
+		}
+	}()
+
+	switch reqVal.AccessMethod {
+	case "delete":
+
+		DeleteAppointmentErr := tx.Exec(query.DeleteAppointmentSQL, false, reqVal.AppointmentId).Error
+		if DeleteAppointmentErr != nil {
+			log.Error(DeleteAppointmentErr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again"
+		}
+
+	case "reschedule":
+
+		RescheduleAppointmentErr := tx.Exec(query.RescheduleAppointmentSQL, reqVal.AppointmentDate, reqVal.AppointmentId).Error
+		if RescheduleAppointmentErr != nil {
+			log.Error(RescheduleAppointmentErr)
+			tx.Rollback()
+			return false, "Something went wrong, Try Again"
+		}
+
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	switch reqVal.AccessMethod {
+	case "delete":
+		return true, "Succcessfully Appointment Canceled"
+	case "reschedule":
+		return true, "Succcessfully Appointment Rescheduled"
+	default:
+		return false, "Something went wrong, Try Again"
+	}
 }
