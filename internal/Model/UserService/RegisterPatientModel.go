@@ -23,6 +23,7 @@ type RegisterNewPatientReq struct {
 
 type UpdatePatientReq struct {
 	RefUserId       uint   `json:"refUserId" gorm:"column:refUserId" mapstructure:"refUserId"`
+	RefUserCustId   string `json:"refUserCustId" gorm:"column:refUserCustId" mapstructure:"refUserCustId"`
 	ActiveStatus    bool   `json:"refUserStatus" gorm:"column:refUserStatus" mapstructure:"refUserStatus"`
 	FirstName       string `json:"refUserFirstName" gorm:"column:refUserFirstName" mapstructure:"refUserFirstName"`
 	ProfileImg      string `json:"refUserProfileImg" gorm:"column:refUserProfileImg" mapstructure:"refUserProfileImg"`
@@ -47,4 +48,10 @@ type CreateAppointmentPatientReq struct {
 	Mailoption        string `json:"mailoption" mapstructure:"mailoption"`
 	SCId              int    `json:"refSCId" mapstructure:"refSCId"`
 	SCCustId          string `json:"refSCustId" mapstructure:"refSCustId"`
+}
+
+type CancelResheduleAppointmentReq struct {
+	AppointmentId   int    `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
+	AppointmentDate string `json:"appointmentDate" mapstructure:"appointmentDate"`
+	AccessMethod    string `json:"accessMethod" binding:"required" mapstructure:"accessMethod"`
 }
