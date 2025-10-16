@@ -826,7 +826,6 @@ func ViewReportService() gin.HandlerFunc {
 			return
 		}
 
-		// Default payload
 		payload := map[string]interface{}{
 			"status": false,
 			"data": map[string]interface{}{
@@ -835,8 +834,8 @@ func ViewReportService() gin.HandlerFunc {
 			},
 		}
 
-		isS3URL := strings.HasPrefix(data.FileName, "https://easeqt-health-archive.s3")
-		if isS3URL {
+		if strings.HasPrefix(data.FileName, "https://easeqt-health-archive.s3") {
+			// Always generate presigned URL for S3 files
 			key := extractS3Key(data.FileName)
 			presignedURL, err := s3Service.GeneratePresignGetURL(context.Background(), key, 10*time.Minute)
 			if err != nil {
@@ -847,13 +846,20 @@ func ViewReportService() gin.HandlerFunc {
 				})
 				return
 			}
-			fmt.Print("\n\n\n\nPresignedURL", presignedURL)
+
+			// Print the presigned URL to console
+			fmt.Println("Generated Presigned URL:", presignedURL)
+			// or using logger
+			logger.Printf("Generated Presigned URL: %s", presignedURL)
+
 			payload["status"] = true
 			payload["data"] = map[string]interface{}{
 				"base64Data":  presignedURL,
-				"contentType": "application/octet-stream",
+				"contentType": "url",
 			}
 		} else {
+			fmt.Println("\n\nElse Block =>>>>>>>>> \n\n")
+			// Local file — read and encode
 			ViewFiles, viewErr := helperView.ViewFile("./Assets/Files/" + data.FileName)
 			if viewErr != nil {
 				logger.Printf("Failed to read local file: %v", viewErr)
@@ -874,8 +880,8 @@ func ViewReportService() gin.HandlerFunc {
 		// Create token
 		token := accesstoken.CreateToken(idValue, roleIdValue)
 
-		fmt.Print("\n\n\npayload\n", payload)
-		// Respond
+		fmt.Printf("\n\npayload: %+v\n\n", payload)
+
 		c.JSON(http.StatusOK, gin.H{
 			"data":  hashapi.Encrypt(payload, true, token),
 			"token": token,
