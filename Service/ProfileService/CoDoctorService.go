@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"gorm.io/gorm"
-
 )
 
 func isS3URL(path string) bool {

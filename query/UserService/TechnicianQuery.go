@@ -16,9 +16,22 @@ SELECT
   *
 FROM
   userdomain."refCommunicationDomain" rc
+  JOIN public."Users" u ON u."refUserId" = rc."refUserId"
 WHERE
   rc."refCODOPhoneNo1" = ?
   OR rc."refCODOEmail" = ?
+`
+
+var VerifyUserDataSQL = `
+SELECT
+  *
+FROM
+  userdomain."refCommunicationDomain" rc
+  JOIN public."Users" u ON u."refUserId" = rc."refUserId"
+WHERE
+  rc."refCODOPhoneNo1" = ?
+  OR rc."refCODOEmail" = ?
+  OR u."refUserCustId" = ?
 `
 
 var ScanCenterVerifyDataSQL = `

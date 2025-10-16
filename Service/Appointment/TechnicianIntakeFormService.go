@@ -637,10 +637,9 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 	//Handle Dicom File Store Process
 	currentDate := timeZone.GetTimeWithFormate("02-01-2006")
 	for _, file := range reqVal.DicomFiles {
-		// Get the file extension
 		ext := filepath.Ext(file.FilesName)
 		if ext == "" {
-			ext = ".zip" // Default to .zip if no extension
+			ext = ".zip"
 		}
 
 		side := "R"
@@ -648,11 +647,10 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 		if file.Side == "Left" {
 			side = "L"
 		}
-
 		timestamp := time.Now().UnixMilli()
 
-		// Construct the new filename
-		newFilename := fmt.Sprintf("%s_%s_%s_%s_%d%s",
+		// Generate unique filename like old function
+		uniqueFilename := fmt.Sprintf("%s_%s_%s_%s_%d%s",
 			scanCenterCustId.RefSCCustId,
 			strings.ToUpper(patientCustId),
 			currentDate,
@@ -661,24 +659,7 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 			ext,
 		)
 
-		// oldPath := filepath.Join("./Assets/Dicom/", file.FilesName)
-		// newPath := filepath.Join("./Assets/Dicom/", newFilename)
-
-		// // Ensure old file exists
-		// if _, err := os.Stat(oldPath); os.IsNotExist(err) {
-		// 	log.Printf("ERROR: Source file does not exist: %s\n", oldPath)
-		// 	tx.Rollback()
-		// 	return false, "DICOM source file not found"
-		// }
-
-		// // Try renaming
-		// if err := os.Rename(oldPath, newPath); err != nil {
-		// 	log.Printf("ERROR: Failed to rename DICOM file from %s to %s: %v\n", oldPath, newPath, err)
-		// 	tx.Rollback()
-		// 	return false, "Failed to process DICOM file"
-		// }
-
-		// If the file is an S3 URL, skip rename and just store it
+		// If the file is an S3 URL, skip local rename
 		if strings.HasPrefix(file.FilesName, "http") {
 			DicomFile := model.DicomFileModel{
 				UserId:        reqVal.PatientId,
@@ -695,24 +676,38 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 				return false, "Something went wrong, Try Again"
 			}
 
-			continue // skip local rename
+			continue
+		}
+
+		// Save locally
+		uploadPath := "./Assets/Dicom/"
+		if err := os.MkdirAll(uploadPath, os.ModePerm); err != nil {
+			log.Printf("ERROR creating upload directory: %v\n", err)
+			tx.Rollback()
+			return false, "Failed to prepare DICOM storage"
+		}
+
+		destinationPath := filepath.Join(uploadPath, uniqueFilename)
+		if err := os.Rename(filepath.Join(uploadPath, file.FilesName), destinationPath); err != nil {
+			log.Printf("ERROR renaming DICOM file: %v\n", err)
+			tx.Rollback()
+			return false, "Failed to process DICOM file"
 		}
 
 		DicomFile := model.DicomFileModel{
 			UserId:        reqVal.PatientId,
 			AppointmentId: reqVal.AppointmentId,
-			FileName:      newFilename,
+			FileName:      uniqueFilename, // use the generated unique name
 			CreatedAt:     time.Now().In(timeZone.MustGetPacificLocation()),
 			CreatedBy:     idValue,
 			Side:          file.Side,
 		}
 
-		DicomFileerr := db.Create(&DicomFile).Error
-		if DicomFileerr != nil {
-			log.Error("DicomFile INSERT ERROR at Technician Intake: " + DicomFileerr.Error())
+		if err := db.Create(&DicomFile).Error; err != nil {
+			log.Error("DicomFile INSERT ERROR at Technician Intake: " + err.Error())
+			tx.Rollback()
 			return false, "Something went wrong, Try Again"
 		}
-
 	}
 
 	if len(ChecktheListCount) == 0 {
@@ -795,6 +790,12 @@ func DeleteDicomService(db *gorm.DB, reqVal model.DeleteDicomReq) (bool, string)
 	uploadPath := "./Assets/Dicom/"
 
 	for _, data := range DicomFiles {
+		// Skip deletion if the file is an S3 URL
+		if strings.HasPrefix(data.FileName, "http") {
+			log.Printf("Skipping deletion for S3 file: %s", data.FileName)
+			continue
+		}
+
 		filePath := filepath.Join(uploadPath, data.FileName)
 		if err := os.Remove(filePath); err != nil {
 			log.Error("File deletion failed:", err)

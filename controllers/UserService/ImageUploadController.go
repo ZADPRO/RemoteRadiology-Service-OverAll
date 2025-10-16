@@ -184,7 +184,7 @@ func PostUploadPrivateDocument() gin.HandlerFunc {
 		}
 
 		var req struct {
-			Extension string `json:"extension"` // e.g. ".pdf", ".docx"
+			Extension string `json:"extension"` // e.g. ".pdf", ".jpg", ".zip", etc.
 		}
 		if err := c.BindJSON(&req); err != nil || req.Extension == "" {
 			c.JSON(http.StatusBadRequest, gin.H{
@@ -195,23 +195,9 @@ func PostUploadPrivateDocument() gin.HandlerFunc {
 		}
 
 		ext := strings.ToLower(req.Extension)
-		allowed := []string{".pdf", ".doc", ".docx", ".xls", ".xlsx", ".txt"}
-		valid := false
-		for _, a := range allowed {
-			if ext == a {
-				valid = true
-				break
-			}
-		}
-		if !valid {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"status":  false,
-				"message": "Invalid file type. Allowed: PDF, DOC, DOCX, XLS, XLSX, TXT.",
-			})
-			return
-		}
 
-		// Create unique file name
+		// ✅ No restriction — any extension is accepted
+
 		uniqueFilename := fmt.Sprintf("%s_%s%s",
 			uuid.New().String(),
 			timeZone.GetTimeWithFormate("20060102150405"),
@@ -231,7 +217,7 @@ func PostUploadPrivateDocument() gin.HandlerFunc {
 			return
 		}
 
-		// Generate presigned GET (view/download) URL - valid for 10 minutes
+		// Generate presigned GET URL for viewing/downloading
 		viewURL, err := s3Service.GeneratePresignGetURLPrivate(c, s3Key, 10*time.Minute)
 		if err != nil {
 			log.Errorf("Error generating presigned GET URL: %v", err)

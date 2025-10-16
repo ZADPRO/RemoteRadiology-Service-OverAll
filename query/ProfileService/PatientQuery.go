@@ -9,6 +9,7 @@ FROM
   JOIN userdomain."refCommunicationDomain" rcd ON rcd."refUserId" = u."refUserId"
 WHERE
   rscmp."refSCId" = $1
+ORDER BY u."refUserId" DESC
 `
 
 // var GetOnePatientList = `
@@ -62,11 +63,24 @@ WHERE
 
 var GetAppointmentListSQL = `
 SELECT
-  *
+  ra.*,
+  sc.*,
+  CASE
+    WHEN ra."refAppointmentComplete" = 'fillform'
+    AND (
+      SELECT
+        COUNT(*)
+      FROM
+        dicom."refDicomFiles" rdf
+      WHERE
+        rdf."refAppointmentId" = ra."refAppointmentId"
+    ) = 0 THEN true
+    ELSE false
+  END AS "allowCancelResh"
 FROM
   appointment."refAppointments" ra
   JOIN public."ScanCenter" sc ON sc."refSCId" = ra."refSCId"
 WHERE
   ra."refUserId" = $1
-  AND ra."refAppointmentStatus" = true
+  AND ra."refAppointmentStatus" = true;
 `
