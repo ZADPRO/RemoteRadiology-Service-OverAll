@@ -189,6 +189,7 @@ type RefAuditTransHistory struct {
 	RefUserId     int    `json:"refUserId" gorm:"column:refUserId"`
 	RefTHActionBy int    `json:"refTHActionBy" gorm:"column:refTHActionBy"`
 	RefUserCustId string `json:"refUserCustId" gorm:"column:refUserCustId"`
+	RefCODOEmail  string `json:"refCODOEmail" gorm:"column:refCODOEmail"`
 	// RefUserFirstName string `json:"refUserFirstName" gorm:"column:refUserFirstName"`
 }
 
