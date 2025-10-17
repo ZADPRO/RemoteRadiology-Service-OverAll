@@ -49,7 +49,7 @@ func PostCheckPatientService(db *gorm.DB, reqVal model.PatientCheckReq, idValue 
 			return false, "Email Already Exists"
 		} else if verifyData[0].PhoneNumber1 == reqVal.PhoneNo {
 			return false, "Mobile Number Already Exists"
-		} else {
+		} else if len(reqVal.PatientId) > 0 {
 			return false, "Patient ID Already Exists"
 		}
 	}
@@ -262,7 +262,7 @@ func PatchPatientService(db *gorm.DB, reqVal model.UpdatePatientReq, idValue int
 			return false, "Email Already Exists"
 		} else if verifyData[0].PhoneNumber1 == reqVal.PhoneNumber && verifyData[0].UserId != int(reqVal.RefUserId) {
 			return false, "Mobile Number Already Exists"
-		} else if verifyData[0].UserCustId == reqVal.RefUserCustId && verifyData[0].UserId != int(reqVal.RefUserId) {
+		} else if len(reqVal.RefUserCustId) > 0 && verifyData[0].UserCustId == reqVal.RefUserCustId && verifyData[0].UserId != int(reqVal.RefUserId) {
 			return false, "Patient ID Already Exists"
 		}
 	}

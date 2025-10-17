@@ -5,11 +5,15 @@ SELECT
   *
 FROM
   public."Users" u
-  JOIN userdomain."refCommunicationDomain" rcd ON rcd."refUserId" = u."refUserId"
+  JOIN userdomain."refCommunicationDomain" rcd 
+    ON rcd."refUserId" = u."refUserId"
 WHERE
   rcd."refCODOEmail" = $1
   OR rcd."refCODOPhoneNo1" = $2
-  OR lower(u."refUserCustId") = lower($3)
+  OR (
+    ($3::text IS NOT NULL AND $3::text <> '') 
+    AND lower(u."refUserCustId") = lower($3::text)
+  );
 `
 
 var GetAllPatientDataQuery = `
