@@ -132,3 +132,19 @@ SET
 WHERE
   "refMPId" = ?
 `
+
+var DeleteAppointmentSQL = `
+UPDATE appointment."refAppointments"
+SET
+  "refAppointmentStatus" = $1
+WHERE
+  "refAppointmentId" = $2;
+`
+
+var RescheduleAppointmentSQL = `
+UPDATE appointment."refAppointments"
+SET
+  "refAppointmentDate" = $1
+WHERE
+  "refAppointmentId" = $2;
+`
