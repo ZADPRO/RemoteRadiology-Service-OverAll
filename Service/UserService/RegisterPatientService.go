@@ -44,12 +44,14 @@ func PostCheckPatientService(db *gorm.DB, reqVal model.PatientCheckReq, idValue 
 		return false, "Something went wrong, Try Again"
 	}
 
-	if len(verifyData) > 0 {
-		if verifyData[0].Email == reqVal.EmailId {
+	for _, data := range verifyData {
+		if data.Email == reqVal.EmailId {
 			return false, "Email Already Exists"
-		} else if verifyData[0].PhoneNumber1 == reqVal.PhoneNo {
+		}
+		if len(reqVal.PhoneNo) > 0 && data.PhoneNumber1 == reqVal.PhoneNo {
 			return false, "Mobile Number Already Exists"
-		} else if len(reqVal.PatientId) > 0 {
+		}
+		if len(reqVal.PatientId) > 0 && data.UserCustId == reqVal.PatientId {
 			return false, "Patient ID Already Exists"
 		}
 	}
@@ -246,9 +248,9 @@ func PatchPatientService(db *gorm.DB, reqVal model.UpdatePatientReq, idValue int
 	var verifyData []model.VerifyData
 
 	verifyDataerr := db.Raw(
-		query.VerifyUserDataSQL,
-		reqVal.PhoneNumber,
+		query.CheckpatientExits,
 		reqVal.Email,
+		reqVal.PhoneNumber,
 		reqVal.RefUserCustId,
 	).Scan(&verifyData).Error
 
@@ -257,13 +259,17 @@ func PatchPatientService(db *gorm.DB, reqVal model.UpdatePatientReq, idValue int
 		return false, "Something went wrong, Try Again"
 	}
 
-	if len(verifyData) > 0 {
-		if verifyData[0].Email == reqVal.Email && verifyData[0].UserId != int(reqVal.RefUserId) {
-			return false, "Email Already Exists"
-		} else if verifyData[0].PhoneNumber1 == reqVal.PhoneNumber && verifyData[0].UserId != int(reqVal.RefUserId) {
-			return false, "Mobile Number Already Exists"
-		} else if len(reqVal.RefUserCustId) > 0 && verifyData[0].UserCustId == reqVal.RefUserCustId && verifyData[0].UserId != int(reqVal.RefUserId) {
-			return false, "Patient ID Already Exists"
+	for _, data := range verifyData {
+		if data.UserId != int(reqVal.RefUserId) {
+			if data.Email == reqVal.Email {
+				return false, "Email Already Exists"
+			}
+			if len(reqVal.PhoneNumber) > 0 && data.PhoneNumber1 == reqVal.PhoneNumber {
+				return false, "Mobile Number Already Exists"
+			}
+			if len(reqVal.RefUserCustId) > 0 && data.UserCustId == reqVal.RefUserCustId {
+				return false, "Patient ID Already Exists"
+			}
 		}
 	}
 
