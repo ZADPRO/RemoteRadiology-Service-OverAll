@@ -1,13 +1,19 @@
 package service
 
 import (
+	s3Service "AuthenticationService/Service/S3"
 	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
 	helper "AuthenticationService/internal/Helper/ViewFile"
 	model "AuthenticationService/internal/Model/ProfileService"
 	query "AuthenticationService/query/ProfileService"
+	"context"
+	"fmt"
+	"strings"
+	"time"
 
 	"gorm.io/gorm"
+
 )
 
 func GetAllManagerDataService(db *gorm.DB) []model.GetAllRadiologist {
@@ -31,123 +37,94 @@ func GetAllManagerDataService(db *gorm.DB) []model.GetAllRadiologist {
 
 func GetManagerDataService(db *gorm.DB, reqVal model.GetRadiologistreq, idValue int) []model.GetManagerOne {
 	log := logger.InitLogger()
-
-	var RadiologistData []model.GetManagerOne
+	var ManagerData []model.GetManagerOne
 
 	UserId := reqVal.Id
-
 	if UserId == 0 {
 		UserId = idValue
 	}
 
-	err := db.Raw(query.GetOneListofManagerSQL, 9, UserId).Scan(&RadiologistData).Error
+	// Fetch manager details
+	err := db.Raw(query.GetOneListofManagerSQL, 9, UserId).Scan(&ManagerData).Error
 	if err != nil {
-		log.Printf("ERROR: Failed to fetch scan centers: %v", err)
+		log.Printf("ERROR: Failed to fetch manager data: %v", err)
 		return []model.GetManagerOne{}
 	}
 
-	for i, tech := range RadiologistData {
-		RadiologistData[i].FirstName = hashdb.Decrypt(tech.FirstName)
-		RadiologistData[i].LastName = hashdb.Decrypt(tech.LastName)
-		RadiologistData[i].ProfileImg = hashdb.Decrypt(tech.ProfileImg)
-		RadiologistData[i].DOB = hashdb.Decrypt(tech.DOB)
-		RadiologistData[i].Pan = hashdb.Decrypt(tech.Pan)
-		RadiologistData[i].Aadhar = hashdb.Decrypt(tech.Aadhar)
-		RadiologistData[i].DrivingLicense = hashdb.Decrypt(tech.DrivingLicense)
-
-		if len(hashdb.Decrypt(tech.ProfileImg)) > 0 {
-			profileImgHelperData, viewErr := helper.ViewFile("./Assets/Profile/" + hashdb.Decrypt(tech.ProfileImg))
-			if viewErr != nil {
-				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-				log.Errorf("Failed to read profile image file: %v", viewErr)
-			}
-			if profileImgHelperData != nil {
-				RadiologistData[i].ProfileImgFile = &model.FileData{
-					Base64Data:  profileImgHelperData.Base64Data,
-					ContentType: profileImgHelperData.ContentType,
-				}
-			}
-		} else {
-			RadiologistData[i].ProfileImgFile = nil
-		}
-
-		if len(hashdb.Decrypt(tech.Pan)) > 0 {
-			panFileHelperData, panFileErr := helper.ViewFile("./Assets/Files/" + hashdb.Decrypt(tech.Pan))
-			if panFileErr != nil {
-				log.Errorf("Failed to read PAN file: %v", panFileErr)
-			}
-			if panFileHelperData != nil {
-				RadiologistData[i].PanFile = &model.FileData{
-					Base64Data:  panFileHelperData.Base64Data,
-					ContentType: panFileHelperData.ContentType,
-				}
-			}
-		} else {
-			RadiologistData[i].PanFile = nil
-		}
-
-		if len(hashdb.Decrypt(tech.Aadhar)) > 0 {
-			aadharFileHelperData, aadharFileErr := helper.ViewFile("./Assets/Files/" + hashdb.Decrypt(tech.Aadhar))
-			if aadharFileErr != nil {
-				log.Errorf("Failed to read Aadhar file: %v", aadharFileErr)
-			}
-			if aadharFileHelperData != nil {
-				RadiologistData[i].AadharFile = &model.FileData{
-					Base64Data:  aadharFileHelperData.Base64Data,
-					ContentType: aadharFileHelperData.ContentType,
-				}
-			}
-		} else {
-			RadiologistData[i].AadharFile = nil
-		}
-
-		if len(hashdb.Decrypt(tech.DrivingLicense)) > 0 {
-			drivingLicenseFileHelperData, drivingLicenseErr := helper.ViewFile("./Assets/Files/" + hashdb.Decrypt(tech.DrivingLicense))
-			if drivingLicenseErr != nil {
-				log.Errorf("Failed to read Driving License file: %v", drivingLicenseErr)
-			}
-			if drivingLicenseFileHelperData != nil {
-				RadiologistData[i].DrivingLicenseFile = &model.FileData{
-					Base64Data:  drivingLicenseFileHelperData.Base64Data,
-					ContentType: drivingLicenseFileHelperData.ContentType,
-				}
-			}
-		} else {
-			RadiologistData[i].DrivingLicenseFile = nil
-		}
-
-		var databaseECFiles []model.GetEducationCertificateFilesModel
-		CVFileserr := db.Raw(query.GetECFilesSQL, reqVal.Id).Scan(&databaseECFiles).Error
-		if CVFileserr != nil {
-			log.Printf("ERROR: Failed to fetch CV files for user ID %d: %v", reqVal.Id, CVFileserr)
-			return []model.GetManagerOne{}
-		}
-
-		if len(databaseECFiles) > 0 {
-			RadiologistData[i].EducationCertificateFile = make([]model.GetEducationCertificateFilesModel, 0, len(databaseECFiles))
-			for _, dbCvItem := range databaseECFiles {
-				processedCvItem := model.GetEducationCertificateFilesModel{
-					ECId:          dbCvItem.ECId,
-					ECFileName:    hashdb.Decrypt(dbCvItem.ECFileName),
-					ECOldFileName: hashdb.Decrypt(dbCvItem.ECOldFileName),
-				}
-				ECHelperFileData, ECFileReadErr := helper.ViewFile("./Assets/Files/" + processedCvItem.ECFileName)
-				if ECFileReadErr != nil {
-					log.Printf("WARNING: Failed to read CV file %s: %v. Skipping file data.", processedCvItem.ECFileName, ECFileReadErr)
-					processedCvItem.ECFileData = nil
-				} else if ECHelperFileData != nil {
-					processedCvItem.ECFileData = &model.FileData{
-						Base64Data:  ECHelperFileData.Base64Data,
-						ContentType: ECHelperFileData.ContentType,
-					}
-				} else {
-					processedCvItem.ECFileData = nil // Should ideally not happen if error is nil
-				}
-				RadiologistData[i].EducationCertificateFile = append(RadiologistData[i].EducationCertificateFile, processedCvItem)
-			}
-		}
-
+	// =============== Helper: Check if URL is from S3 ===============
+	isS3URL := func(url string) bool {
+		return strings.HasPrefix(url, "https://") && strings.Contains(url, "amazonaws.com")
 	}
 
-	return RadiologistData
+	// =============== Helper: Generate presigned or local file data ===============
+	generateFileData := func(fileName, fileType, folder string) *model.FileData {
+		if len(fileName) == 0 {
+			return nil
+		}
+
+		// ✅ If already full S3 URL → return directly
+		if isS3URL(fileName) {
+			key := extractS3Key(fileName)
+			presignedURL, err := s3Service.GeneratePresignGetURL(context.Background(), key, 10*time.Minute)
+			if err != nil {
+				log.Errorf("Failed to presign S3 URL for %s: %v", fileName, err)
+				return &model.FileData{Base64Data: fileName, ContentType: fileType} // fallback
+			}
+			return &model.FileData{Base64Data: presignedURL, ContentType: fileType}
+		}
+
+		// ✅ Local file fallback
+		localPath := fmt.Sprintf("./Assets/%s/%s", folder, fileName)
+		fileData, err := helper.ViewFile(localPath)
+		if err != nil {
+			log.Warnf("Local file not found: %s (%v)", localPath, err)
+			return nil
+		}
+		return &model.FileData{
+			Base64Data:  fileData.Base64Data,
+			ContentType: fileData.ContentType,
+		}
+	}
+
+	// =============== Populate Data for Each Manager ===============
+	for i, mgr := range ManagerData {
+		ManagerData[i].FirstName = hashdb.Decrypt(mgr.FirstName)
+		ManagerData[i].LastName = hashdb.Decrypt(mgr.LastName)
+		ManagerData[i].ProfileImg = hashdb.Decrypt(mgr.ProfileImg)
+		ManagerData[i].DOB = hashdb.Decrypt(mgr.DOB)
+		ManagerData[i].Pan = hashdb.Decrypt(mgr.Pan)
+		ManagerData[i].Aadhar = hashdb.Decrypt(mgr.Aadhar)
+		ManagerData[i].DrivingLicense = hashdb.Decrypt(mgr.DrivingLicense)
+
+		// ===== Profile Image (JPEG / PNG) =====
+		ManagerData[i].ProfileImgFile = generateFileData(ManagerData[i].ProfileImg, "image/jpeg", "Profile")
+
+		// ===== Documents (PDF) =====
+		ManagerData[i].PanFile = generateFileData(ManagerData[i].Pan, "application/pdf", "Files")
+		ManagerData[i].AadharFile = generateFileData(ManagerData[i].Aadhar, "application/pdf", "Files")
+		ManagerData[i].DrivingLicenseFile = generateFileData(ManagerData[i].DrivingLicense, "application/pdf", "Files")
+
+		// ===== Education Certificates =====
+		var educationFiles []model.GetEducationCertificateFilesModel
+		ecErr := db.Raw(query.GetECFilesSQL, UserId).Scan(&educationFiles).Error
+		if ecErr != nil {
+			log.Printf("ERROR: Failed to fetch Education Certificate files for user ID %d: %v", UserId, ecErr)
+			continue
+		}
+
+		if len(educationFiles) > 0 {
+			ManagerData[i].EducationCertificateFile = make([]model.GetEducationCertificateFilesModel, 0, len(educationFiles))
+			for _, dbEC := range educationFiles {
+				decryptedEC := model.GetEducationCertificateFilesModel{
+					ECId:          dbEC.ECId,
+					ECFileName:    hashdb.Decrypt(dbEC.ECFileName),
+					ECOldFileName: hashdb.Decrypt(dbEC.ECOldFileName),
+				}
+				decryptedEC.ECFileData = generateFileData(decryptedEC.ECFileName, "application/pdf", "Files")
+				ManagerData[i].EducationCertificateFile = append(ManagerData[i].EducationCertificateFile, decryptedEC)
+			}
+		}
+	}
+
+	return ManagerData
 }

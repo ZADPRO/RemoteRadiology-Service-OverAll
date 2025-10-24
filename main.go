@@ -5,6 +5,7 @@ import (
 	routesAppointment "AuthenticationService/routes/Appointment"
 	routes "AuthenticationService/routes/Authentication"
 	routesProfile "AuthenticationService/routes/ProfileService"
+	s3Routes "AuthenticationService/routes/S3"
 	routesUser "AuthenticationService/routes/UserService"
 	"fmt"
 	"log"
@@ -253,6 +254,12 @@ func main() {
 
 	fmt.Println()
 	fmt.Println()
+
+	fmt.Println()
+	fmt.Println("=================S3 Routes=================")
+	fmt.Println()
+
+	s3Routes.InitS3Routes(r)
 
 	//Ping 🎯API
 	r.GET("/ping", func(c *gin.Context) {

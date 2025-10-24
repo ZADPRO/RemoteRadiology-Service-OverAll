@@ -1,14 +1,17 @@
 package controllers
 
 import (
+	s3Service "AuthenticationService/Service/S3"
 	accesstoken "AuthenticationService/internal/Helper/AccessToken"
 	hashapi "AuthenticationService/internal/Helper/HashAPI"
 	logger "AuthenticationService/internal/Helper/Logger"
+	s3path "AuthenticationService/internal/Helper/S3"
 	timeZone "AuthenticationService/internal/Helper/TimeZone"
 	"fmt"
 	"net/http"
-	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -16,80 +19,224 @@ import (
 
 func PostUploadProfileImage() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		log := logger.InitLogger()
+		log.Println("\n\nIncoming request to upload profile image\n")
 
 		idValue, idExists := c.Get("id")
 		roleIdValue, roleIdExists := c.Get("roleId")
 
 		if !idExists || !roleIdExists {
-			// Handle error: ID is missing from context (e.g., middleware didn't set it)
-			c.JSON(http.StatusUnauthorized, gin.H{ // Or StatusInternalServerError depending on why it's missing
+			log.Println("\n\nMissing user ID or roleId in request context")
+			c.JSON(http.StatusUnauthorized, gin.H{
 				"status":  false,
-				"message": "User ID, RoleID, Branch ID not found in request context.",
+				"message": "User ID, RoleID not found in request context.",
 			})
-			return // Stop processing
+			return
 		}
-
-		uploadPath := "./Assets/Profile/"
-
-		log := logger.InitLogger()
+		log.Printf("User ID: %v, Role ID: %v\n", idValue, roleIdValue)
 
 		file, err := c.FormFile("profileImage")
 		if err != nil {
+			log.Printf("Error retrieving file: %v\n", err)
 			c.JSON(http.StatusBadRequest, gin.H{
 				"status":  false,
-				"message": "Error retrieving profile image from request: " + err.Error(),
+				"message": "Error retrieving profile image: " + err.Error(),
 			})
 			return
 		}
-
-		maxFileSize := int64(5 * 1024 * 1024) // 5 MB
-		if file.Size > maxFileSize {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"status":  false,
-				"message": fmt.Sprintf("Profile image size exceeds the limit of %d MB", maxFileSize/(1024*1024)),
-			})
-			return
-		}
+		log.Printf("\nReceived file: %s (%d bytes)\n", file.Filename, file.Size)
 
 		ext := filepath.Ext(file.Filename)
 		if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
+			log.Printf("Invalid file type: %s\n", ext)
 			c.JSON(http.StatusBadRequest, gin.H{
 				"status":  false,
-				"message": "Invalid profile image file type. Only JPG, JPEG, PNG are allowed.",
+				"message": "Invalid profile image type. Only JPG, JPEG, PNG allowed.",
 			})
 			return
 		}
+		log.Printf("File extension validated: %s\n", ext)
 
 		uniqueFilename := fmt.Sprintf("%s_%s%s",
-			uuid.New().String(),                           // Generate a random UUID
-			timeZone.GetTimeWithFormate("20060102150405"), // Add timestamp (YYYYMMDDHHMMSS)
-			ext) // Keep original file extension
-		destinationPath := filepath.Join(uploadPath, uniqueFilename)
+			uuid.New().String(),
+			timeZone.GetTimeWithFormate("20060102150405"),
+			ext)
+		log.Printf("Unique filename generated: %s\n", uniqueFilename)
 
-		if err := os.MkdirAll(uploadPath, os.ModePerm); err != nil {
-			log.Printf("Error creating upload directory '%s': %v\n", uploadPath, err)
+		s3Key := s3path.BuildS3Key(file.Filename, uniqueFilename)
+		log.Printf("S3 key built: %s\n", s3Key)
+
+		uploadURL, err := s3Service.GeneratePresignPutURL(c, s3Key, 15*60*1e9)
+		if err != nil {
+			log.Printf("Error generating presigned URL for %s: %v\n", s3Key, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status":  false,
-				"message": "Server error: Could not prepare image storage.",
+				"message": "Failed to generate S3 upload URL",
 			})
 			return
 		}
-
-		if err := c.SaveUploadedFile(file, destinationPath); err != nil {
-			log.Printf("Error saving uploaded file to '%s': %v\n", destinationPath, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"status":  false,
-				"message": "Server error: Could not save profile image.",
-			})
-			return
-		}
-
-		log.Printf("Successfully uploaded image: %s\n", destinationPath)
+		log.Printf("Presigned upload URL generated for key: %s\n", s3Key)
 
 		payload := map[string]interface{}{
-			"status":   true,
-			"message":  "Profile image uploaded successfully!",
-			"fileName": uniqueFilename,
+			"status":    true,
+			"message":   "Presigned URL generated successfully. Upload file to this URL.",
+			"fileName":  uniqueFilename,
+			"s3Key":     s3Key,
+			"uploadURL": uploadURL,
+		}
+		token := accesstoken.CreateToken(idValue, roleIdValue)
+
+		log.Println("\n\nProfile image upload presigned URL response sent successfully", payload)
+		c.JSON(http.StatusOK, gin.H{
+			"data":  hashapi.Encrypt(payload, true, token),
+			"token": token,
+		})
+	}
+}
+
+func PostUploadPublicProfileImage() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		log := logger.InitLogger()
+		log.Println("Incoming request for public profile image upload")
+
+		idValue, idExists := c.Get("id")
+		roleIdValue, roleIdExists := c.Get("roleId")
+		if !idExists || !roleIdExists {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"status":  false,
+				"message": "Unauthorized: User ID or roleId missing",
+			})
+			return
+		}
+
+		var req struct {
+			Extension string `json:"extension"` // send only file type from frontend, e.g., ".jpg"
+		}
+
+		if err := c.BindJSON(&req); err != nil || req.Extension == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  false,
+				"message": "Invalid request. Extension is required.",
+			})
+			return
+		}
+
+		ext := strings.ToLower(req.Extension)
+		if ext != ".jpg" && ext != ".jpeg" && ext != ".png" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  false,
+				"message": "Invalid file type. Only JPG, JPEG, PNG allowed.",
+			})
+			return
+		}
+
+		// Generate unique filename
+		uniqueFilename := fmt.Sprintf("%s_%s%s",
+			uuid.New().String(),
+			timeZone.GetTimeWithFormate("20060102150405"),
+			ext)
+
+		s3Key := fmt.Sprintf("images/%s", uniqueFilename)
+
+		// Generate presigned URL for frontend upload
+		uploadURL, err := s3Service.GeneratePresignPutURLPublic(c, s3Key, 15*time.Minute)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": "Failed to generate S3 presigned URL",
+			})
+			return
+		}
+
+		viewURL := fmt.Sprintf("https://%s.s3.us-east-2.amazonaws.com/%s", s3Service.GetPublicBucketName(), s3Key)
+
+		payload := map[string]interface{}{
+			"status":    true,
+			"message":   "Public presigned URL generated successfully",
+			"fileName":  uniqueFilename,
+			"s3Key":     s3Key,
+			"uploadURL": uploadURL,
+			"viewURL":   viewURL,
+		}
+
+		token := accesstoken.CreateToken(idValue, roleIdValue)
+
+		c.JSON(http.StatusOK, gin.H{
+			"data":  hashapi.Encrypt(payload, true, token),
+			"token": token,
+		})
+	}
+}
+
+func PostUploadPrivateDocument() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		log := logger.InitLogger()
+		log.Println("Incoming request for private document upload")
+
+		idValue, idExists := c.Get("id")
+		roleIdValue, roleIdExists := c.Get("roleId")
+		if !idExists || !roleIdExists {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"status":  false,
+				"message": "Unauthorized: User ID or roleId missing",
+			})
+			return
+		}
+
+		var req struct {
+			Extension string `json:"extension"` // e.g. ".pdf", ".jpg", ".zip", etc.
+		}
+		if err := c.BindJSON(&req); err != nil || req.Extension == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  false,
+				"message": "Invalid request. Extension is required.",
+			})
+			return
+		}
+
+		ext := strings.ToLower(req.Extension)
+
+		// ✅ No restriction — any extension is accepted
+
+		uniqueFilename := fmt.Sprintf("%s_%s%s",
+			uuid.New().String(),
+			timeZone.GetTimeWithFormate("20060102150405"),
+			ext,
+		)
+
+		s3Key := fmt.Sprintf("documents/%s", uniqueFilename)
+
+		// Generate presigned PUT URL for upload
+		uploadURL, err := s3Service.GeneratePresignPutURLPrivate(c, s3Key, 15*time.Minute)
+		if err != nil {
+			log.Errorf("Error generating presigned PUT URL: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": "Failed to generate upload URL",
+			})
+			return
+		}
+
+		// Generate presigned GET URL for viewing/downloading
+		viewURL, err := s3Service.GeneratePresignGetURLPrivate(c, s3Key, 10*time.Minute)
+		if err != nil {
+			log.Errorf("Error generating presigned GET URL: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": "Failed to generate view/download URL",
+			})
+			return
+		}
+
+		payload := map[string]interface{}{
+			"status":      true,
+			"message":     "Private presigned URLs generated successfully",
+			"fileName":    uniqueFilename,
+			"s3Key":       s3Key,
+			"uploadURL":   uploadURL,
+			"viewURL":     viewURL,
+			"expiresIn":   "10 minutes",
+			"accessLevel": "private",
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)

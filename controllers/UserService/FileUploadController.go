@@ -1,15 +1,15 @@
 package controllers
 
 import (
+	s3Service "AuthenticationService/Service/S3"
 	accesstoken "AuthenticationService/internal/Helper/AccessToken"
 	hashapi "AuthenticationService/internal/Helper/HashAPI"
 	logger "AuthenticationService/internal/Helper/Logger"
+	s3path "AuthenticationService/internal/Helper/S3"
 	timeZone "AuthenticationService/internal/Helper/TimeZone"
 	"fmt"
 	"net/http"
-	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -17,98 +17,80 @@ import (
 
 func PostUploadFileController() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		log := logger.InitLogger()
 
 		idValue, idExists := c.Get("id")
 		roleIdValue, roleIdExists := c.Get("roleId")
 
 		if !idExists || !roleIdExists {
-			// Handle error: ID is missing from context (e.g., middleware didn't set it)
-			c.JSON(http.StatusUnauthorized, gin.H{ // Or StatusInternalServerError depending on why it's missing
+			log.Println("User ID or RoleID missing in request context")
+			c.JSON(http.StatusUnauthorized, gin.H{
 				"status":  false,
-				"message": "User ID, RoleID, Branch ID not found in request context.",
-			})
-			return // Stop processing
-		}
-
-		uploadPath := "./Assets/Files/"
-
-		log := logger.InitLogger()
-
-		file, err := c.FormFile("file")
-		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"status":  false,
-				"message": "Error retrieving profile image from request: " + err.Error(),
+				"message": "User ID, RoleID not found in request context.",
 			})
 			return
 		}
+		log.Printf("Request received for userID: %v, roleID: %v\n", idValue, roleIdValue)
 
-		maxFileSize := int64(10 * 1024 * 1024) // 10 MB
-		if file.Size > maxFileSize {
+		file, err := c.FormFile("file")
+		if err != nil {
+			log.Printf("Error retrieving file from request: %v\n", err)
 			c.JSON(http.StatusBadRequest, gin.H{
 				"status":  false,
-				"message": fmt.Sprintf("Profile image size exceeds the limit of %d MB", maxFileSize/(1024*1024)),
+				"message": "Error retrieving file: " + err.Error(),
+			})
+			return
+		}
+		log.Printf("File received: %s, size: %d bytes\n", file.Filename, file.Size)
+
+		const maxFileSize = 10 * 1024 * 1024
+		if file.Size > maxFileSize {
+			log.Printf("File size exceeds limit: %d bytes\n", file.Size)
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  false,
+				"message": fmt.Sprintf("File size exceeds %d MB limit", maxFileSize/(1024*1024)),
 			})
 			return
 		}
 
 		ext := filepath.Ext(file.Filename)
-		allowedExts := []string{".jpg", ".jpeg", ".png", ".pdf"}
-		isAllowed := false
-
-		for _, allowedExt := range allowedExts {
-			if strings.ToLower(ext) == allowedExt {
-				isAllowed = true
-				break
-			}
-		}
-
-		if !isAllowed {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"status":  false,
-				"message": "Invalid profile image file type. Only JPG, JPEG, PNG are allowed.",
-			})
-			return
-		}
-
 		uniqueFilename := fmt.Sprintf("%s_%s%s",
-			uuid.New().String(),                           // Generate a random UUID
-			timeZone.GetTimeWithFormate("20060102150405"), // Add timestamp (YYYYMMDDHHMMSS)
-			ext) // Keep original file extension
-		destinationPath := filepath.Join(uploadPath, uniqueFilename)
+			uuid.New().String(),
+			timeZone.GetTimeWithFormate("20060102150405"),
+			ext,
+		)
+		log.Printf("Generated unique filename: %s\n", uniqueFilename)
 
-		if err := os.MkdirAll(uploadPath, os.ModePerm); err != nil {
-			log.Printf("Error creating upload directory '%s': %v\n", uploadPath, err)
+		s3Key := s3path.BuildS3Key(file.Filename, uniqueFilename)
+		log.Printf("S3 key for upload: %s\n", s3Key)
+
+		uploadURL, err := s3Service.GeneratePresignPutURL(c, s3Key, 15*60*1e9)
+		if err != nil {
+			log.Printf("Error generating presigned URL for S3 upload: %v\n", err)
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"status":  false,
-				"message": "Server error: Could not prepare image storage.",
+				"message": "Failed to generate S3 upload URL",
 			})
 			return
 		}
-
-		if err := c.SaveUploadedFile(file, destinationPath); err != nil {
-			log.Printf("Error saving uploaded file to '%s': %v\n", destinationPath, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"status":  false,
-				"message": "Server error: Could not save profile image.",
-			})
-			return
-		}
-
-		log.Printf("Successfully uploaded image: %s\n", destinationPath)
+		log.Printf("Presigned S3 upload URL generated successfully\n")
 
 		payload := map[string]interface{}{
 			"status":      true,
-			"message":     "File uploaded successfully!",
+			"message":     "Presigned URL generated successfully. Upload file to this URL.",
 			"fileName":    uniqueFilename,
-			"oldFilename": file.Filename,
+			"oldFileName": file.Filename,
+			"s3Key":       s3Key,
+			"uploadURL":   uploadURL,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)
+		log.Printf("Token generated for userID: %v\n", idValue)
 
 		c.JSON(http.StatusOK, gin.H{
 			"data":  hashapi.Encrypt(payload, true, token),
 			"token": token,
 		})
+		log.Println("Response sent successfully for file upload request")
 	}
 }
