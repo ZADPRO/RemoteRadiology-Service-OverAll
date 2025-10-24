@@ -319,6 +319,7 @@ SELECT
 FROM
   aduit."refTransHistory" rth
   JOIN public."Users" u ON u."refUserId" = rth."refUserId"
+  JOIN userdomain."refCommunicationDomain" rcd ON rcd."refUserId" = u."refUserId"
 WHERE
   rth."transTypeId" = 1
 ORDER BY

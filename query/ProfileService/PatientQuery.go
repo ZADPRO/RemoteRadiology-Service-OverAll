@@ -63,10 +63,11 @@ WHERE
 
 var GetAppointmentListSQL = `
 SELECT
-  ra.*,
-  sc.*,
   CASE
-    WHEN ra."refAppointmentComplete" = 'fillform'
+    WHEN (
+      ra."refAppointmentComplete" = 'fillform'
+      OR ra."refAppointmentComplete" = 'technologistformfill'
+    )
     AND (
       SELECT
         COUNT(*)
@@ -76,7 +77,9 @@ SELECT
         rdf."refAppointmentId" = ra."refAppointmentId"
     ) = 0 THEN true
     ELSE false
-  END AS "allowCancelResh"
+  END AS "allowCancelResh",
+  ra.*,
+  sc.*
 FROM
   appointment."refAppointments" ra
   JOIN public."ScanCenter" sc ON sc."refSCId" = ra."refSCId"
