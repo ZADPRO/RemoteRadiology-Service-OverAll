@@ -573,7 +573,7 @@ func DownloadDicomFileController() gin.HandlerFunc {
 			return
 		}
 
-		// Parse and decrypt request body into DownloadDicomReq struct
+		// Parse request body
 		data, ok := helper.GetRequestBody[model.DownloadDicomReq](c, true)
 		if !ok {
 			return
@@ -583,8 +583,6 @@ func DownloadDicomFileController() gin.HandlerFunc {
 		defer sqlDB.Close()
 
 		var dicomFile model.DicomFileModel
-
-		// Query file metadata by FileId
 		err := dbConn.Raw(query.GetDicomFileSQL, data.FileId).Scan(&dicomFile).Error
 		if err != nil {
 			log.Printf("ERROR: Failed to fetch Dicom File: %v", err)
@@ -592,37 +590,59 @@ func DownloadDicomFileController() gin.HandlerFunc {
 				"status":  false,
 				"message": "Invalid Dicom File ID",
 			}
-
 			token := accesstoken.CreateToken(idValue, roleIdValue)
-
 			c.JSON(http.StatusOK, gin.H{
 				"data":  hashapi.Encrypt(payload, true, token),
 				"token": token,
 			})
-			return // Important: stop further processing
+			return
 		}
 
-		filePath := "./Assets/Dicom/" + dicomFile.FileName
 		fileName := dicomFile.FileName
 
-		// Check if file exists
+		// Check if it's an S3 URL
+		if strings.HasPrefix(fileName, "http") || strings.Contains(fileName, "amazonaws.com") {
+			// Download from S3
+			cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-2"))
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"status": false, "message": "Failed to load AWS config"})
+				return
+			}
+			s3Client := s3.NewFromConfig(cfg)
+
+			bucket, key := parseS3URL(fileName)
+			obj, err := s3Client.GetObject(context.TODO(), &s3.GetObjectInput{
+				Bucket: aws.String(bucket),
+				Key:    aws.String(key),
+			})
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"status": false, "message": "Failed to fetch file from S3"})
+				return
+			}
+			defer obj.Body.Close()
+
+			c.Header("Content-Description", "File Transfer")
+			c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, key[strings.LastIndex(key, "/")+1:]))
+			c.Header("Content-Type", "application/octet-stream")
+			c.Header("Content-Transfer-Encoding", "binary")
+
+			if _, err := io.Copy(c.Writer, obj.Body); err != nil {
+				log.Println("❌ Failed to write S3 object to response:", err)
+			}
+			return
+		}
+
+		// Otherwise, serve local file
+		filePath := "./Assets/Dicom/" + fileName
 		if _, err := os.Stat(filePath); os.IsNotExist(err) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "File not found"})
 			return
 		}
 
-		// Optionally, set Content-Length header
-		if fi, err := os.Stat(filePath); err == nil {
-			c.Header("Content-Length", fmt.Sprintf("%d", fi.Size()))
-		}
-
-		// Set headers for file download
 		c.Header("Content-Description", "File Transfer")
 		c.Header("Content-Transfer-Encoding", "binary")
 		c.Header("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, fileName))
 		c.Header("Content-Type", "application/octet-stream")
-
-		// Stream the file to the client
 		c.File(filePath)
 	}
 }
