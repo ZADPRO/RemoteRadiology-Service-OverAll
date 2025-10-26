@@ -8,7 +8,6 @@ import (
 	model "AuthenticationService/internal/Model/Appointment"
 	query "AuthenticationService/query/Appointment"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -570,31 +569,32 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 	tx := db.Begin()
 	if tx.Error != nil {
 		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
-		return false, "Something went wrong, Try Again"
+		return false, "Something went wrong, try again"
 	}
 
 	defer func() {
 		if r := recover(); r != nil {
-			log.Error("ERROR: Recovered from panic, rolling back transaction:", r)
+			log.Error("Recovered from panic, rolling back transaction:", r)
 			tx.Rollback()
 		}
 	}()
 
-	//check the DIcom is Available
-	var ChecktheListCount []model.DicomFileModel
-	CheckDicomErr := tx.Raw(query.ViewGetDicomFile, reqVal.AppointmentId, reqVal.PatientId).Scan(&ChecktheListCount).Error
-	if CheckDicomErr != nil {
+	// --- 1️⃣ Check if DICOM already exists ---
+	var existingDicoms []model.DicomFileModel
+	if err := tx.Raw(query.ViewGetDicomFile, reqVal.AppointmentId, reqVal.PatientId).Scan(&existingDicoms).Error; err != nil {
 		tx.Rollback()
-		return false, "Somthing went wrong, Try Again"
+		return false, "Something went wrong while checking DICOM files"
 	}
 
-	// Get Patient Customer ID
+	// --- 2️⃣ Get Patient Customer ID ---
 	var patientCustId string
-	errPatient := tx.Table("\"Users\"").Select("\"refUserCustId\"").Where("\"refUserId\" = ?", reqVal.PatientId).Scan(&patientCustId).Error
-	if errPatient != nil {
-		log.Printf("ERROR: Failed to get patient custom ID: %v\n", errPatient)
+	if err := tx.Table(`"Users"`).
+		Select(`"refUserCustId"`).
+		Where(`"refUserId" = ?`, reqVal.PatientId).
+		Scan(&patientCustId).Error; err != nil {
+		log.Printf("ERROR: Failed to get patient custom ID: %v\n", err)
 		tx.Rollback()
-		return false, "Something went wrong, Try Again"
+		return false, "Something went wrong, try again"
 	}
 	if patientCustId == "" {
 		log.Printf("ERROR: Patient custom ID not found for user ID: %d\n", reqVal.PatientId)
@@ -602,118 +602,42 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 		return false, "Patient not found"
 	}
 
-	// Get Scan Center Customer ID from Technician ID
-	// Define a struct to hold the result
+	// --- 3️⃣ Get Scan Center Customer ID ---
 	type ScanCenterResult struct {
 		RefSCCustId string `gorm:"column:refSCCustId"`
 	}
+	var scanCenter ScanCenterResult
 
-	var scanCenterCustId ScanCenterResult
-
-	// Perform the join query
-	errSC := tx.Table("appointment.\"refAppointments\" AS ra").
-		Joins("JOIN public.\"ScanCenter\" AS sc ON sc.\"refSCId\" = ra.\"refSCId\"").
-		Where("ra.\"refAppointmentId\" = ?", reqVal.AppointmentId).
-		Scan(&scanCenterCustId).Error
-
-	// Error handling
-	if errSC != nil {
-		if errors.Is(errSC, gorm.ErrRecordNotFound) {
-			log.Printf("ERROR: No active scan center mapping found for technician ID: %d\n", idValue)
-			tx.Rollback()
-			return false, "Technician not mapped to an active scan center"
-		}
-		log.Printf("ERROR: Failed to get scan center customer ID: %v\n", errSC)
-		tx.Rollback()
-		return false, "Something went wrong, Try Again"
-	}
-
-	if scanCenterCustId.RefSCCustId == "" {
-		log.Printf("ERROR: Scan center customer ID is empty for technician ID: %d\n", idValue)
+	if err := tx.Table(`appointment."refAppointments" AS ra`).
+		Joins(`JOIN public."ScanCenter" AS sc ON sc."refSCId" = ra."refSCId"`).
+		Where(`ra."refAppointmentId" = ?`, reqVal.AppointmentId).
+		Scan(&scanCenter).Error; err != nil || scanCenter.RefSCCustId == "" {
+		log.Printf("ERROR: Failed to get scan center customer ID: %v\n", err)
 		tx.Rollback()
 		return false, "Scan center configuration error"
 	}
 
-	//Handle Dicom File Store Process
-	currentDate := timeZone.GetTimeWithFormate("02-01-2006")
+	// --- 4️⃣ Save all DICOM files ---
 	for _, file := range reqVal.DicomFiles {
-		ext := filepath.Ext(file.FilesName)
-		if ext == "" {
-			ext = ".zip"
-		}
-
-		side := "R"
-
-		if file.Side == "Left" {
-			side = "L"
-		}
-		timestamp := time.Now().UnixMilli()
-
-		// Generate unique filename like old function
-		uniqueFilename := fmt.Sprintf("%s_%s_%s_%s_%d%s",
-			scanCenterCustId.RefSCCustId,
-			strings.ToUpper(patientCustId),
-			currentDate,
-			side,
-			timestamp,
-			ext,
-		)
-
-		// If the file is an S3 URL, skip local rename
-		if strings.HasPrefix(file.FilesName, "http") {
-			DicomFile := model.DicomFileModel{
-				UserId:        reqVal.PatientId,
-				AppointmentId: reqVal.AppointmentId,
-				FileName:      file.FilesName, // store full S3 URL
-				CreatedAt:     time.Now().In(timeZone.MustGetPacificLocation()),
-				CreatedBy:     idValue,
-				Side:          file.Side,
-			}
-
-			if err := db.Create(&DicomFile).Error; err != nil {
-				log.Error("DicomFile INSERT ERROR at Technician Intake: " + err.Error())
-				tx.Rollback()
-				return false, "Something went wrong, Try Again"
-			}
-
-			continue
-		}
-
-		// Save locally
-		uploadPath := "./Assets/Dicom/"
-		if err := os.MkdirAll(uploadPath, os.ModePerm); err != nil {
-			log.Printf("ERROR creating upload directory: %v\n", err)
-			tx.Rollback()
-			return false, "Failed to prepare DICOM storage"
-		}
-
-		destinationPath := filepath.Join(uploadPath, uniqueFilename)
-		if err := os.Rename(filepath.Join(uploadPath, file.FilesName), destinationPath); err != nil {
-			log.Printf("ERROR renaming DICOM file: %v\n", err)
-			tx.Rollback()
-			return false, "Failed to process DICOM file"
-		}
-
-		DicomFile := model.DicomFileModel{
+		dicomFile := model.DicomFileModel{
 			UserId:        reqVal.PatientId,
 			AppointmentId: reqVal.AppointmentId,
-			FileName:      uniqueFilename, // use the generated unique name
-			CreatedAt:     time.Now().In(timeZone.MustGetPacificLocation()),
-			CreatedBy:     idValue,
+			FileName:      file.FilesName, // already renamed and uploaded to S3
 			Side:          file.Side,
+			CreatedBy:     idValue,
+			CreatedAt:     time.Now().In(timeZone.MustGetPacificLocation()),
 		}
 
-		if err := db.Create(&DicomFile).Error; err != nil {
-			log.Error("DicomFile INSERT ERROR at Technician Intake: " + err.Error())
+		if err := tx.Create(&dicomFile).Error; err != nil {
+			log.Printf("ERROR: Failed to insert DICOM file: %v\n", err)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again"
+			return false, "Something went wrong while saving DICOM file"
 		}
 	}
 
-	if len(ChecktheListCount) == 0 {
-
-		//Updating the End Time For the Report History
-		ReportHistoryErr := tx.Exec(
+	// --- 5️⃣ Update Report History if no previous DICOMs existed ---
+	if len(existingDicoms) == 0 {
+		if err := tx.Exec(
 			query.CompleteReportHistorySQL,
 			timeZone.GetPacificTime(),
 			"Technologist Form Fill",
@@ -721,22 +645,21 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 			reqVal.AppointmentId,
 			idValue,
 			reqVal.PatientId,
-		).Error
-		if ReportHistoryErr != nil {
-			log.Printf("ERROR: Failed to Update Report History: %v\n", ReportHistoryErr)
+		).Error; err != nil {
+			log.Printf("ERROR: Failed to update Report History: %v\n", err)
 			tx.Rollback()
-			return false, "Something went wrong, Try Again"
+			return false, "Something went wrong while updating report history"
 		}
-
 	}
 
+	// --- 6️⃣ Commit Transaction ---
 	if err := tx.Commit().Error; err != nil {
 		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
 		tx.Rollback()
-		return false, "Something went wrong, Try Again"
+		return false, "Something went wrong, try again"
 	}
 
-	return true, "Successfully Dicom File Saved"
+	return true, "DICOM files saved successfully"
 }
 
 func ViewDicomService(db *gorm.DB, reqVal model.ViewTechnicianIntakeFormReq, idValue int) []model.DicomFileModel {

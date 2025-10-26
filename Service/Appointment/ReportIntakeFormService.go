@@ -9,8 +9,11 @@ import (
 	helperView "AuthenticationService/internal/Helper/ViewFile"
 	model "AuthenticationService/internal/Model/Appointment"
 	query "AuthenticationService/query/Appointment"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -528,11 +531,24 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 
 			// ✅ If it's a remote (S3/public) URL
 			if strings.HasPrefix(profilePath, "http://") || strings.HasPrefix(profilePath, "https://") {
-				log.Infof("✅ Detected S3/Remote URL for ScanCenter profile: %s", profilePath)
-
-				ScanCenterProfileImg = &model.FileData{
-					Base64Data:  profilePath, // return the actual URL
-					ContentType: "url",
+				resp, err := http.Get(profilePath)
+				if err != nil {
+					log.Errorf("Failed to fetch S3 image: %v", err)
+					ScanCenterProfileImg = &model.FileData{}
+				} else {
+					defer resp.Body.Close()
+					imgBytes, err := io.ReadAll(resp.Body)
+					if err != nil {
+						log.Errorf("Failed to read S3 image response: %v", err)
+						ScanCenterProfileImg = &model.FileData{}
+					} else {
+						base64Str := base64.StdEncoding.EncodeToString(imgBytes)
+						contentType := resp.Header.Get("Content-Type") // get MIME type from response
+						ScanCenterProfileImg = &model.FileData{
+							Base64Data:  base64Str,
+							ContentType: contentType,
+						}
+					}
 				}
 			} else {
 				log.Infof("🗂️ Detected Local file for ScanCenter profile: %s", profilePath)
