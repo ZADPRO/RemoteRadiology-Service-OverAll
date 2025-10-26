@@ -4,7 +4,10 @@ import (
 	s3Service "AuthenticationService/Service/S3"
 	db "AuthenticationService/internal/DB"
 	accesstoken "AuthenticationService/internal/Helper/AccessToken"
+	hashdb "AuthenticationService/internal/Helper/HashDB"
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -275,6 +278,129 @@ func S3PublicProfileUploadController() gin.HandlerFunc {
 			"status":  true,
 			"message": "Presigned upload URL generated successfully",
 			"url":     url,
+		})
+	}
+}
+
+type S3DailyBackupResponse struct {
+	ScanCenterName string                         `json:"ScanCenterName"`
+	Users          map[string]map[string][]string `json:"Users"` // UserCustId -> FileType -> []Files
+}
+
+func S3DailyBackupController() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		dbConn, sqlDB := db.InitDB()
+		defer sqlDB.Close()
+
+		type row struct {
+			ScanCenterId      int
+			ScanCenterName    string
+			UserId            int
+			UserCustId        string
+			DicomFileName     string
+			AppointmentId     int
+			OldReportCategory int
+			OldReportFileName string
+			ConsentFormPath   string
+			FinalReportPath   string
+		}
+
+		var rows []row
+		query := `
+		SELECT
+			sc."refSCId" AS "ScanCenterId",
+			sc."refSCName" AS "ScanCenterName",
+			u."refUserId" AS "UserId",
+			u."refUserCustId" AS "UserCustId",
+			df."refDFFilename" AS "DicomFileName",
+			df."refAppointmentId" AS "AppointmentId",
+			orp."refORCategoryId" AS "OldReportCategoryId",
+			orp."refORFilename" AS "OldReportFileName",
+			r."consentForm" AS "ConsentFormPath",
+			r."finalReportPath" AS "FinalReportPath"
+		FROM
+			public."ScanCenter" sc
+		LEFT JOIN map."refScanCenterMapPatient" rscmp ON sc."refSCId" = rscmp."refSCId"
+		LEFT JOIN public."Users" u ON rscmp."refUserId" = u."refUserId"
+		LEFT JOIN dicom."refDicomFiles" df ON u."refUserId" = df."refUserId"
+		LEFT JOIN notes."refOldReport" orp ON u."refUserId" = orp."refUserId"
+		LEFT JOIN "backupFiles".report r ON u."refUserId" = r."userId"
+		ORDER BY sc."refSCId", u."refUserId", df."refAppointmentId", orp."refORCategoryId"
+		`
+
+		if err := dbConn.Raw(query).Scan(&rows).Error; err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"status": false, "message": "DB query failed", "error": err.Error()})
+			return
+		}
+
+		responseMap := make(map[string]*S3DailyBackupResponse)
+
+		for _, r := range rows {
+			// Decrypt ScanCenterName and UserCustId
+			scanCenterName := hashdb.Decrypt(r.ScanCenterName)
+			userCustId := hashdb.Decrypt(r.UserCustId)
+
+			// Initialize ScanCenter if not exists
+			if _, ok := responseMap[scanCenterName]; !ok {
+				responseMap[scanCenterName] = &S3DailyBackupResponse{
+					ScanCenterName: scanCenterName,
+					Users:          make(map[string]map[string][]string),
+				}
+			}
+
+			userFiles := responseMap[scanCenterName].Users
+			if _, ok := userFiles[userCustId]; !ok {
+				userFiles[userCustId] = map[string][]string{
+					"DicomFiles":  {},
+					"OldReports":  {},
+					"ConsentForm": {},
+					"FinalReport": {},
+				}
+			}
+
+			// Helper to check if file is S3 or not
+			processFile := func(path string) string {
+				if path == "" {
+					return ""
+				}
+				if strings.Contains(path, "s3.amazonaws.com") {
+					return path
+				}
+				// generate presign URL for non-S3 files
+				url, err := s3Service.GeneratePresignGetURL(c, path, 15*time.Minute)
+				if err != nil {
+					fmt.Println("Error generating presign for:", path, err)
+					return ""
+				}
+				return url
+			}
+
+			if r.DicomFileName != "" {
+				userFiles[userCustId]["DicomFiles"] = append(userFiles[userCustId]["DicomFiles"], processFile(r.DicomFileName))
+			}
+			if r.OldReportFileName != "" {
+				userFiles[userCustId]["OldReports"] = append(userFiles[userCustId]["OldReports"], processFile(r.OldReportFileName))
+			}
+			if r.ConsentFormPath != "" {
+				userFiles[userCustId]["ConsentForm"] = append(userFiles[userCustId]["ConsentForm"], processFile(r.ConsentFormPath))
+			}
+			if r.FinalReportPath != "" {
+				userFiles[userCustId]["FinalReport"] = append(userFiles[userCustId]["FinalReport"], processFile(r.FinalReportPath))
+			}
+		}
+
+		// Convert map to slice for clean JSON
+		var response []S3DailyBackupResponse
+		for _, v := range responseMap {
+			response = append(response, *v)
+		}
+
+		// Console log response for debugging
+		fmt.Printf("S3 Daily Backup Response: %+v\n", response)
+
+		c.JSON(http.StatusOK, gin.H{
+			"status": true,
+			"data":   response,
 		})
 	}
 }

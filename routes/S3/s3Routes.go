@@ -17,5 +17,7 @@ func InitS3Routes(router *gin.Engine) {
 		// route.GET("/check", s3Controller.AckCheckController())
 		route.POST("/final-report-upload", accesstoken.JWTMiddleware(), s3Controller.S3FinalReportUploadController())
 
+		route.GET("/daily-backup", s3Controller.S3DailyBackupController())
+
 	}
 }
