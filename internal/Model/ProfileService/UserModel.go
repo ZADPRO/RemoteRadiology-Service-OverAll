@@ -25,6 +25,7 @@ type GetUserResModel struct {
 	DOB                     string    `json:"refUserDOB"`
 	Gender                  string    `json:"refUserGender"`
 	ScanCenterId            int       `json:"refSCId"`
+	ScanCenterCustId        string    `json:"refSCCustId"`
 	CODOPhoneNo1CountryCode string    `json:"refCODOPhoneNo1CountryCode"`
 	CODOPhoneNo1            string    `json:"refCODOPhoneNo1"`
 	ProfileImgFile          *FileData `json:"profileImgFile" gorm:"-"`

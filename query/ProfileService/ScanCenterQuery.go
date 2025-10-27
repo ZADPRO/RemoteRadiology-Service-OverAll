@@ -24,7 +24,8 @@ var IdentifyScanCenterMapping = `
 SELECT
   *
 FROM
-  map."refScanCenterMap"
+  map."refScanCenterMap" rscm
+  JOIN public."ScanCenter" sc ON sc."refSCId" = rscm."refSCId"
 WHERE
-  "refUserId" = ?
+  rscm."refUserId" = ?
 `

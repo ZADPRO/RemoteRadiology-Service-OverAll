@@ -5,6 +5,7 @@ import (
 	db "AuthenticationService/internal/DB"
 	accesstoken "AuthenticationService/internal/Helper/AccessToken"
 	hashapi "AuthenticationService/internal/Helper/HashAPI"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -28,6 +29,8 @@ func GetUserController() gin.HandlerFunc {
 		defer sqlDB.Close()
 
 		ScribeData := service.GetUserService(dbConn, int(idValue.(float64)))
+
+		fmt.Println("==================>", ScribeData)
 
 		payload := map[string]interface{}{
 			"status":  true,

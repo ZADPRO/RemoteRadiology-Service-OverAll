@@ -385,62 +385,6 @@ WHERE
 var ImpressionNRecommentationScanCenterSQL = `
 WITH
   latest_report_history AS (
-    SELECT *
-    FROM (
-      SELECT *,
-        ROW_NUMBER() OVER (
-          PARTITION BY "refAppointmentId"
-          ORDER BY "refRHId" DESC
-        ) AS rn
-      FROM notes."refReportsHistory"
-    ) sub
-    WHERE rn = 1
-  ),
-  actual_counts AS (
-    SELECT
-      ra."refAppointmentImpression" AS impression,
-      COUNT(*) AS count
-    FROM
-      latest_report_history rrh
-      JOIN appointment."refAppointments" ra
-        ON ra."refAppointmentId" = rrh."refAppointmentId"
-      JOIN public."Users" rrhu 
-        ON rrh."refRHHandledUserId" = rrhu."refUserId"
-    WHERE
-      ra."refAppointmentDate" >= ?
-      AND ra."refAppointmentDate" <= ?
-      AND (
-        ? = 0 OR ra."refSCId" = ?
-      )
-      AND ( ? = FALSE OR rrhu."refRTId" IN (1, 6, 7, 10) )
-    GROUP BY
-      ra."refAppointmentImpression"
-  ),
-  expected_impressions AS (
-    SELECT unnest(ARRAY[
-      '1','1a',
-      '2','2a',
-      '3','3a','3b','3c','3d','3e','3f','3g',
-      '4','4a','4b','4c','4d','4e','4f','4g','4h','4i','4j','4k','4l','4m',
-      '5',
-      '6','6a','6b','6c','6d','6e','6f','6g',
-      '7a','7b','7c','7d','7e',
-      '10','10a'
-    ]) AS impression
-  )
-SELECT
-  ei.impression,
-  COALESCE(ac.count, 0) AS count
-FROM
-  expected_impressions ei
-  LEFT JOIN actual_counts ac 
-    ON ei.impression = ac.impression
-ORDER BY
-  ei.impression;
-`
-var ImpressionNRecommentationSQL = `
-WITH
-  latest_report_history AS (
     SELECT
       *
     FROM
@@ -455,8 +399,6 @@ WITH
           ) AS rn
         FROM
           notes."refReportsHistory"
-        WHERE
-          "refRHHandledUserId" = ?
       ) sub
     WHERE
       rn = 1
@@ -468,60 +410,28 @@ WITH
     FROM
       latest_report_history rrh
       JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+      JOIN public."Users" rrhu ON rrh."refRHHandledUserId" = rrhu."refUserId"
     WHERE
-      ra."refAppointmentDate" >= ?  -- start_date parameter
-      AND ra."refAppointmentDate" <= ?  -- end_date parameter
+      ra."refAppointmentDate" >= ?
+      AND ra."refAppointmentDate" <= ?
+      AND (
+        ? = 0
+        OR ra."refSCId" = ?
+      )
+      AND (
+        ? = FALSE
+        OR rrhu."refRTId" IN (1, 6, 7, 10)
+      )
     GROUP BY
       ra."refAppointmentImpression"
   ),
   expected_impressions AS (
-    SELECT
-      unnest(
-        array[
-          '1',
-          '1a',
-          '2',
-          '2a',
-          '3',
-          '3a',
-          '3b',
-          '3c',
-          '3d',
-          '3e',
-          '3f',
-          '3g',
-          '4',
-          '4a',
-          '4b',
-          '4c',
-          '4d',
-          '4e',
-          '4f',
-          '4g',
-          '4h',
-          '4i',
-          '4j',
-          '4k',
-          '4l',
-          '4m',
-          '5',
-          '6',
-          '6a',
-          '6b',
-          '6c',
-          '6d',
-          '6e',
-          '6f',
-          '6g',
-          '7a',
-          '7b',
-          '7c',
-          '7d',
-          '7e',
-          '10',
-          '10a'
-        ]
-      ) AS impression
+    SELECT DISTINCT
+      "refIRVCustId" AS impression
+    FROM
+      impressionrecommendation."ImpressionRecommendationVal"
+    WHERE
+      "refIRVSystemType" = 'WR'
   )
 SELECT
   ei.impression,
@@ -532,6 +442,101 @@ FROM
 ORDER BY
   ei.impression;
 `
+
+// var ImpressionNRecommentationSQL = `
+// WITH
+//   latest_report_history AS (
+//     SELECT
+//       *
+//     FROM
+//       (
+//         SELECT
+//           *,
+//           ROW_NUMBER() OVER (
+//             PARTITION BY
+//               "refAppointmentId"
+//             ORDER BY
+//               "refRHId" DESC
+//           ) AS rn
+//         FROM
+//           notes."refReportsHistory"
+//         WHERE
+//           "refRHHandledUserId" = ?
+//       ) sub
+//     WHERE
+//       rn = 1
+//   ),
+//   actual_counts AS (
+//     SELECT
+//       ra."refAppointmentImpression" AS impression,
+//       COUNT(*) AS count
+//     FROM
+//       latest_report_history rrh
+//       JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+//     WHERE
+//       ra."refAppointmentDate" >= ?  -- start_date parameter
+//       AND ra."refAppointmentDate" <= ?  -- end_date parameter
+//     GROUP BY
+//       ra."refAppointmentImpression"
+//   ),
+//   expected_impressions AS (
+//     SELECT
+//       unnest(
+//         array[
+//           '1',
+//           '1a',
+//           '2',
+//           '2a',
+//           '3',
+//           '3a',
+//           '3b',
+//           '3c',
+//           '3d',
+//           '3e',
+//           '3f',
+//           '3g',
+//           '4',
+//           '4a',
+//           '4b',
+//           '4c',
+//           '4d',
+//           '4e',
+//           '4f',
+//           '4g',
+//           '4h',
+//           '4i',
+//           '4j',
+//           '4k',
+//           '4l',
+//           '4m',
+//           '5',
+//           '6',
+//           '6a',
+//           '6b',
+//           '6c',
+//           '6d',
+//           '6e',
+//           '6f',
+//           '6g',
+//           '7a',
+//           '7b',
+//           '7c',
+//           '7d',
+//           '7e',
+//           '10',
+//           '10a'
+//         ]
+//       ) AS impression
+//   )
+// SELECT
+//   ei.impression,
+//   COALESCE(ac.count, 0) AS count
+// FROM
+//   expected_impressions ei
+//   LEFT JOIN actual_counts ac ON ei.impression = ac.impression
+// ORDER BY
+//   ei.impression;
+// `
 
 // var TotalTATSQL = `
 // SELECT
@@ -603,77 +608,27 @@ WITH
       rn = 1
   ),
   groups AS (
-    SELECT
-      'Annual Screening' AS group_name
-    UNION ALL
-    SELECT
-      'USG/ SFU'
-    UNION ALL
-    SELECT
-      'Biopsy'
-    UNION ALL
-    SELECT
-      'Breast radiologist'
-    UNION ALL
-    SELECT
-      'Clinical Correlation'
-    UNION ALL
-    SELECT
-      'Onco Consult'
-    UNION ALL
-    SELECT
-      'Redo'
+    SELECT DISTINCT
+      irc."refIRCName" AS group_name
+    FROM
+      impressionrecommendation."ImpressionRecommendationCategory" irc
+      JOIN impressionrecommendation."ImpressionRecommendationVal" irv ON irv."refIRCId" = irc."refIRCId"
+    WHERE
+      irv."refIRVSystemType" = 'WR'
   ),
   counts AS (
     SELECT
-      CASE
-        WHEN ra."refAppointmentRecommendation" IN ('1', '1a', '7', '10') THEN 'Annual Screening'
-        WHEN ra."refAppointmentRecommendation" IN (
-          '2',
-          '2a',
-          '3',
-          '3a',
-          '3b',
-          '3g',
-          '4h',
-          '4i1',
-          '4i2',
-          '4k'
-        ) THEN 'USG/ SFU'
-        WHEN ra."refAppointmentRecommendation" IN ('4g', '4n', '5', '5a', '6e') THEN 'Biopsy'
-        WHEN ra."refAppointmentRecommendation" IN ('4a', '4c', '4d', '4e', '4j', '6d', '6g', '10a') THEN 'Breast radiologist'
-        WHEN ra."refAppointmentRecommendation" IN (
-          '3c',
-          '3d',
-          '3e',
-          '3f',
-          '4',
-          '4b',
-          '4f',
-          '4l',
-          '4m',
-          '6',
-          '6a',
-          '6f',
-          '6h',
-          '7a',
-          '7b',
-          '7c',
-          '7d',
-          '7e',
-          '8',
-          '8a'
-        ) THEN 'Clinical Correlation'
-        WHEN ra."refAppointmentRecommendation" IN ('6b', '6c') THEN 'Onco Consult'
-        WHEN ra."refAppointmentRecommendation" = '0' THEN 'Redo'
-      END AS group_name,
+      irc."refIRCName" AS group_name,
       COUNT(*) AS total_count
     FROM
       latest_report_history rrh
       JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
       JOIN public."Users" rrhu ON rrh."refRHHandledUserId" = rrhu."refUserId"
+      JOIN impressionrecommendation."ImpressionRecommendationVal" irv ON irv."refIRVCustId" = ra."refAppointmentRecommendation"
+      JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
     WHERE
-      rrh."refRHHandleStartTime" >= $1
+      irv."refIRVSystemType" = 'WR'
+      AND rrh."refRHHandleStartTime" >= $1
       AND rrh."refRHHandleStartTime" <= $2
       AND (
         $3 = 0
@@ -686,7 +641,7 @@ WITH
       AND rrh."refRHHandleStartTime" IS NOT NULL
       AND rrh."refRHHandleEndTime" IS NOT NULL
     GROUP BY
-      group_name
+      irc."refIRCName"
   )
 SELECT
   g.group_name,
@@ -720,77 +675,27 @@ WITH
       rn = 1
   ),
   groups AS (
-    SELECT
-      'Annual Screening' AS group_name
-    UNION ALL
-    SELECT
-      'USG/ SFU'
-    UNION ALL
-    SELECT
-      'Biopsy'
-    UNION ALL
-    SELECT
-      'Breast radiologist'
-    UNION ALL
-    SELECT
-      'Clinical Correlation'
-    UNION ALL
-    SELECT
-      'Onco Consult'
-    UNION ALL
-    SELECT
-      'Redo'
+    SELECT DISTINCT
+      irc."refIRCName" AS group_name
+    FROM
+      impressionrecommendation."ImpressionRecommendationCategory" irc
+      JOIN impressionrecommendation."ImpressionRecommendationVal" irv ON irv."refIRCId" = irc."refIRCId"
+    WHERE
+      irv."refIRVSystemType" = 'WR'
   ),
   counts AS (
     SELECT
-      CASE
-        WHEN ra."refAppointmentRecommendationRight" IN ('1', '1a', '7', '10') THEN 'Annual Screening'
-        WHEN ra."refAppointmentRecommendationRight" IN (
-          '2',
-          '2a',
-          '3',
-          '3a',
-          '3b',
-          '3g',
-          '4h',
-          '4i1',
-          '4i2',
-          '4k'
-        ) THEN 'USG/ SFU'
-        WHEN ra."refAppointmentRecommendationRight" IN ('4g', '4n', '5', '5a', '6e') THEN 'Biopsy'
-        WHEN ra."refAppointmentRecommendationRight" IN ('4a', '4c', '4d', '4e', '4j', '6d', '6g', '10a') THEN 'Breast radiologist'
-        WHEN ra."refAppointmentRecommendationRight" IN (
-          '3c',
-          '3d',
-          '3e',
-          '3f',
-          '4',
-          '4b',
-          '4f',
-          '4l',
-          '4m',
-          '6',
-          '6a',
-          '6f',
-          '6h',
-          '7a',
-          '7b',
-          '7c',
-          '7d',
-          '7e',
-          '8',
-          '8a'
-        ) THEN 'Clinical Correlation'
-        WHEN ra."refAppointmentRecommendationRight" IN ('6b', '6c') THEN 'Onco Consult'
-        WHEN ra."refAppointmentRecommendationRight" = '0' THEN 'Redo'
-      END AS group_name,
+      irc."refIRCName" AS group_name,
       COUNT(*) AS total_count
     FROM
       latest_report_history rrh
       JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
       JOIN public."Users" rrhu ON rrh."refRHHandledUserId" = rrhu."refUserId"
+      JOIN impressionrecommendation."ImpressionRecommendationVal" irv ON irv."refIRVCustId" = ra."refAppointmentRecommendationRight"
+      JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
     WHERE
-      rrh."refRHHandleStartTime" >= $1
+      irv."refIRVSystemType" = 'WR'
+      AND rrh."refRHHandleStartTime" >= $1
       AND rrh."refRHHandleStartTime" <= $2
       AND (
         $3 = 0
@@ -803,7 +708,7 @@ WITH
       AND rrh."refRHHandleStartTime" IS NOT NULL
       AND rrh."refRHHandleEndTime" IS NOT NULL
     GROUP BY
-      group_name
+      irc."refIRCName"
   )
 SELECT
   g.group_name,
@@ -818,91 +723,44 @@ ORDER BY
 var LeftRecommendationUserSQL = `
 WITH
   groups AS (
-    SELECT
-      'Annual Screening' AS group_name
-    UNION ALL
-    SELECT
-      'USG/ SFU'
-    UNION ALL
-    SELECT
-      'Biopsy'
-    UNION ALL
-    SELECT
-      'Breast radiologist'
-    UNION ALL
-    SELECT
-      'Clinical Correlation'
-    UNION ALL
-    SELECT
-      'Onco Consult'
-    UNION ALL
-    SELECT
-      'Redo'
+    SELECT DISTINCT
+      irc."refIRCName" AS group_name
+    FROM
+      impressionrecommendation."ImpressionRecommendationCategory" irc
+      JOIN impressionrecommendation."ImpressionRecommendationVal" irv 
+        ON irv."refIRCId" = irc."refIRCId"
+    WHERE
+      irv."refIRVSystemType" = 'WR'
   ),
   counts AS (
     SELECT
-      CASE
-        WHEN t."refAppointmentRecommendation" IN ('1', '1a', '7', '10') THEN 'Annual Screening'
-        WHEN t."refAppointmentRecommendation" IN (
-          '2',
-          '2a',
-          '3',
-          '3a',
-          '3b',
-          '3g',
-          '4h',
-          '4i1',
-          '4i2',
-          '4k'
-        ) THEN 'USG/ SFU'
-        WHEN t."refAppointmentRecommendation" IN ('4g', '4n', '5', '5a', '6e') THEN 'Biopsy'
-        WHEN t."refAppointmentRecommendation" IN ('4a', '4c', '4d', '4e', '4j', '6d', '6g', '10a') THEN 'Breast radiologist'
-        WHEN t."refAppointmentRecommendation" IN (
-          '3c',
-          '3d',
-          '3e',
-          '3f',
-          '4',
-          '4b',
-          '4f',
-          '4l',
-          '4m',
-          '6',
-          '6a',
-          '6f',
-          '6h',
-          '7a',
-          '7b',
-          '7c',
-          '7d',
-          '7e',
-          '8',
-          '8a'
-        ) THEN 'Clinical Correlation'
-        WHEN t."refAppointmentRecommendation" IN ('6b', '6c') THEN 'Onco Consult'
-        WHEN t."refAppointmentRecommendation" = '0' THEN 'Redo'
-        -- ELSE 'Other'
-      END AS group_name,
+      irc."refIRCName" AS group_name,
       COUNT(*) AS total_count
-    FROM
-      (
-        SELECT DISTINCT
-          ON (rrh."refAppointmentId") ra."refAppointmentRecommendation"
-        FROM
-          notes."refReportsHistory" rrh
-          JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
-        WHERE
-          rrh."refRHHandledUserId" = $1
-          AND rrh."refRHHandleStartTime" IS NOT NULL
-          AND rrh."refRHHandleEndTime" IS NOT NULL
-          AND rrh."refRHHandleStartTime" >= $2
-          AND rrh."refRHHandleStartTime" <= $3
-        ORDER BY
-          rrh."refAppointmentId",
-          rrh."refRHHandleStartTime" DESC
-      ) t
+    FROM (
+      SELECT DISTINCT
+        ON (rrh."refAppointmentId") ra."refAppointmentRecommendation"
+      FROM
+        notes."refReportsHistory" rrh
+        JOIN appointment."refAppointments" ra 
+          ON ra."refAppointmentId" = rrh."refAppointmentId"
+      WHERE
+        rrh."refRHHandledUserId" = $1
+        AND rrh."refRHHandleStartTime" IS NOT NULL
+        AND rrh."refRHHandleEndTime" IS NOT NULL
+        AND rrh."refRHHandleStartTime" >= $2
+        AND rrh."refRHHandleStartTime" <= $3
+      ORDER BY
+        rrh."refAppointmentId",
+        rrh."refRHHandleStartTime" DESC
+    ) t
+    JOIN impressionrecommendation."ImpressionRecommendationVal" irv 
+      ON irv."refIRVCustId" = t."refAppointmentRecommendation"
+    JOIN impressionrecommendation."ImpressionRecommendationCategory" irc 
+      ON irc."refIRCId" = irv."refIRCId"
+    WHERE
+      irv."refIRVSystemType" = 'WR'
     GROUP BY
-      group_name
+      irc."refIRCName"
   )
 SELECT
   g.group_name,
@@ -917,91 +775,44 @@ ORDER BY
 var RightRecommendationUserSQL = `
 WITH
   groups AS (
-    SELECT
-      'Annual Screening' AS group_name
-    UNION ALL
-    SELECT
-      'USG/ SFU'
-    UNION ALL
-    SELECT
-      'Biopsy'
-    UNION ALL
-    SELECT
-      'Breast radiologist'
-    UNION ALL
-    SELECT
-      'Clinical Correlation'
-    UNION ALL
-    SELECT
-      'Onco Consult'
-    UNION ALL
-    SELECT
-      'Redo'
+    SELECT DISTINCT
+      irc."refIRCName" AS group_name
+    FROM
+      impressionrecommendation."ImpressionRecommendationCategory" irc
+      JOIN impressionrecommendation."ImpressionRecommendationVal" irv 
+        ON irv."refIRCId" = irc."refIRCId"
+    WHERE
+      irv."refIRVSystemType" = 'WR'
   ),
   counts AS (
     SELECT
-      CASE
-        WHEN t."refAppointmentRecommendationRight" IN ('1', '1a', '7', '10') THEN 'Annual Screening'
-        WHEN t."refAppointmentRecommendationRight" IN (
-          '2',
-          '2a',
-          '3',
-          '3a',
-          '3b',
-          '3g',
-          '4h',
-          '4i1',
-          '4i2',
-          '4k'
-        ) THEN 'USG/ SFU'
-        WHEN t."refAppointmentRecommendationRight" IN ('4g', '4n', '5', '5a', '6e') THEN 'Biopsy'
-        WHEN t."refAppointmentRecommendationRight" IN ('4a', '4c', '4d', '4e', '4j', '6d', '6g', '10a') THEN 'Breast radiologist'
-        WHEN t."refAppointmentRecommendationRight" IN (
-          '3c',
-          '3d',
-          '3e',
-          '3f',
-          '4',
-          '4b',
-          '4f',
-          '4l',
-          '4m',
-          '6',
-          '6a',
-          '6f',
-          '6h',
-          '7a',
-          '7b',
-          '7c',
-          '7d',
-          '7e',
-          '8',
-          '8a'
-        ) THEN 'Clinical Correlation'
-        WHEN t."refAppointmentRecommendationRight" IN ('6b', '6c') THEN 'Onco Consult'
-        WHEN t."refAppointmentRecommendationRight" = '0' THEN 'Redo'
-        -- ELSE 'Other'
-      END AS group_name,
+      irc."refIRCName" AS group_name,
       COUNT(*) AS total_count
-    FROM
-      (
-        SELECT DISTINCT
-          ON (rrh."refAppointmentId") ra."refAppointmentRecommendationRight"
-        FROM
-          notes."refReportsHistory" rrh
-          JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
-        WHERE
-          rrh."refRHHandledUserId" = $1
-          AND rrh."refRHHandleStartTime" IS NOT NULL
-          AND rrh."refRHHandleEndTime" IS NOT NULL
-          AND rrh."refRHHandleStartTime" >= $2
-          AND rrh."refRHHandleStartTime" <= $3
-        ORDER BY
-          rrh."refAppointmentId",
-          rrh."refRHHandleStartTime" DESC
-      ) t
+    FROM (
+      SELECT DISTINCT
+        ON (rrh."refAppointmentId") ra."refAppointmentRecommendationRight"
+      FROM
+        notes."refReportsHistory" rrh
+        JOIN appointment."refAppointments" ra 
+          ON ra."refAppointmentId" = rrh."refAppointmentId"
+      WHERE
+        rrh."refRHHandledUserId" = $1
+        AND rrh."refRHHandleStartTime" IS NOT NULL
+        AND rrh."refRHHandleEndTime" IS NOT NULL
+        AND rrh."refRHHandleStartTime" >= $2
+        AND rrh."refRHHandleStartTime" <= $3
+      ORDER BY
+        rrh."refAppointmentId",
+        rrh."refRHHandleStartTime" DESC
+    ) t
+    JOIN impressionrecommendation."ImpressionRecommendationVal" irv 
+      ON irv."refIRVCustId" = t."refAppointmentRecommendationRight"
+    JOIN impressionrecommendation."ImpressionRecommendationCategory" irc 
+      ON irc."refIRCId" = irv."refIRCId"
+    WHERE
+      irv."refIRVSystemType" = 'WR'
     GROUP BY
-      group_name
+      irc."refIRCName"
   )
 SELECT
   g.group_name,
@@ -1240,8 +1051,7 @@ ORDER BY
   m.month;
 `
 
-var TotoalUserAnalayticsSQL = `
-SELECT
+var TotoalUserAnalayticsSQL = `SELECT
   u."refUserId",
   u."refUserCustId",
   (
@@ -1456,9 +1266,9 @@ SELECT
           notes."refReportsHistory" rrh
           JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
         WHERE
-          rrh."refRHHandledUserId" = u."refUserId"
-          AND rrh."refRHHandleStartTime" != ''
+          rrh."refRHHandledUserId" = 1
           AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime" <> ''
           AND rrh."refRHHandleEndTime" IS NOT NULL
           AND rrh."refRHHandleStartTime"::timestamp >= $1
           AND rrh."refRHHandleStartTime"::timestamp <= $2
@@ -1467,7 +1277,16 @@ SELECT
           rrh."refRHHandleStartTime" DESC
       ) t
     WHERE
-      t."refAppointmentRecommendation" IN ('1', '1a', '7', '10')
+      t."refAppointmentRecommendation" IN (
+        SELECT
+          "refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Annual Screening' -- 👈 category filter
+      )
   ) AS "leftannualscreening",
   (
     SELECT
@@ -1480,9 +1299,9 @@ SELECT
           notes."refReportsHistory" rrh
           JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
         WHERE
-          rrh."refRHHandledUserId" = u."refUserId"
-          AND rrh."refRHHandleStartTime" != ''
+          rrh."refRHHandledUserId" = 1
           AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime" <> ''
           AND rrh."refRHHandleEndTime" IS NOT NULL
           AND rrh."refRHHandleStartTime"::timestamp >= $1
           AND rrh."refRHHandleStartTime"::timestamp <= $2
@@ -1492,16 +1311,14 @@ SELECT
       ) t
     WHERE
       t."refAppointmentRecommendation" IN (
-        '2',
-        '2a',
-        '3',
-        '3a',
-        '3b',
-        '3g',
-        '4h',
-        '4i1',
-        '4i2',
-        '4k'
+        SELECT
+          "refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'USG/SFU' -- 👈 category filter
       )
   ) AS "leftusgsfu",
   (
@@ -1515,9 +1332,9 @@ SELECT
           notes."refReportsHistory" rrh
           JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
         WHERE
-          rrh."refRHHandledUserId" = u."refUserId"
-          AND rrh."refRHHandleStartTime" != ''
+          rrh."refRHHandledUserId" = 1
           AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime" <> ''
           AND rrh."refRHHandleEndTime" IS NOT NULL
           AND rrh."refRHHandleStartTime"::timestamp >= $1
           AND rrh."refRHHandleStartTime"::timestamp <= $2
@@ -1526,7 +1343,16 @@ SELECT
           rrh."refRHHandleStartTime" DESC
       ) t
     WHERE
-      t."refAppointmentRecommendation" IN ('4g', '4n', '5', '5a', '6e')
+      t."refAppointmentRecommendation" IN (
+        SELECT
+          "refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Biopsy' -- 👈 category filter
+      )
   ) AS "leftBiopsy",
   (
     SELECT
@@ -1539,9 +1365,9 @@ SELECT
           notes."refReportsHistory" rrh
           JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
         WHERE
-          rrh."refRHHandledUserId" = u."refUserId"
-          AND rrh."refRHHandleStartTime" != ''
+          rrh."refRHHandledUserId" = 1
           AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime" <> ''
           AND rrh."refRHHandleEndTime" IS NOT NULL
           AND rrh."refRHHandleStartTime"::timestamp >= $1
           AND rrh."refRHHandleStartTime"::timestamp <= $2
@@ -1550,7 +1376,16 @@ SELECT
           rrh."refRHHandleStartTime" DESC
       ) t
     WHERE
-      t."refAppointmentRecommendation" IN ('4a', '4c', '4d', '4e', '4j', '6d', '6g', '10a')
+      t."refAppointmentRecommendation" IN (
+        SELECT
+          "refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Breast Radiologist' -- 👈 category filter
+      )
   ) AS "leftBreastradiologist",
   (
     SELECT
@@ -1563,9 +1398,9 @@ SELECT
           notes."refReportsHistory" rrh
           JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
         WHERE
-          rrh."refRHHandledUserId" = u."refUserId"
-          AND rrh."refRHHandleStartTime" != ''
+          rrh."refRHHandledUserId" = 1
           AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime" <> ''
           AND rrh."refRHHandleEndTime" IS NOT NULL
           AND rrh."refRHHandleStartTime"::timestamp >= $1
           AND rrh."refRHHandleStartTime"::timestamp <= $2
@@ -1575,26 +1410,14 @@ SELECT
       ) t
     WHERE
       t."refAppointmentRecommendation" IN (
-        '3c',
-        '3d',
-        '3e',
-        '3f',
-        '4',
-        '4b',
-        '4f',
-        '4l',
-        '4m',
-        '6',
-        '6a',
-        '6f',
-        '6h',
-        '7a',
-        '7b',
-        '7c',
-        '7d',
-        '7e',
-        '8',
-        '8a'
+        SELECT
+          "refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Clinical Correlation' -- 👈 category filter
       )
   ) AS "leftClinicalCorrelation",
   (
@@ -1608,9 +1431,9 @@ SELECT
           notes."refReportsHistory" rrh
           JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
         WHERE
-          rrh."refRHHandledUserId" = u."refUserId"
-          AND rrh."refRHHandleStartTime" != ''
+          rrh."refRHHandledUserId" = 1
           AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime" <> ''
           AND rrh."refRHHandleEndTime" IS NOT NULL
           AND rrh."refRHHandleStartTime"::timestamp >= $1
           AND rrh."refRHHandleStartTime"::timestamp <= $2
@@ -1619,7 +1442,16 @@ SELECT
           rrh."refRHHandleStartTime" DESC
       ) t
     WHERE
-      t."refAppointmentRecommendation" IN ('6b', '6c')
+      t."refAppointmentRecommendation" IN (
+        SELECT
+          "refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Onco Consult' -- 👈 category filter
+      )
   ) AS "leftOncoConsult",
   (
     SELECT
@@ -1632,9 +1464,9 @@ SELECT
           notes."refReportsHistory" rrh
           JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
         WHERE
-          rrh."refRHHandledUserId" = u."refUserId"
-          AND rrh."refRHHandleStartTime" != ''
+          rrh."refRHHandledUserId" = 1
           AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime" <> ''
           AND rrh."refRHHandleEndTime" IS NOT NULL
           AND rrh."refRHHandleStartTime"::timestamp >= $1
           AND rrh."refRHHandleStartTime"::timestamp <= $2
@@ -1643,7 +1475,16 @@ SELECT
           rrh."refRHHandleStartTime" DESC
       ) t
     WHERE
-      t."refAppointmentRecommendation" IN ('0')
+      t."refAppointmentRecommendation" IN (
+        SELECT
+          "refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Redo' -- 👈 category filter
+      )
   ) AS "leftRedo",
   (
     SELECT
@@ -1657,8 +1498,8 @@ SELECT
           JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
         WHERE
           rrh."refRHHandledUserId" = u."refUserId"
-          AND rrh."refRHHandleStartTime" != ''
           AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime" <> ''
           AND rrh."refRHHandleEndTime" IS NOT NULL
           AND rrh."refRHHandleStartTime"::timestamp >= $1
           AND rrh."refRHHandleStartTime"::timestamp <= $2
@@ -1667,7 +1508,16 @@ SELECT
           rrh."refRHHandleStartTime" DESC
       ) t
     WHERE
-      t."refAppointmentRecommendationRight" IN ('1', '1a', '7', '10')
+      t."refAppointmentRecommendationRight" IN (
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Annual Screening' -- 👈 Dynamic category name
+      )
   ) AS "rightannualscreening",
   (
     SELECT
@@ -1681,8 +1531,8 @@ SELECT
           JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
         WHERE
           rrh."refRHHandledUserId" = u."refUserId"
-          AND rrh."refRHHandleStartTime" != ''
           AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime" <> ''
           AND rrh."refRHHandleEndTime" IS NOT NULL
           AND rrh."refRHHandleStartTime"::timestamp >= $1
           AND rrh."refRHHandleStartTime"::timestamp <= $2
@@ -1692,16 +1542,14 @@ SELECT
       ) t
     WHERE
       t."refAppointmentRecommendationRight" IN (
-        '2',
-        '2a',
-        '3',
-        '3a',
-        '3b',
-        '3g',
-        '4h',
-        '4i1',
-        '4i2',
-        '4k'
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'USG/SFU' -- 👈 Dynamic category name
       )
   ) AS "rightusgsfu",
   (
@@ -1716,8 +1564,8 @@ SELECT
           JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
         WHERE
           rrh."refRHHandledUserId" = u."refUserId"
-          AND rrh."refRHHandleStartTime" != ''
           AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime" <> ''
           AND rrh."refRHHandleEndTime" IS NOT NULL
           AND rrh."refRHHandleStartTime"::timestamp >= $1
           AND rrh."refRHHandleStartTime"::timestamp <= $2
@@ -1726,7 +1574,16 @@ SELECT
           rrh."refRHHandleStartTime" DESC
       ) t
     WHERE
-      t."refAppointmentRecommendationRight" IN ('4g', '4n', '5', '5a', '6e')
+      t."refAppointmentRecommendationRight" IN (
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Biopsy' -- 👈 Dynamic category name
+      )
   ) AS "rightBiopsy",
   (
     SELECT
@@ -1740,8 +1597,8 @@ SELECT
           JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
         WHERE
           rrh."refRHHandledUserId" = u."refUserId"
-          AND rrh."refRHHandleStartTime" != ''
           AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime" <> ''
           AND rrh."refRHHandleEndTime" IS NOT NULL
           AND rrh."refRHHandleStartTime"::timestamp >= $1
           AND rrh."refRHHandleStartTime"::timestamp <= $2
@@ -1750,7 +1607,16 @@ SELECT
           rrh."refRHHandleStartTime" DESC
       ) t
     WHERE
-      t."refAppointmentRecommendationRight" IN ('4a', '4c', '4d', '4e', '4j', '6d', '6g', '10a')
+      t."refAppointmentRecommendationRight" IN (
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Breast Radiologist' -- 👈 Dynamic category name
+      )
   ) AS "rightBreastradiologist",
   (
     SELECT
@@ -1764,8 +1630,8 @@ SELECT
           JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
         WHERE
           rrh."refRHHandledUserId" = u."refUserId"
-          AND rrh."refRHHandleStartTime" != ''
           AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime" <> ''
           AND rrh."refRHHandleEndTime" IS NOT NULL
           AND rrh."refRHHandleStartTime"::timestamp >= $1
           AND rrh."refRHHandleStartTime"::timestamp <= $2
@@ -1775,26 +1641,14 @@ SELECT
       ) t
     WHERE
       t."refAppointmentRecommendationRight" IN (
-        '3c',
-        '3d',
-        '3e',
-        '3f',
-        '4',
-        '4b',
-        '4f',
-        '4l',
-        '4m',
-        '6',
-        '6a',
-        '6f',
-        '6h',
-        '7a',
-        '7b',
-        '7c',
-        '7d',
-        '7e',
-        '8',
-        '8a'
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Clinical Correlation' -- 👈 Dynamic category name
       )
   ) AS "rightClinicalCorrelation",
   (
@@ -1809,8 +1663,8 @@ SELECT
           JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
         WHERE
           rrh."refRHHandledUserId" = u."refUserId"
-          AND rrh."refRHHandleStartTime" != ''
           AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime" <> ''
           AND rrh."refRHHandleEndTime" IS NOT NULL
           AND rrh."refRHHandleStartTime"::timestamp >= $1
           AND rrh."refRHHandleStartTime"::timestamp <= $2
@@ -1819,7 +1673,16 @@ SELECT
           rrh."refRHHandleStartTime" DESC
       ) t
     WHERE
-      t."refAppointmentRecommendationRight" IN ('6b', '6c')
+      t."refAppointmentRecommendationRight" IN (
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Onco Consult' -- 👈 Dynamic category name
+      )
   ) AS "rightOncoConsult",
   (
     SELECT
@@ -1833,8 +1696,8 @@ SELECT
           JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
         WHERE
           rrh."refRHHandledUserId" = u."refUserId"
-          AND rrh."refRHHandleStartTime" != ''
           AND rrh."refRHHandleStartTime" IS NOT NULL
+          AND rrh."refRHHandleStartTime" <> ''
           AND rrh."refRHHandleEndTime" IS NOT NULL
           AND rrh."refRHHandleStartTime"::timestamp >= $1
           AND rrh."refRHHandleStartTime"::timestamp <= $2
@@ -1843,7 +1706,16 @@ SELECT
           rrh."refRHHandleStartTime" DESC
       ) t
     WHERE
-      t."refAppointmentRecommendationRight" IN ('0')
+      t."refAppointmentRecommendationRight" IN (
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Redo' -- 👈 Dynamic category name
+      )
   ) AS "rightRedo"
 FROM
   public."Users" u
@@ -1859,7 +1731,7 @@ ORDER BY
   `
 
 var GetOverAllScanCenterList = `
- SELECT
+SELECT
   sc."refSCId",
   sc."refSCCustId",
   (
@@ -1992,7 +1864,16 @@ var GetOverAllScanCenterList = `
           ra."refAppointmentId"
       ) t
     WHERE
-      t."refAppointmentRecommendation" IN ('1', '1a', '7', '10')
+      t."refAppointmentRecommendation" IN (
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Annual Screening' -- 👈 Replace this with your desired category
+      )
   ) AS "leftannualscreening",
   (
     SELECT
@@ -2012,16 +1893,14 @@ var GetOverAllScanCenterList = `
       ) t
     WHERE
       t."refAppointmentRecommendation" IN (
-        '2',
-        '2a',
-        '3',
-        '3a',
-        '3b',
-        '3g',
-        '4h',
-        '4i1',
-        '4i2',
-        '4k'
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'USG/SFU' -- 👈 Replace this with your desired category
       )
   ) AS "leftusgsfu",
   (
@@ -2041,7 +1920,16 @@ var GetOverAllScanCenterList = `
           ra."refAppointmentId"
       ) t
     WHERE
-      t."refAppointmentRecommendation" IN ('4g', '4n', '5', '5a', '6e')
+      t."refAppointmentRecommendation" IN (
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Biopsy' -- 👈 Replace this with your desired category
+      )
   ) AS "leftBiopsy",
   (
     SELECT
@@ -2060,7 +1948,16 @@ var GetOverAllScanCenterList = `
           ra."refAppointmentId"
       ) t
     WHERE
-      t."refAppointmentRecommendation" IN ('4a', '4c', '4d', '4e', '4j', '6d', '6g', '10a')
+      t."refAppointmentRecommendation" IN (
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Breast Radiologist' -- 👈 Replace this with your desired category
+      )
   ) AS "leftBreastradiologist",
   (
     SELECT
@@ -2080,26 +1977,14 @@ var GetOverAllScanCenterList = `
       ) t
     WHERE
       t."refAppointmentRecommendation" IN (
-        '3c',
-        '3d',
-        '3e',
-        '3f',
-        '4',
-        '4b',
-        '4f',
-        '4l',
-        '4m',
-        '6',
-        '6a',
-        '6f',
-        '6h',
-        '7a',
-        '7b',
-        '7c',
-        '7d',
-        '7e',
-        '8',
-        '8a'
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Clinical Correlation' -- 👈 Replace this with your desired category
       )
   ) AS "leftClinicalCorrelation",
   (
@@ -2119,7 +2004,16 @@ var GetOverAllScanCenterList = `
           ra."refAppointmentId"
       ) t
     WHERE
-      t."refAppointmentRecommendation" IN ('6b', '6c')
+      t."refAppointmentRecommendation" IN (
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Onco Consult' -- 👈 Replace this with your desired category
+      )
   ) AS "leftOncoConsult",
   (
     SELECT
@@ -2138,7 +2032,16 @@ var GetOverAllScanCenterList = `
           ra."refAppointmentId"
       ) t
     WHERE
-      t."refAppointmentRecommendation" IN ('0')
+      t."refAppointmentRecommendation" IN (
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Redo' -- 👈 Replace this with your desired category
+      )
   ) AS "leftRedo",
   (
     SELECT
@@ -2157,7 +2060,16 @@ var GetOverAllScanCenterList = `
           ra."refAppointmentId"
       ) t
     WHERE
-      t."refAppointmentRecommendationRight" IN ('1', '1a', '7', '10')
+      t."refAppointmentRecommendationRight" IN (
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Annual Screening' -- 👈 Replace this with your desired category
+      )
   ) AS "rightannualscreening",
   (
     SELECT
@@ -2177,16 +2089,14 @@ var GetOverAllScanCenterList = `
       ) t
     WHERE
       t."refAppointmentRecommendationRight" IN (
-        '2',
-        '2a',
-        '3',
-        '3a',
-        '3b',
-        '3g',
-        '4h',
-        '4i1',
-        '4i2',
-        '4k'
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'USG/SFU' -- 👈 Replace this with your desired category
       )
   ) AS "rightusgsfu",
   (
@@ -2206,7 +2116,16 @@ var GetOverAllScanCenterList = `
           ra."refAppointmentId"
       ) t
     WHERE
-      t."refAppointmentRecommendationRight" IN ('4g', '4n', '5', '5a', '6e')
+      t."refAppointmentRecommendationRight" IN (
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Biopsy' -- 👈 Replace this with your desired category
+      )
   ) AS "rightBiopsy",
   (
     SELECT
@@ -2225,7 +2144,16 @@ var GetOverAllScanCenterList = `
           ra."refAppointmentId"
       ) t
     WHERE
-      t."refAppointmentRecommendationRight" IN ('4a', '4c', '4d', '4e', '4j', '6d', '6g', '10a')
+      t."refAppointmentRecommendationRight" IN (
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Breast Radiologist' -- 👈 Replace this with your desired category
+      )
   ) AS "rightBreastradiologist",
   (
     SELECT
@@ -2245,26 +2173,14 @@ var GetOverAllScanCenterList = `
       ) t
     WHERE
       t."refAppointmentRecommendationRight" IN (
-        '3c',
-        '3d',
-        '3e',
-        '3f',
-        '4',
-        '4b',
-        '4f',
-        '4l',
-        '4m',
-        '6',
-        '6a',
-        '6f',
-        '6h',
-        '7a',
-        '7b',
-        '7c',
-        '7d',
-        '7e',
-        '8',
-        '8a'
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Clinical Correlation' -- 👈 Replace this with your desired category
       )
   ) AS "rightClinicalCorrelation",
   (
@@ -2284,7 +2200,16 @@ var GetOverAllScanCenterList = `
           ra."refAppointmentId"
       ) t
     WHERE
-      t."refAppointmentRecommendationRight" IN ('6b', '6c')
+      t."refAppointmentRecommendationRight" IN (
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Onco Consult' -- 👈 Replace this with your desired category
+      )
   ) AS "rightOncoConsult",
   (
     SELECT
@@ -2303,13 +2228,22 @@ var GetOverAllScanCenterList = `
           ra."refAppointmentId"
       ) t
     WHERE
-      t."refAppointmentRecommendationRight" IN ('0')
-  ) AS "rightOncoConsult"
+      t."refAppointmentRecommendationRight" IN (
+        SELECT
+          irv."refIRVCustId"
+        FROM
+          impressionrecommendation."ImpressionRecommendationVal" irv
+          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+        WHERE
+          irv."refIRVSystemType" = 'WR'
+          AND irc."refIRCName" = 'Redo' -- 👈 Replace this with your desired category
+      )
+  ) AS "rightRedo"
 FROM
   public."ScanCenter" sc
 WHERE
   (
     $3 = 0
     OR sc."refSCId" = $3
-  ) 
+  )
 `

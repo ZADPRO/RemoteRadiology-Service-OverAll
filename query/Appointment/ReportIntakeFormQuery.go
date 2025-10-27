@@ -1442,3 +1442,23 @@ INSERT INTO
 VALUES
   ($1, $2, $3, $4);
   `
+
+  var GetImpressionRecommendationSQL = `
+  SELECT
+  irv."refIRVCustId" AS "id",
+  irv."refIRVImpressionShortDesc" AS "impression",
+  irv."refIRVImpressionLongDesc" AS "impressionText",
+  irv."refIRVImpressionTextColor" AS "impressionTextColor",
+  'transparent' AS "impressionBackgroundColor",
+  irv."refIRVRecommendationShortDesc" AS "recommendation",
+  irv."refIRVRecommendationLongDesc" AS "recommendationText",
+  irv."refIRVRecommendationTextColor" AS "recommendationTextColor",
+  irc."refIRCColor" AS "recommendationBackgroundColor"
+FROM
+  impressionrecommendation."ImpressionRecommendationVal" irv
+  JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+WHERE
+  irv."refIRVSystemType" = $1
+ORDER BY
+  irv."refIRVOrderId" ASC
+  `
