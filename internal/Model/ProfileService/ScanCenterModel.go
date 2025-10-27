@@ -20,5 +20,6 @@ type GetAllScaCenter struct {
 }
 
 type Mapping struct {
-	SCId int `json:"refSCId" gorm:"column:refSCId"`
+	SCId     int    `json:"refSCId" gorm:"column:refSCId"`
+	SCCustId string `json:"refSCCustId" gorm:"column:refSCCustId"`
 }

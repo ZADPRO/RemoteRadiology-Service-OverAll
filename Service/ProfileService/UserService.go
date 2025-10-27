@@ -6,6 +6,7 @@ import (
 	helper "AuthenticationService/internal/Helper/ViewFile"
 	model "AuthenticationService/internal/Model/ProfileService"
 	query "AuthenticationService/query/ProfileService"
+	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -29,6 +30,7 @@ func GetUserService(db *gorm.DB, idValue int) model.GetUserResModel {
 	if UserData[0].RoleId != 9 && UserData[0].RoleId != 7 && UserData[0].RoleId != 6 {
 
 		ScanCenterId := 0
+		ScanCenterCustId := ""
 
 		var MappingData []model.Mapping
 		err := db.Raw(query.IdentifyScanCenterMapping, idValue).Scan(&MappingData).Error
@@ -38,9 +40,12 @@ func GetUserService(db *gorm.DB, idValue int) model.GetUserResModel {
 		}
 		if len(MappingData) > 0 {
 			ScanCenterId = MappingData[0].SCId
+			ScanCenterCustId = MappingData[0].SCCustId
 		} else {
 			ScanCenterId = 0
 		}
+
+		fmt.Println("===============>", ScanCenterCustId)
 
 		return model.GetUserResModel{
 			Id:                      UserData[0].Id,
@@ -50,6 +55,7 @@ func GetUserService(db *gorm.DB, idValue int) model.GetUserResModel {
 			FirstName:               UserData[0].FirstName,
 			LastName:                UserData[0].LastName,
 			ScanCenterId:            ScanCenterId,
+			ScanCenterCustId:        ScanCenterCustId,
 			CODOPhoneNo1CountryCode: UserData[0].CODOPhoneNo1CountryCode,
 			CODOPhoneNo1:            UserData[0].CODOPhoneNo1,
 			DOB:                     hashdb.Decrypt(UserData[0].DOB),
@@ -57,13 +63,14 @@ func GetUserService(db *gorm.DB, idValue int) model.GetUserResModel {
 		}
 	} else {
 		return model.GetUserResModel{
-			Id:           UserData[0].Id,
-			CustId:       UserData[0].CustId,
-			RoleId:       UserData[0].RoleId,
-			Email:        UserData[0].Email,
-			FirstName:    UserData[0].FirstName,
-			LastName:     UserData[0].LastName,
-			ScanCenterId: 0,
+			Id:               UserData[0].Id,
+			CustId:           UserData[0].CustId,
+			RoleId:           UserData[0].RoleId,
+			Email:            UserData[0].Email,
+			FirstName:        UserData[0].FirstName,
+			LastName:         UserData[0].LastName,
+			ScanCenterId:     0,
+			ScanCenterCustId: "",
 		}
 	}
 }
@@ -104,6 +111,7 @@ func DashboardService(db *gorm.DB, idValue int) model.GetUserResModel {
 	if UserData[0].RoleId != 9 && UserData[0].RoleId != 7 && UserData[0].RoleId != 6 {
 
 		ScanCenterId := 0
+		ScanCenterCustId := ""
 
 		var MappingData []model.Mapping
 		err := db.Raw(query.IdentifyScanCenterMapping, idValue).Scan(&MappingData).Error
@@ -113,6 +121,7 @@ func DashboardService(db *gorm.DB, idValue int) model.GetUserResModel {
 		}
 		if len(MappingData) > 0 {
 			ScanCenterId = MappingData[0].SCId
+			ScanCenterCustId = MappingData[0].SCCustId
 		} else {
 			ScanCenterId = 0
 		}
@@ -125,6 +134,7 @@ func DashboardService(db *gorm.DB, idValue int) model.GetUserResModel {
 			FirstName:               UserData[0].FirstName,
 			LastName:                UserData[0].LastName,
 			ScanCenterId:            ScanCenterId,
+			ScanCenterCustId:        ScanCenterCustId,
 			CODOPhoneNo1CountryCode: UserData[0].CODOPhoneNo1CountryCode,
 			CODOPhoneNo1:            UserData[0].CODOPhoneNo1,
 			ProfileImgFile:          UserData[0].ProfileImgFile,
@@ -140,6 +150,7 @@ func DashboardService(db *gorm.DB, idValue int) model.GetUserResModel {
 			CODOPhoneNo1CountryCode: UserData[0].CODOPhoneNo1CountryCode,
 			CODOPhoneNo1:            UserData[0].CODOPhoneNo1,
 			ScanCenterId:            0,
+			ScanCenterCustId:        "",
 			ProfileImgFile:          UserData[0].ProfileImgFile,
 		}
 	}

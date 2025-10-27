@@ -136,6 +136,11 @@ func main() {
 	routesUser.InitWellthgreenFormsRoutes(r)
 
 	fmt.Println()
+	fmt.Println("=================Impression Recommendation=================")
+	fmt.Println()
+	routesUser.InitImpressionRecommendationRoutes(r)
+
+	fmt.Println()
 	fmt.Println("*****************ProfileService*****************")
 	fmt.Println()
 
