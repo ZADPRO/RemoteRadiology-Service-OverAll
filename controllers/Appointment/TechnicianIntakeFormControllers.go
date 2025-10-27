@@ -18,6 +18,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -1295,15 +1296,25 @@ func OverallDownloadDicomFileController() gin.HandlerFunc {
 			// ✅ Generate URL (either S3 presigned or local)
 			fileURL := file.FileName
 			if strings.HasPrefix(file.FileName, "http") {
-				// Generate pre-signed S3 URL (1-hour validity)
-				presignedURL, err := s3Service.GeneratePresignGetURL(ctx, file.FileName, time.Hour)
+				// Parse URL and extract only the object key
+				parsedURL, err := url.Parse(file.FileName)
+				if err != nil {
+					log.Printf("ERROR: Failed to parse S3 URL %s: %v", file.FileName, err)
+					continue
+				}
+
+				// Remove leading slash if present (S3 expects keys without '/')
+				objectKey := strings.TrimPrefix(parsedURL.Path, "/")
+
+				// Generate presigned URL using the object key
+				presignedURL, err := s3Service.GeneratePresignGetURL(ctx, objectKey, time.Hour)
 				if err != nil {
 					log.Printf("ERROR: Failed to generate presigned URL for %s: %v", file.FileName, err)
 					continue
 				}
 				fileURL = presignedURL
 			} else {
-				// Local path (BASE_URL + /Assets/Dicom/)
+				// Local path
 				fileURL = fmt.Sprintf("%s/Assets/Dicom/%s", os.Getenv("BASE_URL"), file.FileName)
 			}
 
