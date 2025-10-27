@@ -728,31 +728,40 @@ func DownloadMultipleDicomFilesController() gin.HandlerFunc {
 		var files []model.DicomFileModel
 		err := dbConn.Raw(query.GetDicomFile, data.AppointmentId, data.UserId, data.Side).Scan(&files).Error
 		if err != nil || len(files) == 0 {
-			c.JSON(http.StatusBadRequest, gin.H{"status": false, "message": "Failed to retrieve DICOM files."})
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  false,
+				"message": "Failed to retrieve DICOM files.",
+			})
 			return
 		}
 
-		zipFilename := strings.Join(strings.Split(files[0].FileName, "_")[:len(strings.Split(files[0].FileName, "_"))-2], "_") + ".zip"
+		// ✅ Construct zip file name safely
+		nameParts := strings.Split(files[0].FileName, "_")
+		if len(nameParts) > 2 {
+			nameParts = nameParts[:len(nameParts)-2]
+		}
+		zipFilename := strings.Join(nameParts, "_") + ".zip"
 
-		c.Writer.Header().Set("Content-Disposition", "attachment; filename="+zipFilename)
+		// ✅ Set headers before writing any content
+		c.Writer.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", zipFilename))
 		c.Writer.Header().Set("Content-Type", "application/zip")
 		c.Writer.Header().Set("Content-Transfer-Encoding", "binary")
-		c.Writer.Header().Set("Cache-Control", "no-cache")
+		c.Writer.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
 
 		zipWriter := zip.NewWriter(c.Writer)
 
-		// ✅ Initialize AWS SDK config (only once)
+		// ✅ Initialize AWS SDK config (once)
 		cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-2"))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"status": false, "message": "Failed to load AWS config"})
+			http.Error(c.Writer, "Failed to load AWS config", http.StatusInternalServerError)
 			return
 		}
 		s3Client := s3.NewFromConfig(cfg)
 
 		for _, file := range files {
-			filePath := "./Assets/Dicom/" + file.FileName
+			fileNameOnly := filepath.Base(file.FileName) // ✅ ensure clean filename for ZIP entry
 
-			if strings.HasPrefix(file.FileName, "http") || strings.Contains(file.FileName, "amazonaws.com") {
+			if strings.HasPrefix(file.FileName, "http") && strings.Contains(file.FileName, "amazonaws.com") {
 				// ✅ Download from S3
 				bucket, key := parseS3URL(file.FileName)
 				obj, err := s3Client.GetObject(context.TODO(), &s3.GetObjectInput{
@@ -764,7 +773,7 @@ func DownloadMultipleDicomFilesController() gin.HandlerFunc {
 					continue
 				}
 
-				writer, err := zipWriter.Create(key[strings.LastIndex(key, "/")+1:])
+				writer, err := zipWriter.Create(fileNameOnly)
 				if err != nil {
 					log.Println("❌ Failed to create zip entry:", err)
 					obj.Body.Close()
@@ -779,37 +788,46 @@ func DownloadMultipleDicomFilesController() gin.HandlerFunc {
 				}
 
 			} else {
-				// ✅ Local file handling (unchanged)
+				// ✅ Local file handling
+				filePath := "./Assets/Dicom/" + file.FileName
 				if _, err := os.Stat(filePath); os.IsNotExist(err) {
+					log.Println("⚠️ File not found:", filePath)
 					continue
 				}
 
 				fileToZip, err := os.Open(filePath)
 				if err != nil {
+					log.Println("❌ Failed to open local file:", err)
 					continue
 				}
+				defer fileToZip.Close()
 
-				writer, err := zipWriter.Create(file.FileName)
+				writer, err := zipWriter.Create(fileNameOnly)
 				if err != nil {
-					fileToZip.Close()
+					log.Println("❌ Failed to create zip entry:", err)
 					continue
 				}
 
 				_, err = io.Copy(writer, fileToZip)
-				fileToZip.Close()
 				if err != nil {
+					log.Println("❌ Failed to copy local file:", err)
 					continue
 				}
 			}
 		}
 
+		// ✅ Close the zip writer properly before ending
 		if err := zipWriter.Close(); err != nil {
-			log.Println("Error closing zip writer:", err)
+			log.Println("❌ Error closing zip writer:", err)
 		}
 
+		// ✅ Flush the writer
 		if flusher, ok := c.Writer.(http.Flusher); ok {
 			flusher.Flush()
 		}
+
+		// ✅ END response cleanly (don’t let Gin try to write JSON)
+		return
 	}
 }
 
