@@ -50,7 +50,7 @@ func CheckAccessService(db *gorm.DB, reqVal model.CheckAccessReq, idValue int, r
 	return result[0].Status, message, result[0].RefAppointmentAccessId, result[0].CustID
 }
 
-func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValue int, roleIdValue int) (bool, string, []model.GetViewIntakeData, []model.GetTechnicianIntakeData, []model.GetReportIntakeData, []model.GetReportTextContent, []model.GetReportHistory, []model.GetReportComments, []model.GetOneUserAppointmentModel, []model.ReportFormateModel, []model.GetUserDetails, []model.PatientCustId, bool, *model.FileData, string, []model.AddAddendumModel, []model.GetOldReport, bool, string, string, string, []model.ListAllSignatureModel) {
+func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValue int, roleIdValue int) (bool, string, []model.GetViewIntakeData, []model.GetTechnicianIntakeData, []model.GetReportIntakeData, []model.GetReportTextContent, []model.GetReportHistory, []model.GetReportComments, []model.GetOneUserAppointmentModel, []model.ReportFormateModel, []model.GetUserDetails, []model.PatientCustId, bool, *model.FileData, string, []model.AddAddendumModel, []model.GetOldReport, bool, string, string, string, []model.ListAllSignatureModel, []model.ImpressionRecommendationModel, []model.ImpressionRecommendationModel) {
 	log := logger.InitLogger()
 
 	tx := db.Begin()
@@ -74,7 +74,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			[]model.GetOldReport{},
 			false,
 			"", "", "",
-			[]model.ListAllSignatureModel{}
+			[]model.ListAllSignatureModel{},
+			[]model.ImpressionRecommendationModel{},
+			[]model.ImpressionRecommendationModel{}
 	}
 
 	defer func() {
@@ -201,7 +203,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						[]model.GetOldReport{},
 						false,
 						"", "", "",
-						[]model.ListAllSignatureModel{}
+						[]model.ListAllSignatureModel{},
+						[]model.ImpressionRecommendationModel{},
+						[]model.ImpressionRecommendationModel{}
 				}
 
 				transData := 28
@@ -227,7 +231,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						[]model.GetOldReport{},
 						false,
 						"", "", "",
-						[]model.ListAllSignatureModel{}
+						[]model.ListAllSignatureModel{},
+						[]model.ImpressionRecommendationModel{},
+						[]model.ImpressionRecommendationModel{}
 				}
 
 				var UpdateAccessSQL = query.UpdateAccessAppointment
@@ -264,7 +270,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						[]model.GetOldReport{},
 						false,
 						"", "", "",
-						[]model.ListAllSignatureModel{}
+						[]model.ListAllSignatureModel{},
+						[]model.ImpressionRecommendationModel{},
+						[]model.ImpressionRecommendationModel{}
 
 				}
 
@@ -296,7 +304,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 						[]model.GetOldReport{},
 						false,
 						"", "", "",
-						[]model.ListAllSignatureModel{}
+						[]model.ListAllSignatureModel{},
+						[]model.ImpressionRecommendationModel{},
+						[]model.ImpressionRecommendationModel{}
 				}
 
 				if len(ReportHistory) > 0 {
@@ -336,7 +346,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 							[]model.GetOldReport{},
 							false,
 							"", "", "",
-							[]model.ListAllSignatureModel{}
+							[]model.ListAllSignatureModel{},
+							[]model.ImpressionRecommendationModel{},
+							[]model.ImpressionRecommendationModel{}
 					}
 				} else {
 					var starttime = timeZone.GetPacificTime()
@@ -370,7 +382,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 							[]model.GetOldReport{},
 							false,
 							"", "", "",
-							[]model.ListAllSignatureModel{}
+							[]model.ListAllSignatureModel{},
+							[]model.ImpressionRecommendationModel{},
+							[]model.ImpressionRecommendationModel{}
 					}
 				}
 
@@ -399,7 +413,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 				[]model.GetOldReport{},
 				false,
 				"", "", "",
-				[]model.ListAllSignatureModel{}
+				[]model.ListAllSignatureModel{},
+				[]model.ImpressionRecommendationModel{},
+				[]model.ImpressionRecommendationModel{}
 		}
 
 		var IntakeFormData []model.GetViewIntakeData
@@ -663,7 +679,19 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			patientPrivatePublicStatus = patientPrivatePublic[0].Answer
 		}
 
-		return true, "Successfully Fetched", IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, OneUserAppointment, ReportFormateList, UserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterProfileImg, hashdb.Decrypt(GetScanCenterImg[0].SCAddress), ListAddendumService(db, reqVal.AppointmentId), oldReportData, NASystemReportAccess, patientPrivatePublicStatus, PerformingProviderName, VerifyingProviderName, ListAllSignatureService(db, reqVal.AppointmentId)
+		var ReportPortalImpRecom []model.ImpressionRecommendationModel
+		ReportPortalImpRecomErr := db.Raw(query.GetImpressionRecommendationSQL, "WR").Scan(&ReportPortalImpRecom).Error
+		if ReportPortalImpRecomErr != nil {
+			log.Error(ReportPortalImpRecomErr)
+		}
+
+		var NAImpRecom []model.ImpressionRecommendationModel
+		NAImpRecomErr := db.Raw(query.GetImpressionRecommendationSQL, "NA").Scan(&NAImpRecom).Error
+		if NAImpRecomErr != nil {
+			log.Error(NAImpRecomErr)
+		}
+
+		return true, "Successfully Fetched", IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, OneUserAppointment, ReportFormateList, UserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterProfileImg, hashdb.Decrypt(GetScanCenterImg[0].SCAddress), ListAddendumService(db, reqVal.AppointmentId), oldReportData, NASystemReportAccess, patientPrivatePublicStatus, PerformingProviderName, VerifyingProviderName, ListAllSignatureService(db, reqVal.AppointmentId), ReportPortalImpRecom, NAImpRecom
 
 	} else {
 
@@ -688,7 +716,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 				[]model.GetOldReport{},
 				false,
 				"", "", "",
-				[]model.ListAllSignatureModel{}
+				[]model.ListAllSignatureModel{},
+				[]model.ImpressionRecommendationModel{},
+				[]model.ImpressionRecommendationModel{}
 		}
 
 		return status, message,
@@ -709,7 +739,9 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 			[]model.GetOldReport{},
 			false,
 			"", "", "",
-			[]model.ListAllSignatureModel{}
+			[]model.ListAllSignatureModel{},
+			[]model.ImpressionRecommendationModel{},
+			[]model.ImpressionRecommendationModel{}
 	}
 
 }

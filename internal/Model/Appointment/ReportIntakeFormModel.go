@@ -530,3 +530,15 @@ type ListAllSignatureModel struct {
 	SText         string `json:"refSText" gorm:"column:refSText"`
 	SCreatedAt    string `json:"refSCreatedAt" gorm:"column:refSCreatedAt"`
 }
+
+type ImpressionRecommendationModel struct {
+	Id                            string `json:"id" gorm:"column:id"`
+	Impression                    string `json:"impression" gorm:"column:impression"`
+	ImpressionText                string `json:"impressionText" gorm:"column:impressionText"`
+	ImpressionTextColor           string `json:"impressionTextColor" gorm:"column:impressionTextColor"`
+	ImpressionBackgroundColor     string `json:"impressionBackgroundColor" gorm:"column:impressionBackgroundColor"`
+	Recommendation                string `json:"recommendation" gorm:"column:recommendation"`
+	RecommendationText            string `json:"recommendationText" gorm:"column:recommendationText"`
+	RecommendationTextColor       string `json:"recommendationTextColor" gorm:"column:recommendationTextColor"`
+	RecommendationBackgroundColor string `json:"recommendationBackgroundColor" gorm:"column:recommendationBackgroundColor"`
+}
