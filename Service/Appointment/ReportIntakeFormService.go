@@ -9,8 +9,11 @@ import (
 	helperView "AuthenticationService/internal/Helper/ViewFile"
 	model "AuthenticationService/internal/Model/Appointment"
 	query "AuthenticationService/query/Appointment"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -530,6 +533,7 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 		}
 
 		//Scan Center Profile Img
+		// Scan Center Profile Img
 		var GetScanCenterImg []model.ScanCenterModel
 		GetScanCenterImgErr := db.Raw(query.ScanCenterSQL, Appointment[0].SCId).Scan(&GetScanCenterImg).Error
 		if GetScanCenterImgErr != nil {
@@ -539,15 +543,44 @@ func AssignGetReportService(db *gorm.DB, reqVal model.AssignGetReportReq, idValu
 		var ScanCenterProfileImg *model.FileData
 
 		if len(GetScanCenterImg) > 0 {
-			viewedFile, viewErr := helperView.ViewFile("./Assets/Profile/" + hashdb.Decrypt(GetScanCenterImg[0].ProfileImg))
-			if viewErr != nil {
-				log.Errorf("Failed to read ScanCenter profile image: %v", viewErr)
+			profilePath := hashdb.Decrypt(GetScanCenterImg[0].ProfileImg)
+
+			// ✅ If it's a remote (S3/public) URL
+			if strings.HasPrefix(profilePath, "http://") || strings.HasPrefix(profilePath, "https://") {
+				resp, err := http.Get(profilePath)
+				if err != nil {
+					log.Errorf("Failed to fetch S3 image: %v", err)
+					ScanCenterProfileImg = &model.FileData{}
+				} else {
+					defer resp.Body.Close()
+					imgBytes, err := io.ReadAll(resp.Body)
+					if err != nil {
+						log.Errorf("Failed to read S3 image response: %v", err)
+						ScanCenterProfileImg = &model.FileData{}
+					} else {
+						base64Str := base64.StdEncoding.EncodeToString(imgBytes)
+						contentType := resp.Header.Get("Content-Type") // get MIME type from response
+						ScanCenterProfileImg = &model.FileData{
+							Base64Data:  base64Str,
+							ContentType: contentType,
+						}
+					}
+				}
+			} else {
+				log.Infof("🗂️ Detected Local file for ScanCenter profile: %s", profilePath)
+
+				viewedFile, viewErr := helperView.ViewFile("./Assets/Profile/" + profilePath)
+				if viewErr != nil {
+					log.Errorf("❌ Failed to read ScanCenter profile image: %v", viewErr)
+					ScanCenterProfileImg = &model.FileData{}
+				} else {
+					ScanCenterProfileImg = &model.FileData{
+						Base64Data:  viewedFile.Base64Data,
+						ContentType: viewedFile.ContentType,
+					}
+				}
 			}
 
-			ScanCenterProfileImg = &model.FileData{
-				Base64Data:  viewedFile.Base64Data,
-				ContentType: viewedFile.ContentType,
-			}
 		} else {
 			ScanCenterProfileImg = &model.FileData{}
 		}
@@ -3441,7 +3474,6 @@ func ListOldReportService(db *gorm.DB, reqVal model.ListOldReportReq, idValue in
 }
 
 func DeleteOldReportService(db *gorm.DB, reqVal model.DeleteOldReportModel) (bool, string) {
-
 	log := logger.InitLogger()
 
 	tx := db.Begin()
@@ -3460,15 +3492,11 @@ func DeleteOldReportService(db *gorm.DB, reqVal model.DeleteOldReportModel) (boo
 	var DicomFiles []model.ListOldReportModel
 	DicomErr := tx.Raw(query.GetParticularOldReport, reqVal.ORId).Scan(&DicomFiles).Error
 	if DicomErr != nil {
-		log.Printf("ERROR: Failed to fetch scan centers: %v", DicomErr)
+		log.Printf("ERROR: Failed to fetch old report records: %v", DicomErr)
 		return false, "Something went wrong, Try Again"
 	}
 
-	DeleteDicomErr := tx.Exec(
-		query.DeleteOldReportSQL,
-		false,
-		reqVal.ORId,
-	).Error
+	DeleteDicomErr := tx.Exec(query.DeleteOldReportSQL, false, reqVal.ORId).Error
 	if DeleteDicomErr != nil {
 		log.Error(DeleteDicomErr)
 		tx.Rollback()
@@ -3478,11 +3506,23 @@ func DeleteOldReportService(db *gorm.DB, reqVal model.DeleteOldReportModel) (boo
 	uploadPath := "./Assets/Files/"
 
 	for _, data := range DicomFiles {
-		filePath := filepath.Join(uploadPath, data.ORFilename)
-		if err := os.Remove(filePath); err != nil {
-			log.Error("File deletion failed:", err)
-			return false, "Something went wrong, Try Again"
+		filePath := data.ORFilename
+
+		// If it's an S3 or external URL, skip deletion
+		if strings.HasPrefix(filePath, "http://") || strings.HasPrefix(filePath, "https://") {
+			log.Infof("Skipping deletion for S3/external file: %s", filePath)
+			continue
 		}
+
+		// Otherwise, delete from local storage
+		fullPath := filepath.Join(uploadPath, filePath)
+		if err := os.Remove(fullPath); err != nil {
+			log.Error("Local file deletion failed:", err)
+			// Don’t fail entire operation for one file
+			continue
+		}
+
+		log.Infof("Deleted local file: %s", fullPath)
 	}
 
 	if err := tx.Commit().Error; err != nil {

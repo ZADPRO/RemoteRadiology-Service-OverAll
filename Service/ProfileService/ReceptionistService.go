@@ -1,14 +1,23 @@
 package service
 
 import (
+	s3Service "AuthenticationService/Service/S3"
 	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
 	helper "AuthenticationService/internal/Helper/ViewFile"
 	model "AuthenticationService/internal/Model/ProfileService"
 	query "AuthenticationService/query/ProfileService"
+	"context"
+	"strings"
+	"time"
 
 	"gorm.io/gorm"
 )
+
+func extractS3Key(s3URL string) string {
+	prefix := "https://easeqt-health-archive.s3.us-east-2.amazonaws.com/"
+	return strings.TrimPrefix(s3URL, prefix)
+}
 
 func GetAllReceptionistDataService(db *gorm.DB, reqVal model.GetReceptionistReq) []model.GetAllRadiologist {
 	log := logger.InitLogger()
@@ -32,7 +41,7 @@ func GetAllReceptionistDataService(db *gorm.DB, reqVal model.GetReceptionistReq)
 func GetOneReceptionistDataService(db *gorm.DB, reqVal model.GetOneReceptionistReq, idValue int) []model.GetReceptionistOne {
 	log := logger.InitLogger()
 
-	var RadiologistData []model.GetReceptionistOne
+	var ReceptionistData []model.GetReceptionistOne
 
 	UserId := reqVal.UserId
 	ScanCenterId := reqVal.ScanID
@@ -52,56 +61,58 @@ func GetOneReceptionistDataService(db *gorm.DB, reqVal model.GetOneReceptionistR
 		}
 	}
 
-	// fmt.Println(UserId)
-	// fmt.Println(ScanCenterId)
-
-	err := db.Raw(query.GetOneReceptionistSQL, UserId, ScanCenterId).Scan(&RadiologistData).Error
+	// Fetch receptionist record
+	err := db.Raw(query.GetOneReceptionistSQL, UserId, ScanCenterId).Scan(&ReceptionistData).Error
 	if err != nil {
-		log.Printf("ERROR: Failed to fetch scan centers: %v", err)
+		log.Printf("ERROR: Failed to fetch receptionist: %v", err)
 		return []model.GetReceptionistOne{}
 	}
 
-	for i, tech := range RadiologistData {
-		RadiologistData[i].FirstName = hashdb.Decrypt(tech.FirstName)
-		RadiologistData[i].LastName = hashdb.Decrypt(tech.LastName)
-		RadiologistData[i].ProfileImg = hashdb.Decrypt(tech.ProfileImg)
-		RadiologistData[i].DOB = hashdb.Decrypt(tech.DOB)
-		RadiologistData[i].SocialSecurityNo = hashdb.Decrypt(tech.SocialSecurityNo)
-		RadiologistData[i].DrivingLicense = hashdb.Decrypt(tech.DrivingLicense)
+	for i, rec := range ReceptionistData {
+		// ============ Decrypt all core fields ============
+		ReceptionistData[i].FirstName = hashdb.Decrypt(rec.FirstName)
+		ReceptionistData[i].LastName = hashdb.Decrypt(rec.LastName)
+		ReceptionistData[i].ProfileImg = hashdb.Decrypt(rec.ProfileImg)
+		ReceptionistData[i].DOB = hashdb.Decrypt(rec.DOB)
+		ReceptionistData[i].SocialSecurityNo = hashdb.Decrypt(rec.SocialSecurityNo)
+		ReceptionistData[i].DrivingLicense = hashdb.Decrypt(rec.DrivingLicense)
 
-		if len(hashdb.Decrypt(tech.ProfileImg)) > 0 {
-			profileImgHelperData, viewErr := helper.ViewFile("./Assets/Profile/" + hashdb.Decrypt(tech.ProfileImg))
+		if len(hashdb.Decrypt(rec.ProfileImg)) > 0 {
+			profileImgHelperData, viewErr := helper.ViewFile("./Assets/Profile/" + hashdb.Decrypt(rec.ProfileImg))
 			if viewErr != nil {
-				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
 				log.Errorf("Failed to read profile image file: %v", viewErr)
 			}
 			if profileImgHelperData != nil {
-				RadiologistData[i].ProfileImgFile = &model.FileData{
-					Base64Data:  profileImgHelperData.Base64Data,
-					ContentType: profileImgHelperData.ContentType,
+				ReceptionistData[i].ProfileImgFile = &model.FileData{
+					Base64Data: profileImgHelperData.Base64Data, ContentType: profileImgHelperData.ContentType,
 				}
 			}
-		} else {
-			RadiologistData[i].ProfileImgFile = nil
 		}
 
-		if len(hashdb.Decrypt(tech.DrivingLicense)) > 0 {
-			DriversLicenseNoImgHelperData, viewErr := helper.ViewFile("./Assets/Files/" + hashdb.Decrypt(tech.DrivingLicense))
+		// ============ DRIVING LICENSE HANDLING ============
+		if isS3URL(ReceptionistData[i].DrivingLicense) {
+			key := extractS3Key(ReceptionistData[i].DrivingLicense)
+			presignedURL, err := s3Service.GeneratePresignGetURL(context.Background(), key, 10*time.Minute)
+			if err != nil {
+				log.Errorf("Failed to generate presigned URL for Driving License: %v", err)
+			} else {
+				ReceptionistData[i].DrivingLicense = presignedURL
+				ReceptionistData[i].DrivingLicenseFile = nil
+			}
+		} else if len(ReceptionistData[i].DrivingLicense) > 0 {
+			DriversLicenseFile, viewErr := helper.ViewFile("./Assets/Files/" + ReceptionistData[i].DrivingLicense)
 			if viewErr != nil {
-				// Consider if Fatalf is appropriate or if logging a warning and setting to nil is better
-				log.Errorf("Failed to read DrivingLicense file: %v", viewErr)
-			}
-			if DriversLicenseNoImgHelperData != nil {
-				RadiologistData[i].DrivingLicenseFile = &model.FileData{
-					Base64Data:  DriversLicenseNoImgHelperData.Base64Data,
-					ContentType: DriversLicenseNoImgHelperData.ContentType,
+				log.Errorf("Failed to read Driving License file: %v", viewErr)
+			} else if DriversLicenseFile != nil {
+				ReceptionistData[i].DrivingLicenseFile = &model.FileData{
+					Base64Data:  DriversLicenseFile.Base64Data,
+					ContentType: DriversLicenseFile.ContentType,
 				}
 			}
 		} else {
-			RadiologistData[i].DrivingLicenseFile = nil
+			ReceptionistData[i].DrivingLicenseFile = nil
 		}
-
 	}
 
-	return RadiologistData
+	return ReceptionistData
 }
