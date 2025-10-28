@@ -860,7 +860,7 @@ func ViewReportService() gin.HandlerFunc {
 				"contentType": "url",
 			}
 		} else {
-			fmt.Println("\n\nElse Block =>>>>>>>>> \n\n")
+			// fmt.Println("\n\nElse Block =>>>>>>>>> \n\n")
 			// Local file — read and encode
 			ViewFiles, viewErr := helperView.ViewFile("./Assets/Files/" + data.FileName)
 			if viewErr != nil {

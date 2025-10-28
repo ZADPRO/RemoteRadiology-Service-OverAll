@@ -28,7 +28,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-
 )
 
 func AddTechnicianIntakeFormController() gin.HandlerFunc {
@@ -273,13 +272,13 @@ func PostUploadDicomFileController() gin.HandlerFunc {
 	}
 }
 
-func GenerateDicomFileName(scanCenterCustId, patientCustId, side, originalFileName string) string {
+func GenerateDicomFileName(scanCenterCustId, patientCustId, side, originalFileName string, appointmentDate string) string {
 	ext := filepath.Ext(originalFileName)
 	if ext == "" {
 		ext = ".zip"
 	}
 
-	currentDate := timeZone.GetTimeWithFormate("02-01-2006")
+	// currentDate := timeZone.GetTimeWithFormate("02-01-2006")
 	timestamp := time.Now().UnixMilli()
 
 	sideCode := "R"
@@ -290,7 +289,7 @@ func GenerateDicomFileName(scanCenterCustId, patientCustId, side, originalFileNa
 	return fmt.Sprintf("%s_%s_%s_%s_%d%s",
 		scanCenterCustId,
 		strings.ToUpper(patientCustId),
-		currentDate,
+		appointmentDate,
 		sideCode,
 		timestamp,
 		ext,
@@ -346,7 +345,8 @@ func PostGenerateDicomUploadURLController() gin.HandlerFunc {
 
 		// --- Step 5: Fetch Scan Center Cust ID ---
 		type ScanCenterResult struct {
-			RefSCCustId string `gorm:"column:refSCCustId"`
+			RefSCCustId        string `gorm:"column:refSCCustId"`
+			RefAppointmentDate string `gorm:"column:refAppointmentDate"`
 		}
 		var scanCenter ScanCenterResult
 		err = dbConn.Table(`appointment."refAppointments" AS ra`).
@@ -367,6 +367,7 @@ func PostGenerateDicomUploadURLController() gin.HandlerFunc {
 			patientCustId,
 			req.Side,
 			req.FileName,
+			scanCenter.RefAppointmentDate,
 		)
 		s3Key := fmt.Sprintf("dicom/%s", uniqueFilename)
 
@@ -781,7 +782,7 @@ func DownloadMultipleDicomFilesController() gin.HandlerFunc {
 			folderName := fmt.Sprintf("%s_%s", basePattern, sideName)
 
 			// ✅ Prepare file URL
-			fileURL := file.FileName
+			var fileURL = file.FileName
 			if strings.HasPrefix(file.FileName, "http") {
 				parsedURL, err := url.Parse(file.FileName)
 				if err != nil {
@@ -1303,7 +1304,7 @@ func OverallDownloadDicomFileController() gin.HandlerFunc {
 			folderName := fmt.Sprintf("%s_%s", basePattern, sideName)
 
 			// ✅ Generate URL (either S3 presigned or local)
-			fileURL := file.FileName
+			var fileURL = file.FileName
 			if strings.HasPrefix(file.FileName, "http") {
 				// Parse URL and extract only the object key
 				parsedURL, err := url.Parse(file.FileName)
