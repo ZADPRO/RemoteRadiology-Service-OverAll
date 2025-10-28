@@ -597,9 +597,15 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 		return false, "Something went wrong, try again"
 	}
 	if patientCustId == "" {
-		log.Printf("ERROR: Patient custom ID not found for user ID: %d\n", reqVal.PatientId)
-		tx.Rollback()
-		return false, "Patient not found"
+		errName := tx.Table(`"Users"`).
+			Select(`"refUserFirstName"`).
+			Where(`"refUserId" = ?`, reqVal.PatientId).
+			Scan(&patientCustId).Error
+		if errName != nil || patientCustId == "" {
+			log.Printf("ERROR: Patient custom ID not found for user ID: %d\n", reqVal.PatientId)
+			tx.Rollback()
+			return false, "Patient not found"
+		}
 	}
 
 	// --- 3️⃣ Get Scan Center Customer ID ---

@@ -6,6 +6,7 @@ import (
 	db "AuthenticationService/internal/DB"
 	accesstoken "AuthenticationService/internal/Helper/AccessToken"
 	hashapi "AuthenticationService/internal/Helper/HashAPI"
+	hashdb "AuthenticationService/internal/Helper/HashDB"
 	logger "AuthenticationService/internal/Helper/Logger"
 	helper "AuthenticationService/internal/Helper/RequestHandler"
 	timeZone "AuthenticationService/internal/Helper/TimeZone"
@@ -335,12 +336,21 @@ func PostGenerateDicomUploadURLController() gin.HandlerFunc {
 			Select(`"refUserCustId"`).
 			Where(`"refUserId" = ?`, req.PatientId).
 			Scan(&patientCustId).Error
+
 		if err != nil || patientCustId == "" {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"status":  false,
-				"message": "Invalid patient ID or user not found.",
-			})
-			return
+			errName := dbConn.Table(`"Users"`).
+				Select(`"refUserFirstName"`).
+				Where(`"refUserId" = ?`, req.PatientId).
+				Scan(&patientCustId).Error
+			patientCustId = hashdb.Decrypt(patientCustId)
+			if errName != nil || patientCustId == "" {
+				c.JSON(http.StatusBadRequest, gin.H{
+					"status":  false,
+					"message": "Invalid patient ID or user not found.",
+				})
+				return
+			}
+
 		}
 
 		// --- Step 5: Fetch Scan Center Cust ID ---
