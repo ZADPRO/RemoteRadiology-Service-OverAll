@@ -5,7 +5,6 @@ import (
 	"os"
 
 	"gopkg.in/gomail.v2"
-
 )
 
 func MailService(toMailer string, htmlContent string, subject string) bool {
@@ -17,7 +16,7 @@ func MailService(toMailer string, htmlContent string, subject string) bool {
 	m.SetBody("text/html", htmlContent)
 
 	// Use Gmail SMTP server
-	d := gomail.NewDialer("smtp.gmail.com", 587, os.Getenv("EMAILID"), os.Getenv("PASSWORD"))
+	d := gomail.NewDialer("smtpout.secureserver.net", 587, os.Getenv("EMAILID"), os.Getenv("PASSWORD"))
 
 	// Use TLS explicitly (optional, 587 already uses STARTTLS)
 	d.TLSConfig = nil
