@@ -132,3 +132,85 @@ func DicomMigrateService(db *gorm.DB) (bool, string) {
 
 	return true, "Succcessfully Dicom Migrated"
 }
+
+func DicomOneMigrateService(db *gorm.DB) (bool, string) {
+	log := logger.InitLogger()
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
+		return false, "Something went wrong, Try Again"
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("ERROR: Recovered from panic, rolling back transaction:", r)
+			tx.Rollback()
+		}
+	}()
+
+	MigrationDicomFile := []model.MigrationDicomFile{}
+
+	CheckMigrateErr := tx.Raw(query.CheckOneMigrateDicomSQL).Scan(&MigrationDicomFile).Error
+	if CheckMigrateErr != nil {
+		log.Printf("ERROR: Failed to execute query: %v\n", CheckMigrateErr)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	if len(MigrationDicomFile) > 0 {
+
+		for _, v := range MigrationDicomFile {
+
+			if !v.IsMigrated {
+
+				localPath := filepath.Join("Assets/Dicom/", v.RefDFFilename)
+				key := "dicom/" + v.RefDFFilename // path inside your S3 bucket
+				bucket := os.Getenv("AWS_S3_BUCKET")
+				region := os.Getenv("AWS_REGION")
+
+				url, err := UploadFileToS3(bucket, region, key, localPath)
+				if err != nil {
+					log.Printf("upload failed: %v", err)
+				}
+
+				MirgateDicomNewErr := tx.Exec(
+					query.NewMigrateDicomSQL,
+					v.RefDFId,
+					v.RefUserId,
+					v.RefAppointmentId,
+					v.RefDFFilename,
+					url,
+				).Error
+				if MirgateDicomNewErr != nil {
+					log.Printf("ERROR: Failed to execute query: %v\n", MirgateDicomNewErr)
+					tx.Rollback()
+					return false, "Something went wrong, Try Again"
+				}
+
+				UpdateDicomErr := tx.Exec(
+					query.UpdateDicomSQL,
+					url,
+					v.RefDFId,
+				).Error
+				if UpdateDicomErr != nil {
+					log.Printf("ERROR: Failed to execute query: %v\n", UpdateDicomErr)
+					tx.Rollback()
+					return false, "Something went wrong, Try Again"
+				}
+
+				fmt.Println("File Name: ", v.RefDFFilename)
+			}
+
+		}
+
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	return true, "Succcessfully Dicom Migrated"
+}
