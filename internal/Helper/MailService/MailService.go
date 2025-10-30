@@ -15,9 +15,11 @@ func MailService(toMailer string, htmlContent string, subject string) bool {
 	m.SetHeader("Subject", subject)
 	m.SetBody("text/html", htmlContent)
 
-	log.Error(os.Getenv("PASSWORD"))
+	// Use Gmail SMTP server
+	d := gomail.NewDialer("smtpout.secureserver.net", 587, os.Getenv("EMAILID"), os.Getenv("PASSWORD"))
 
-	d := gomail.NewDialer("smtpout.secureserver.net", 465, os.Getenv("EMAILID"), os.Getenv("PASSWORD"))
+	// Use TLS explicitly (optional, 587 already uses STARTTLS)
+	d.TLSConfig = nil
 
 	if err := d.DialAndSend(m); err != nil {
 		log.Errorf("Could not send email: %v", err)

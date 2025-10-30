@@ -104,7 +104,9 @@ FROM
 WHERE
   rscm."refUserId" = ?
   AND rscm."refSCId" = ?
-  AND ra."refAppointmentStatus" = true;
+  AND ra."refAppointmentStatus" = true
+ORDER BY
+  ra."refAppointmentId" DESC;
 `
 
 var ViewAllPatientQueueSQL = `
@@ -156,7 +158,10 @@ FROM
     GROUP BY
       rdf."refAppointmentId"
   ) dicom_data ON dicom_data."refAppointmentId" = ra."refAppointmentId"
-  WHERE ra."refAppointmentStatus" = true;
+  WHERE ra."refAppointmentStatus" = true
+  AND sc."refSCStatus" = true
+ORDER BY
+  ra."refAppointmentId" DESC;
 `
 
 var InsertAdditionalFiles = `
@@ -345,4 +350,3 @@ FROM
 WHERE
   "refUserId" = $1;
 `
-

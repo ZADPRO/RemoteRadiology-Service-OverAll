@@ -85,5 +85,7 @@ FROM
   JOIN public."ScanCenter" sc ON sc."refSCId" = ra."refSCId"
 WHERE
   ra."refUserId" = $1
-  AND ra."refAppointmentStatus" = true;
+  AND ra."refAppointmentStatus" = true
+ORDER BY
+  ra."refAppointmentId" ASC;
 `

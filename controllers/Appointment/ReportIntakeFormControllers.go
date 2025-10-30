@@ -2,25 +2,34 @@ package controllers
 
 import (
 	service "AuthenticationService/Service/Appointment"
+	s3Service "AuthenticationService/Service/S3"
 	db "AuthenticationService/internal/DB"
 	accesstoken "AuthenticationService/internal/Helper/AccessToken"
 	hashapi "AuthenticationService/internal/Helper/HashAPI"
 	logger "AuthenticationService/internal/Helper/Logger"
 	helper "AuthenticationService/internal/Helper/RequestHandler"
 	timeZone "AuthenticationService/internal/Helper/TimeZone"
+	helperView "AuthenticationService/internal/Helper/ViewFile"
 	model "AuthenticationService/internal/Model/Appointment"
+	s3config "AuthenticationService/internal/Storage/s3"
 	query "AuthenticationService/query/Appointment"
+	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
-
-	helperView "AuthenticationService/internal/Helper/ViewFile"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
+
+func extractS3Key(s3URL string) string {
+	prefix := "https://easeqt-health-archive.s3.us-east-2.amazonaws.com/"
+	return strings.TrimPrefix(s3URL, prefix)
+}
 
 func CheckAccessController() gin.HandlerFunc {
 	return func(c *gin.Context) {
@@ -84,7 +93,7 @@ func AssignGetReportController() gin.HandlerFunc {
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
 
-		status, message, IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, ReportAppointmentData, ReportFormateList, GetUserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterImg, ScancenterAddress, Addendum, oldReport, NASystemReportAccess, patientpublicprivate, PerformingProviderName, VerifyingProviderName, ListAllSignature := service.AssignGetReportService(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
+		status, message, IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, ReportAppointmentData, ReportFormateList, GetUserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterImg, ScancenterAddress, Addendum, oldReport, NASystemReportAccess, patientpublicprivate, PerformingProviderName, VerifyingProviderName, ListAllSignature, ReportPortalImpRecom, NAImpRecom := service.AssignGetReportService(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
 
 		payload := map[string]interface{}{
 			"status":                   status,
@@ -109,6 +118,8 @@ func AssignGetReportController() gin.HandlerFunc {
 			"PerformingProviderName":   PerformingProviderName,
 			"VerifyingProviderName":    VerifyingProviderName,
 			"ListAllSignature":         ListAllSignature,
+			"ReportPortalImpRecom":     ReportPortalImpRecom,
+			"NAImpRecom":               NAImpRecom,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)
@@ -738,14 +749,72 @@ func DownloadReportService() gin.HandlerFunc {
 	}
 }
 
+// func ViewReportService() gin.HandlerFunc {
+// 	return func(c *gin.Context) {
+
+// 		logger := logger.InitLogger()
+
+// 		idValue, idExists := c.Get("id")
+// 		roleIdValue, roleIdExists := c.Get("roleId")
+
+// 		if !idExists || !roleIdExists {
+// 			c.JSON(http.StatusUnauthorized, gin.H{
+// 				"status":  false,
+// 				"message": "User ID, RoleID not found in request context.",
+// 			})
+// 			return
+// 		}
+
+// 		data, ok := helper.GetRequestBody[model.ViewReportReq](c, true)
+// 		if !ok {
+// 			return
+// 		}
+
+// 		// Default payload
+// 		payload := map[string]interface{}{
+// 			"status": false,
+// 			"data": map[string]interface{}{
+// 				"base64Data":  "",
+// 				"contentType": "",
+// 			},
+// 		}
+
+// 		// Try to load the file
+// 		ViewFiles, viewErr := helperView.ViewFile("./Assets/Files/" + data.FileName)
+// 		if viewErr != nil {
+// 			logger.Printf("Failed to read DrivingLicense file: %v", viewErr)
+// 			c.JSON(http.StatusInternalServerError, gin.H{
+// 				"status":  false,
+// 				"message": "Failed to load file",
+// 			})
+// 			return
+// 		}
+
+// 		// Update payload on success
+// 		payload["status"] = true
+// 		payload["data"] = map[string]interface{}{
+// 			"base64Data":  ViewFiles.Base64Data,
+// 			"contentType": ViewFiles.ContentType,
+// 		}
+
+// 		// Create token
+// 		token := accesstoken.CreateToken(idValue, roleIdValue)
+
+// 		// Respond
+// 		c.JSON(http.StatusOK, gin.H{
+// 			"data":  hashapi.Encrypt(payload, true, token),
+// 			"token": token,
+// 		})
+// 	}
+// }
+
 func ViewReportService() gin.HandlerFunc {
 	return func(c *gin.Context) {
-
 		logger := logger.InitLogger()
 
+		// Get user ID and role from context
 		idValue, idExists := c.Get("id")
 		roleIdValue, roleIdExists := c.Get("roleId")
-
 		if !idExists || !roleIdExists {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"status":  false,
@@ -759,7 +828,6 @@ func ViewReportService() gin.HandlerFunc {
 			return
 		}
 
-		// Default payload
 		payload := map[string]interface{}{
 			"status": false,
 			"data": map[string]interface{}{
@@ -768,28 +836,54 @@ func ViewReportService() gin.HandlerFunc {
 			},
 		}
 
-		// Try to load the file
-		ViewFiles, viewErr := helperView.ViewFile("./Assets/Files/" + data.FileName)
-		if viewErr != nil {
-			logger.Printf("Failed to read DrivingLicense file: %v", viewErr)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"status":  false,
-				"message": "Failed to load file",
-			})
-			return
-		}
+		if strings.HasPrefix(data.FileName, "https://easeqt-health-archive.s3") {
+			// Always generate presigned URL for S3 files
+			key := extractS3Key(data.FileName)
+			presignedURL, err := s3Service.GeneratePresignGetURL(context.Background(), key, 10*time.Minute)
+			if err != nil {
+				logger.Printf("Failed to generate presigned URL: %v", err)
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"status":  false,
+					"message": "Failed to generate file URL",
+				})
+				return
+			}
 
-		// Update payload on success
-		payload["status"] = true
-		payload["data"] = map[string]interface{}{
-			"base64Data":  ViewFiles.Base64Data,
-			"contentType": ViewFiles.ContentType,
+			// Print the presigned URL to console
+			fmt.Println("Generated Presigned URL:", presignedURL)
+			// or using logger
+			logger.Printf("Generated Presigned URL: %s", presignedURL)
+
+			payload["status"] = true
+			payload["data"] = map[string]interface{}{
+				"base64Data":  presignedURL,
+				"contentType": "url",
+			}
+		} else {
+			// fmt.Println("\n\nElse Block =>>>>>>>>> \n\n")
+			// Local file — read and encode
+			ViewFiles, viewErr := helperView.ViewFile("./Assets/Files/" + data.FileName)
+			if viewErr != nil {
+				logger.Printf("Failed to read local file: %v", viewErr)
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"status":  false,
+					"message": "Failed to load file",
+				})
+				return
+			}
+
+			payload["status"] = true
+			payload["data"] = map[string]interface{}{
+				"base64Data":  ViewFiles.Base64Data,
+				"contentType": ViewFiles.ContentType,
+			}
 		}
 
 		// Create token
 		token := accesstoken.CreateToken(idValue, roleIdValue)
 
-		// Respond
+		fmt.Printf("\n\npayload: %+v\n\n", payload)
+
 		c.JSON(http.StatusOK, gin.H{
 			"data":  hashapi.Encrypt(payload, true, token),
 			"token": token,
@@ -991,6 +1085,152 @@ func PostOldReportUploadFileController() gin.HandlerFunc {
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)
 
+		c.JSON(http.StatusOK, gin.H{
+			"data":  hashapi.Encrypt(payload, true, token),
+			"token": token,
+		})
+	}
+}
+
+func PostGenerateOldReportUploadURLController() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idValue, idExists := c.Get("id")
+		roleIdValue, roleIdExists := c.Get("roleId")
+
+		if !idExists || !roleIdExists {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"status":  false,
+				"message": "User ID or Role ID not found.",
+			})
+			return
+		}
+
+		var req struct {
+			FileName      string `json:"fileName"`
+			PatientId     string `json:"patientId"`
+			CategoryId    string `json:"categoryId"`
+			AppointmentId string `json:"appointmentId"`
+		}
+
+		if err := c.BindJSON(&req); err != nil || req.FileName == "" {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  false,
+				"message": "Invalid request. File name missing.",
+			})
+			return
+		}
+
+		ext := filepath.Ext(req.FileName)
+		allowedExts := []string{".jpg", ".jpeg", ".png", ".pdf"}
+		isAllowed := false
+		for _, a := range allowedExts {
+			if strings.EqualFold(ext, a) {
+				isAllowed = true
+				break
+			}
+		}
+
+		if !isAllowed {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"status":  false,
+				"message": "Invalid file type. Only JPG, JPEG, PNG, PDF allowed.",
+			})
+			return
+		}
+
+		uniqueFilename := fmt.Sprintf("%s_%s%s",
+			uuid.New().String(),
+			timeZone.GetTimeWithFormate("20060102150405"),
+			ext,
+		)
+
+		s3Key := fmt.Sprintf("oldReportsPatient/%s", uniqueFilename)
+		ctx := c.Request.Context()
+
+		s3Client, err := s3config.New(ctx)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": "Failed to initialize S3 client.",
+			})
+			return
+		}
+
+		uploadURL, err := s3Client.PresignPut(ctx, s3Key, 15*time.Minute)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": "Failed to generate upload URL.",
+			})
+			return
+		}
+
+		viewURL, err := s3Client.PresignGet(ctx, s3Key, 10*time.Minute)
+		if err != nil {
+			viewURL = ""
+		}
+
+		cleanViewURL := viewURL
+		if idx := strings.Index(viewURL, "?"); idx != -1 {
+			cleanViewURL = viewURL[:idx]
+		}
+		// ✅ DB connection
+		dbConn, sqlDB := db.InitDB()
+		defer sqlDB.Close()
+
+		var count int64
+		checkErr := dbConn.Raw(`
+				SELECT COUNT(1) 
+				FROM notes."refOldReport"
+				WHERE "refUserId" = ? AND "refAppointmentId" = ? AND "refORCategoryId" = ? AND "refORFilename" = ?`,
+			req.PatientId, req.AppointmentId, req.CategoryId, cleanViewURL,
+		).Scan(&count).Error
+
+		if checkErr != nil {
+			log.Printf("ERROR checking existing old report: %v", checkErr)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"status":  false,
+				"message": "Failed to check existing report.",
+			})
+			return
+		}
+
+		// If not exists, insert into DB
+		if count == 0 {
+			insertErr := dbConn.Exec(
+				query.AddOldReportSQL,
+				req.PatientId,
+				req.AppointmentId,
+				req.CategoryId,
+				cleanViewURL, // use clean URL instead of filename
+				timeZone.GetPacificTime(),
+				idValue,
+			).Error
+
+			if insertErr != nil {
+				log.Printf("ERROR inserting old report: %v", insertErr)
+				c.JSON(http.StatusInternalServerError, gin.H{
+					"status":  false,
+					"message": "Failed to save report in DB.",
+				})
+				return
+			}
+		}
+
+		payload := map[string]interface{}{
+			"status":        true,
+			"message":       "Old Report Upload URL generated successfully!",
+			"uploadURL":     uploadURL,
+			"viewURL":       viewURL,
+			"s3Key":         s3Key,
+			"fileName":      uniqueFilename,
+			"oldFileName":   req.FileName,
+			"patientId":     req.PatientId,
+			"categoryId":    req.CategoryId,
+			"appointmentId": req.AppointmentId,
+		}
+
+		token := accesstoken.CreateToken(idValue, roleIdValue)
 		c.JSON(http.StatusOK, gin.H{
 			"data":  hashapi.Encrypt(payload, true, token),
 			"token": token,
