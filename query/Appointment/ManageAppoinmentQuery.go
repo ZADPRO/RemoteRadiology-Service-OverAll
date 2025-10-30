@@ -159,6 +159,7 @@ FROM
       rdf."refAppointmentId"
   ) dicom_data ON dicom_data."refAppointmentId" = ra."refAppointmentId"
   WHERE ra."refAppointmentStatus" = true
+  AND sc."refSCStatus" = true
 ORDER BY
   ra."refAppointmentId" DESC;
 `
