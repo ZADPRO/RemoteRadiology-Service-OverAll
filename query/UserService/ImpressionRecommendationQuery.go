@@ -103,3 +103,19 @@ DELETE FROM
 WHERE
   "refIRVId" = $1;
 `
+
+var GetReportFooterSQL = `
+SELECT
+  *
+FROM
+  impressionrecommendation."FooterReport"
+`
+
+var UpdateReportFooterSQL = `
+UPDATE
+  impressionrecommendation."FooterReport"
+SET
+  "refFRContent" = $1
+WHERE
+  "refFRId" = 1;
+`

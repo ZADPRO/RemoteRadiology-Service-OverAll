@@ -93,7 +93,12 @@ func AssignGetReportController() gin.HandlerFunc {
 		dbConn, sqlDB := db.InitDB()
 		defer sqlDB.Close()
 
-		status, message, IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, ReportAppointmentData, ReportFormateList, GetUserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterImg, ScancenterAddress, Addendum, oldReport, NASystemReportAccess, patientpublicprivate, PerformingProviderName, VerifyingProviderName, ListAllSignature, ReportPortalImpRecom, NAImpRecom := service.AssignGetReportService(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
+		status, message, IntakeFormData, TechnicianIntakeFormData, ReportIntakeFormData, ReportTextContentData, ReportHistoryData, ReportCommentsData, ReportAppointmentData, ReportFormateList, GetUserDetails, PatientUserDetails, EaseQTReportAccess, ScanCenterImg, ScancenterAddress, Addendum, oldReport, NASystemReportAccess, patientpublicprivate, PerformingProviderName, VerifyingProviderName, ListAllSignature, ReportPortalImpRecom, NAImpRecom, ReportFooter := service.AssignGetReportService(dbConn, data, int(idValue.(float64)), int(roleIdValue.(float64)))
+
+		var FooterData = ""
+		if len(ReportFooter) > 0 {
+			FooterData = ReportFooter[0].RefFRContent
+		}
 
 		payload := map[string]interface{}{
 			"status":                   status,
@@ -120,6 +125,7 @@ func AssignGetReportController() gin.HandlerFunc {
 			"ListAllSignature":         ListAllSignature,
 			"ReportPortalImpRecom":     ReportPortalImpRecom,
 			"NAImpRecom":               NAImpRecom,
+			"ReportFooter":             FooterData,
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)
