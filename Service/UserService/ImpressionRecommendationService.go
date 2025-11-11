@@ -229,3 +229,56 @@ func UpdateOrderImpressionRecommendationService(db *gorm.DB, reqVal model.Update
 	return true, "Succcessfully Ordered!"
 
 }
+
+func GetFooterReportService(db *gorm.DB) (bool, string, string) {
+	log := logger.InitLogger()
+
+	var ReportFooter []model.GetReportFooterModel
+
+	err := db.Raw(query.GetReportFooterSQL).Scan(&ReportFooter).Error
+	if err != nil {
+		log.Printf("ERROR: Failed to fetch scan centers: %v", err)
+		return false, "Something went wrong, Try Again", ""
+	}
+
+	var FooterData = ""
+	if len(ReportFooter) > 0 {
+		FooterData = ReportFooter[0].RefFRContent
+	}
+
+	return true, "Succcessfully Fetched!", FooterData
+}
+
+func SaveFooterReportService(db *gorm.DB, reqVal model.SaveReportFooterReq) (bool, string) {
+	log := logger.InitLogger()
+
+	tx := db.Begin()
+	if tx.Error != nil {
+		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
+		return false, "Something went wrong, Try Again"
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			log.Error("ERROR: Recovered from panic, rolling back transaction:", r)
+			tx.Rollback()
+		}
+	}()
+
+	//Update the Report Footer
+	errUpdateReportFooter := tx.Exec(
+		query.UpdateReportFooterSQL,
+		reqVal.ReportText,
+	).Error
+	if errUpdateReportFooter != nil {
+		log.Printf("ERROR: Failed to Update Report Footer: %v", errUpdateReportFooter)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.Printf("ERROR: Failed to commit transaction: %v\n", err)
+		tx.Rollback()
+		return false, "Something went wrong, Try Again"
+	}
+
+	return true, "Succcessfully Fetched!"
+}

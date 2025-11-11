@@ -14,4 +14,6 @@ func InitImpressionRecommendationRoutes(router *gin.Engine) {
 	route.POST("/update", accesstoken.JWTMiddleware(), controllers.UpdateImpressionRecommendationController())
 	route.POST("/delete", accesstoken.JWTMiddleware(), controllers.DeleteImpressionRecommendationController())
 	route.POST("/updateorder", accesstoken.JWTMiddleware(), controllers.UpdateOrderImpressionRecommendationController())
+	route.GET("/footerreport", accesstoken.JWTMiddleware(), controllers.GetFooterReportController())
+	route.POST("/savefooterreport", accesstoken.JWTMiddleware(), controllers.SaveFooterReportController())
 }

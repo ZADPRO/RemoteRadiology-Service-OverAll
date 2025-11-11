@@ -60,3 +60,12 @@ type UpdateImpressionRecommendationReq struct {
 	ImpressionLongDescription      string `json:"impressionLongDescription" binding:"required" mapstructure:"impressionLongDescription"`
 	RecommendationLongDescription  string `json:"recommendationLongDescription" binding:"required" mapstructure:"recommendationLongDescription"`
 }
+
+type GetReportFooterModel struct {
+	RefFRId      int    `json:"refFRId" gorm:"column:refFRId"`
+	RefFRContent string `json:"refFRContent" gorm:"column:refFRContent"`
+}
+
+type SaveReportFooterReq struct {
+	ReportText string `json:"reportText" binding:"required" mapstructure:"reportText"`
+}
