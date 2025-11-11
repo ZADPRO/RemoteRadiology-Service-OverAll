@@ -542,3 +542,8 @@ type ImpressionRecommendationModel struct {
 	RecommendationTextColor       string `json:"recommendationTextColor" gorm:"column:recommendationTextColor"`
 	RecommendationBackgroundColor string `json:"recommendationBackgroundColor" gorm:"column:recommendationBackgroundColor"`
 }
+
+type GetReportFooterModel struct {
+	RefFRId      int    `json:"refFRId" gorm:"column:refFRId"`
+	RefFRContent string `json:"refFRContent" gorm:"column:refFRContent"`
+}

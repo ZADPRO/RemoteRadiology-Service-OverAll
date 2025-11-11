@@ -1443,7 +1443,7 @@ VALUES
   ($1, $2, $3, $4);
   `
 
-  var GetImpressionRecommendationSQL = `
+var GetImpressionRecommendationSQL = `
   SELECT
   irv."refIRVCustId" AS "id",
   irv."refIRVImpressionShortDesc" AS "impression",
@@ -1462,3 +1462,10 @@ WHERE
 ORDER BY
   irv."refIRVOrderId" ASC
   `
+
+var GetReportFooterSQL = `
+SELECT
+  *
+FROM
+  impressionrecommendation."FooterReport"
+`
