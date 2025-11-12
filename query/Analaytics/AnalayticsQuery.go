@@ -1742,6 +1742,7 @@ SELECT
     WHERE
       ra."refAppointmentDate"::timestamp >= $1
       AND ra."refAppointmentDate"::timestamp <= $2
+      AND ra."refSCId" = sc."refSCId"
   ) AS "totalcase",
   (
     SELECT
@@ -1755,6 +1756,7 @@ SELECT
     WHERE
       ra."refAppointmentDate"::timestamp >= $1
       AND ra."refAppointmentDate"::timestamp <= $2
+      AND ra."refSCId" = sc."refSCId"
   ) AS "totalsform",
   (
     SELECT
@@ -1768,6 +1770,7 @@ SELECT
     WHERE
       ra."refAppointmentDate"::timestamp >= $1
       AND ra."refAppointmentDate"::timestamp <= $2
+      AND ra."refSCId" = sc."refSCId"
   ) AS "totaldaform",
   (
     SELECT
@@ -1781,6 +1784,7 @@ SELECT
     WHERE
       ra."refAppointmentDate"::timestamp >= $1
       AND ra."refAppointmentDate"::timestamp <= $2
+      AND ra."refSCId" = sc."refSCId"
   ) AS "totaldbform",
   (
     SELECT
@@ -1794,6 +1798,7 @@ SELECT
     WHERE
       ra."refAppointmentDate"::timestamp >= $1
       AND ra."refAppointmentDate"::timestamp <= $2
+      AND ra."refSCId" = sc."refSCId"
   ) AS "totaldcform",
   (
     SELECT
@@ -1807,6 +1812,7 @@ SELECT
     WHERE
       ra."refAppointmentDate"::timestamp >= $1
       AND ra."refAppointmentDate"::timestamp <= $2
+      AND ra."refSCId" = sc."refSCId"
   ) AS "techartificatsleft",
   (
     SELECT
@@ -1820,6 +1826,7 @@ SELECT
     WHERE
       ra."refAppointmentDate"::timestamp >= $1
       AND ra."refAppointmentDate"::timestamp <= $2
+      AND ra."refSCId" = sc."refSCId"
   ) AS "techartificatsright",
   (
     SELECT
@@ -1833,6 +1840,7 @@ SELECT
     WHERE
       ra."refAppointmentDate"::timestamp >= $1
       AND ra."refAppointmentDate"::timestamp <= $2
+      AND ra."refSCId" = sc."refSCId"
   ) AS "reportartificatsleft",
   (
     SELECT
@@ -1846,6 +1854,7 @@ SELECT
     WHERE
       ra."refAppointmentDate"::timestamp >= $1
       AND ra."refAppointmentDate"::timestamp <= $2
+      AND ra."refSCId" = sc."refSCId"
   ) AS "reportartificatsright",
   (
     SELECT
@@ -1860,6 +1869,7 @@ SELECT
           ra."refSCId" = sc."refSCId"
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
+          AND ra."refSCId" = sc."refSCId"
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -1888,6 +1898,7 @@ SELECT
           ra."refSCId" = sc."refSCId"
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
+          AND ra."refSCId" = sc."refSCId"
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -1916,6 +1927,7 @@ SELECT
           ra."refSCId" = sc."refSCId"
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
+          AND ra."refSCId" = sc."refSCId"
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -1944,6 +1956,7 @@ SELECT
           ra."refSCId" = sc."refSCId"
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
+          AND ra."refSCId" = sc."refSCId"
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -1972,6 +1985,7 @@ SELECT
           ra."refSCId" = sc."refSCId"
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
+          AND ra."refSCId" = sc."refSCId"
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -2000,6 +2014,7 @@ SELECT
           ra."refSCId" = sc."refSCId"
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
+          AND ra."refSCId" = sc."refSCId"
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -2028,6 +2043,7 @@ SELECT
           ra."refSCId" = sc."refSCId"
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
+          AND ra."refSCId" = sc."refSCId"
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -2056,6 +2072,7 @@ SELECT
           ra."refSCId" = sc."refSCId"
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
+          AND ra."refSCId" = sc."refSCId"
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -2084,6 +2101,7 @@ SELECT
           ra."refSCId" = sc."refSCId"
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
+          AND ra."refSCId" = sc."refSCId"
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -2112,6 +2130,7 @@ SELECT
           ra."refSCId" = sc."refSCId"
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
+          AND ra."refSCId" = sc."refSCId"
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -2140,6 +2159,7 @@ SELECT
           ra."refSCId" = sc."refSCId"
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
+          AND ra."refSCId" = sc."refSCId"
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -2168,6 +2188,7 @@ SELECT
           ra."refSCId" = sc."refSCId"
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
+          AND ra."refSCId" = sc."refSCId"
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -2196,6 +2217,7 @@ SELECT
           ra."refSCId" = sc."refSCId"
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
+          AND ra."refSCId" = sc."refSCId"
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -2224,6 +2246,7 @@ SELECT
           ra."refSCId" = sc."refSCId"
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
+          AND ra."refSCId" = sc."refSCId"
         ORDER BY
           ra."refAppointmentId"
       ) t
