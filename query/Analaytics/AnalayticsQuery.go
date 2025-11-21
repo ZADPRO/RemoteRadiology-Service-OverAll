@@ -16,15 +16,37 @@ WITH
       generate_series(0, 5) AS n
   ),
   appointment_counts AS (
+    WITH
+      latest_signed AS (
+        SELECT DISTINCT
+          ON (rrh."refAppointmentId") rrh."refAppointmentId",
+          TO_CHAR(
+            TO_DATE(rrh."refRHHandleEndTime", 'YYYY-MM-DD'),
+            'YYYY-MM'
+          ) AS month
+        FROM
+          notes."refReportsHistory" rrh
+          JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+        WHERE
+          rrh."refRHHandleStatus" = 'Signed Off'
+          AND TO_DATE(rrh."refRHHandleEndTime", 'YYYY-MM-DD') >= date_trunc('month', CURRENT_DATE) - INTERVAL '6 months'
+          AND ra."refAppointmentStatus" = TRUE
+          AND (
+            ? = 0
+            OR ra."refSCId" = ?
+          )
+        ORDER BY
+          rrh."refAppointmentId",
+          rrh."refRHId" DESC
+      )
     SELECT
-      TO_CHAR(TO_DATE("refAppointmentDate", 'YYYY-MM-DD'), 'YYYY-MM') AS month,
+      month,
       COUNT(*) AS total
     FROM
-      appointment."refAppointments"
-    WHERE
-      TO_DATE("refAppointmentDate", 'YYYY-MM-DD') >= date_trunc('month', CURRENT_DATE) - INTERVAL '6 months'
-      AND (? = 0 OR "refSCId" = ?)
+      latest_signed
     GROUP BY
+      month
+    ORDER BY
       month
   )
 SELECT
@@ -64,28 +86,28 @@ ORDER BY
 // `
 
 var AdminOverallScanIndicatesAnalayticsSQL = `
+WITH latest_signed AS (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        TO_DATE(rrh."refRHHandleEndTime", 'YYYY-MM-DD') AS end_date
+    FROM notes."refReportsHistory" rrh
+    WHERE rrh."refRHHandleStatus" = 'Signed Off'
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+)
 SELECT
-  COALESCE(SUM(total_appointments), 0) AS total_appointments,
-  COALESCE(SUM("SForm"), 0) AS "SForm",
-  COALESCE(SUM("DaForm"), 0) AS "DaForm",
-  COALESCE(SUM("DbForm"), 0) AS "DbForm",
-  COALESCE(SUM("DcForm"), 0) AS "DcForm"
-FROM (
-  SELECT
-    COUNT(*) AS total_appointments,
-    COUNT(CASE WHEN "refCategoryId" = 1 THEN 1 END) AS "SForm",
-    COUNT(CASE WHEN "refCategoryId" = 2 THEN 1 END) AS "DaForm",
-    COUNT(CASE WHEN "refCategoryId" = 3 THEN 1 END) AS "DbForm",
-    COUNT(CASE WHEN "refCategoryId" = 4 THEN 1 END) AS "DcForm"
-  FROM
-    appointment."refAppointments"
-  WHERE
-    TO_DATE("refAppointmentDate", 'YYYY-MM-DD') BETWEEN TO_DATE(?, 'YYYY-MM-DD') AND TO_DATE(?, 'YYYY-MM-DD')
-    AND (
-      ? = 0
-      OR "refSCId" = ?
-    )
-) AS stats;
+  COUNT(*) AS total_appointments,
+  COUNT(CASE WHEN ra."refCategoryId" = 1 THEN 1 END) AS "SForm",
+  COUNT(CASE WHEN ra."refCategoryId" = 2 THEN 1 END) AS "DaForm",
+  COUNT(CASE WHEN ra."refCategoryId" = 3 THEN 1 END) AS "DbForm",
+  COUNT(CASE WHEN ra."refCategoryId" = 4 THEN 1 END) AS "DcForm"
+FROM latest_signed ls
+JOIN appointment."refAppointments" ra
+    ON ra."refAppointmentId" = ls."refAppointmentId"
+WHERE ls.end_date BETWEEN 
+      TO_DATE(?, 'YYYY-MM-DD')
+      AND TO_DATE(?, 'YYYY-MM-DD')
+  AND ra."refAppointmentStatus" = TRUE
+  AND (? = 0 OR ra."refSCId" = ?);
 `
 
 var FindSCIdSQL = `
@@ -594,15 +616,18 @@ WITH
     FROM
       (
         SELECT
-          *,
+          rrh.*,
           ROW_NUMBER() OVER (
             PARTITION BY
-              "refAppointmentId"
+              rrh."refAppointmentId"
             ORDER BY
-              "refRHId" DESC
+              rrh."refRHHandleStartTime" DESC
           ) AS rn
         FROM
-          notes."refReportsHistory"
+          notes."refReportsHistory" rrh
+        WHERE
+          rrh."refRHHandleStatus" = 'Signed Off'
+          AND rrh."refRHHandleEndTime" IS NOT NULL
       ) sub
     WHERE
       rn = 1
@@ -628,8 +653,9 @@ WITH
       JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
     WHERE
       irv."refIRVSystemType" = 'WR'
-      AND rrh."refRHHandleStartTime" >= $1
-      AND rrh."refRHHandleStartTime" <= $2
+      AND ra."refAppointmentStatus" = TRUE
+      AND rrh."refRHHandleEndTime" >= $1
+      AND rrh."refRHHandleEndTime" <= $2
       AND (
         $3 = 0
         OR ra."refSCId" = $3
@@ -661,15 +687,18 @@ WITH
     FROM
       (
         SELECT
-          *,
+          rrh.*,
           ROW_NUMBER() OVER (
             PARTITION BY
-              "refAppointmentId"
+              rrh."refAppointmentId"
             ORDER BY
-              "refRHId" DESC
+              rrh."refRHHandleStartTime" DESC
           ) AS rn
         FROM
-          notes."refReportsHistory"
+          notes."refReportsHistory" rrh
+        WHERE
+          rrh."refRHHandleStatus" = 'Signed Off'
+          AND rrh."refRHHandleEndTime" IS NOT NULL
       ) sub
     WHERE
       rn = 1
@@ -695,6 +724,7 @@ WITH
       JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
     WHERE
       irv."refIRVSystemType" = 'WR'
+      AND ra."refAppointmentStatus" = TRUE
       AND rrh."refRHHandleStartTime" >= $1
       AND rrh."refRHHandleStartTime" <= $2
       AND (
@@ -885,6 +915,7 @@ FROM
     appointment."refAppointments" ra
 WHERE
     ($1 = 0 OR ra."refSCId" = $1) AND
+    ra."refAppointmentStatus" = TRUE AND
     ra."refAppointmentDate" >= $2 AND
     ra."refAppointmentDate" <= $3;
 `
@@ -901,6 +932,7 @@ FROM
     appointment."refAppointments" ra
 WHERE
     ($1 = 0 OR ra."refSCId" = $1) AND
+    ra."refAppointmentStatus" = TRUE AND
     ra."refAppointmentDate" >= $2 AND
     ra."refAppointmentDate" <= $3;
 `
@@ -1743,6 +1775,7 @@ SELECT
       ra."refAppointmentDate"::timestamp >= $1
       AND ra."refAppointmentDate"::timestamp <= $2
       AND ra."refSCId" = sc."refSCId"
+      AND ra."refAppointmentStatus" = TRUE
   ) AS "totalcase",
   (
     SELECT
@@ -1757,6 +1790,7 @@ SELECT
       ra."refAppointmentDate"::timestamp >= $1
       AND ra."refAppointmentDate"::timestamp <= $2
       AND ra."refSCId" = sc."refSCId"
+      AND ra."refAppointmentStatus" = TRUE
   ) AS "totalsform",
   (
     SELECT
@@ -1771,6 +1805,7 @@ SELECT
       ra."refAppointmentDate"::timestamp >= $1
       AND ra."refAppointmentDate"::timestamp <= $2
       AND ra."refSCId" = sc."refSCId"
+      AND ra."refAppointmentStatus" = TRUE
   ) AS "totaldaform",
   (
     SELECT
@@ -1785,6 +1820,7 @@ SELECT
       ra."refAppointmentDate"::timestamp >= $1
       AND ra."refAppointmentDate"::timestamp <= $2
       AND ra."refSCId" = sc."refSCId"
+      AND ra."refAppointmentStatus" = TRUE
   ) AS "totaldbform",
   (
     SELECT
@@ -1799,6 +1835,7 @@ SELECT
       ra."refAppointmentDate"::timestamp >= $1
       AND ra."refAppointmentDate"::timestamp <= $2
       AND ra."refSCId" = sc."refSCId"
+      AND ra."refAppointmentStatus" = TRUE
   ) AS "totaldcform",
   (
     SELECT
@@ -1813,6 +1850,7 @@ SELECT
       ra."refAppointmentDate"::timestamp >= $1
       AND ra."refAppointmentDate"::timestamp <= $2
       AND ra."refSCId" = sc."refSCId"
+      AND ra."refAppointmentStatus" = TRUE
   ) AS "techartificatsleft",
   (
     SELECT
@@ -1827,6 +1865,7 @@ SELECT
       ra."refAppointmentDate"::timestamp >= $1
       AND ra."refAppointmentDate"::timestamp <= $2
       AND ra."refSCId" = sc."refSCId"
+      AND ra."refAppointmentStatus" = TRUE
   ) AS "techartificatsright",
   (
     SELECT
@@ -1841,6 +1880,7 @@ SELECT
       ra."refAppointmentDate"::timestamp >= $1
       AND ra."refAppointmentDate"::timestamp <= $2
       AND ra."refSCId" = sc."refSCId"
+      AND ra."refAppointmentStatus" = TRUE
   ) AS "reportartificatsleft",
   (
     SELECT
@@ -1855,6 +1895,7 @@ SELECT
       ra."refAppointmentDate"::timestamp >= $1
       AND ra."refAppointmentDate"::timestamp <= $2
       AND ra."refSCId" = sc."refSCId"
+      AND ra."refAppointmentStatus" = TRUE
   ) AS "reportartificatsright",
   (
     SELECT
@@ -1870,6 +1911,7 @@ SELECT
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
           AND ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentStatus" = TRUE
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -1899,6 +1941,7 @@ SELECT
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
           AND ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentStatus" = TRUE
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -1928,6 +1971,7 @@ SELECT
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
           AND ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentStatus" = TRUE
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -1957,6 +2001,7 @@ SELECT
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
           AND ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentStatus" = TRUE
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -1986,6 +2031,7 @@ SELECT
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
           AND ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentStatus" = TRUE
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -2015,6 +2061,7 @@ SELECT
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
           AND ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentStatus" = TRUE
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -2044,6 +2091,7 @@ SELECT
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
           AND ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentStatus" = TRUE
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -2073,6 +2121,7 @@ SELECT
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
           AND ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentStatus" = TRUE
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -2102,6 +2151,7 @@ SELECT
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
           AND ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentStatus" = TRUE
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -2131,6 +2181,7 @@ SELECT
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
           AND ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentStatus" = TRUE
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -2160,6 +2211,7 @@ SELECT
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
           AND ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentStatus" = TRUE
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -2189,6 +2241,7 @@ SELECT
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
           AND ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentStatus" = TRUE
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -2218,6 +2271,7 @@ SELECT
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
           AND ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentStatus" = TRUE
         ORDER BY
           ra."refAppointmentId"
       ) t
@@ -2247,6 +2301,7 @@ SELECT
           AND ra."refAppointmentDate"::timestamp >= $1
           AND ra."refAppointmentDate"::timestamp <= $2
           AND ra."refSCId" = sc."refSCId"
+          AND ra."refAppointmentStatus" = TRUE
         ORDER BY
           ra."refAppointmentId"
       ) t
