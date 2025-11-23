@@ -1,63 +1,39 @@
 package query
 
 var AdminOverallAnalayticsSQL = `
-WITH
-  months AS (
-    SELECT
-      TO_CHAR(
-        date_trunc('month', CURRENT_DATE) - INTERVAL '1 month' * n,
-        'YYYY-MM'
-      ) AS month,
-      TO_CHAR(
-        date_trunc('month', CURRENT_DATE) - INTERVAL '1 month' * n,
-        'Month'
-      ) AS month_name
+WITH months AS (
+    SELECT 
+        date_trunc('month', CURRENT_DATE) - interval '1 month' * n AS month_start
+    FROM generate_series(0, 5) AS n
+)
+SELECT 
+    TO_CHAR(month_start, 'YYYY-MM') AS month,
+    TO_CHAR(month_start, 'Month') AS month_name,
+    month_start::date AS starting_date,
+    (month_start + INTERVAL '1 month - 1 day')::date AS ending_date,
+  (SELECT COUNT(*) AS total_rows
+FROM (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus"
     FROM
-      generate_series(0, 5) AS n
-  ),
-  appointment_counts AS (
-    WITH
-      latest_signed AS (
-        SELECT DISTINCT
-          ON (rrh."refAppointmentId") rrh."refAppointmentId",
-          TO_CHAR(
-            TO_DATE(rrh."refRHHandleEndTime", 'YYYY-MM-DD'),
-            'YYYY-MM'
-          ) AS month
-        FROM
-          notes."refReportsHistory" rrh
-          JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
-        WHERE
-          rrh."refRHHandleStatus" = 'Signed Off'
-          AND TO_DATE(rrh."refRHHandleEndTime", 'YYYY-MM-DD') >= date_trunc('month', CURRENT_DATE) - INTERVAL '6 months'
-          AND ra."refAppointmentStatus" = TRUE
-          AND (
-            ? = 0
-            OR ra."refSCId" = ?
+        notes."refReportsHistory" rrh
+        JOIN appointment."refAppointments" ra 
+            ON ra."refAppointmentId" = rrh."refAppointmentId"
+    WHERE
+        ra."refAppointmentStatus" = TRUE
+        AND (
+            $1 = 0
+            OR ra."refSCId" = $1
           )
-        ORDER BY
-          rrh."refAppointmentId",
-          rrh."refRHId" DESC
-      )
-    SELECT
-      month,
-      COUNT(*) AS total
-    FROM
-      latest_signed
-    GROUP BY
-      month
-    ORDER BY
-      month
-  )
-SELECT
-  m.month,
-  TRIM(m.month_name) AS month_name,
-  COALESCE(a.total, 0) AS total_appointments
-FROM
-  months m
-  LEFT JOIN appointment_counts a ON m.month = a.month
-ORDER BY
-  m.month;
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+        AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN month_start::date AND (month_start + INTERVAL '1 month - 1 day')::date
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+) AS t) AS total_appointments
+FROM months
+ORDER BY month_start;
 `
 
 // var AdminOverallScanIndicatesAnalayticsSQL = `
@@ -86,28 +62,33 @@ ORDER BY
 // `
 
 var AdminOverallScanIndicatesAnalayticsSQL = `
-WITH latest_signed AS (
+SELECT 
+  COUNT(*) AS total_appointments,
+  COUNT(CASE WHEN "refCategoryId" = 1 THEN 1 END) AS "SForm",
+  COUNT(CASE WHEN "refCategoryId" = 2 THEN 1 END) AS "DaForm",
+  COUNT(CASE WHEN "refCategoryId" = 3 THEN 1 END) AS "DbForm",
+  COUNT(CASE WHEN "refCategoryId" = 4 THEN 1 END) AS "DcForm"
+FROM (
     SELECT DISTINCT ON (rrh."refAppointmentId")
         rrh."refAppointmentId",
-        TO_DATE(rrh."refRHHandleEndTime", 'YYYY-MM-DD') AS end_date
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refCategoryId"   -- ✅ REQUIRED for outer COUNT()
     FROM notes."refReportsHistory" rrh
-    WHERE rrh."refRHHandleStatus" = 'Signed Off'
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    WHERE
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+        AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date 
+              AND $2::date
+  AND (
+            $3 = 0
+            OR ra."refSCId" = $3
+          )
     ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
-)
-SELECT
-  COUNT(*) AS total_appointments,
-  COUNT(CASE WHEN ra."refCategoryId" = 1 THEN 1 END) AS "SForm",
-  COUNT(CASE WHEN ra."refCategoryId" = 2 THEN 1 END) AS "DaForm",
-  COUNT(CASE WHEN ra."refCategoryId" = 3 THEN 1 END) AS "DbForm",
-  COUNT(CASE WHEN ra."refCategoryId" = 4 THEN 1 END) AS "DcForm"
-FROM latest_signed ls
-JOIN appointment."refAppointments" ra
-    ON ra."refAppointmentId" = ls."refAppointmentId"
-WHERE ls.end_date BETWEEN 
-      TO_DATE(?, 'YYYY-MM-DD')
-      AND TO_DATE(?, 'YYYY-MM-DD')
-  AND ra."refAppointmentStatus" = TRUE
-  AND (? = 0 OR ra."refSCId" = ?);
+) AS t;
 `
 
 var FindSCIdSQL = `
@@ -608,146 +589,153 @@ ORDER BY
 //   ) AS subquery;
 // `
 
+// var LeftRecommendationScancenterSQL = `
+// WITH
+//   latest_report_history AS (
+//     SELECT
+//       *
+//     FROM
+//       (
+//         SELECT
+//           rrh.*,
+//           ROW_NUMBER() OVER (
+//             PARTITION BY
+//               rrh."refAppointmentId"
+//             ORDER BY
+//               rrh."refRHHandleStartTime" DESC
+//           ) AS rn
+//         FROM
+//           notes."refReportsHistory" rrh
+//         WHERE
+//           rrh."refRHHandleStatus" = 'Signed Off'
+//           AND rrh."refRHHandleEndTime" IS NOT NULL
+//       ) sub
+//     WHERE
+//       rn = 1
+//   ),
+//   groups AS (
+//     SELECT DISTINCT
+//       irc."refIRCName" AS group_name
+//     FROM
+//       impressionrecommendation."ImpressionRecommendationCategory" irc
+//       JOIN impressionrecommendation."ImpressionRecommendationVal" irv ON irv."refIRCId" = irc."refIRCId"
+//     WHERE
+//       irv."refIRVSystemType" = 'WR'
+//   ),
+//   counts AS (
+//     SELECT
+//       irc."refIRCName" AS group_name,
+//       COUNT(*) AS total_count
+//     FROM
+//       latest_report_history rrh
+//       JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
+//       JOIN public."Users" rrhu ON rrh."refRHHandledUserId" = rrhu."refUserId"
+//       JOIN impressionrecommendation."ImpressionRecommendationVal" irv ON irv."refIRVCustId" = ra."refAppointmentRecommendation"
+//       JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+//     WHERE
+//       irv."refIRVSystemType" = 'WR'
+//       AND ra."refAppointmentStatus" = TRUE
+//       AND rrh."refRHHandleEndTime" >= $1
+//       AND rrh."refRHHandleEndTime" <= $2
+//       AND (
+//         $3 = 0
+//         OR ra."refSCId" = $3
+//       ) -- scan center filter
+//       AND (
+//         $4 = FALSE
+//         OR rrhu."refRTId" IN (1, 6, 7, 10)
+//       ) -- user role filter
+//       AND rrh."refRHHandleStartTime" IS NOT NULL
+//       AND rrh."refRHHandleEndTime" IS NOT NULL
+//     GROUP BY
+//       irc."refIRCName"
+//   )
+// SELECT
+//   g.group_name,
+//   COALESCE(c.total_count, 0) AS total_count
+// FROM
+//   groups g
+//   LEFT JOIN counts c ON g.group_name = c.group_name
+// ORDER BY
+//   g.group_name;
+// `
+
 var LeftRecommendationScancenterSQL = `
-WITH
-  latest_report_history AS (
-    SELECT
-      *
-    FROM
-      (
-        SELECT
-          rrh.*,
-          ROW_NUMBER() OVER (
-            PARTITION BY
-              rrh."refAppointmentId"
-            ORDER BY
-              rrh."refRHHandleStartTime" DESC
-          ) AS rn
-        FROM
-          notes."refReportsHistory" rrh
-        WHERE
-          rrh."refRHHandleStatus" = 'Signed Off'
-          AND rrh."refRHHandleEndTime" IS NOT NULL
-      ) sub
+WITH latest_signed AS (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refAppointmentRecommendation",
+        irv."refIRCId",
+        irc."refIRCName"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    JOIN impressionrecommendation."ImpressionRecommendationVal" irv 
+        ON irv."refIRVCustId" = ra."refAppointmentRecommendation"
+    JOIN impressionrecommendation."ImpressionRecommendationCategory" irc 
+        ON irc."refIRCId" = irv."refIRCId"
     WHERE
-      rn = 1
-  ),
-  groups AS (
-    SELECT DISTINCT
-      irc."refIRCName" AS group_name
-    FROM
-      impressionrecommendation."ImpressionRecommendationCategory" irc
-      JOIN impressionrecommendation."ImpressionRecommendationVal" irv ON irv."refIRCId" = irc."refIRCId"
-    WHERE
-      irv."refIRVSystemType" = 'WR'
-  ),
-  counts AS (
-    SELECT
-      irc."refIRCName" AS group_name,
-      COUNT(*) AS total_count
-    FROM
-      latest_report_history rrh
-      JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
-      JOIN public."Users" rrhu ON rrh."refRHHandledUserId" = rrhu."refUserId"
-      JOIN impressionrecommendation."ImpressionRecommendationVal" irv ON irv."refIRVCustId" = ra."refAppointmentRecommendation"
-      JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
-    WHERE
-      irv."refIRVSystemType" = 'WR'
-      AND ra."refAppointmentStatus" = TRUE
-      AND rrh."refRHHandleEndTime" >= $1
-      AND rrh."refRHHandleEndTime" <= $2
-      AND (
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+        AND TO_TIMESTAMP(rrh."refRHHandleEndTime",'YYYY-MM-DD HH24:MI:SS')::date 
+            BETWEEN $1::date AND $2::date
+  AND irv."refIRVSystemType" = 'WR'
+AND (
         $3 = 0
         OR ra."refSCId" = $3
-      ) -- scan center filter
-      AND (
-        $4 = FALSE
-        OR rrhu."refRTId" IN (1, 6, 7, 10)
-      ) -- user role filter
-      AND rrh."refRHHandleStartTime" IS NOT NULL
-      AND rrh."refRHHandleEndTime" IS NOT NULL
-    GROUP BY
-      irc."refIRCName"
-  )
-SELECT
-  g.group_name,
-  COALESCE(c.total_count, 0) AS total_count
-FROM
-  groups g
-  LEFT JOIN counts c ON g.group_name = c.group_name
-ORDER BY
-  g.group_name;
+      )
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+)
+
+SELECT 
+    irc."refIRCName" AS group_name,
+    COUNT(ls."refIRCId") AS total_count
+FROM impressionrecommendation."ImpressionRecommendationCategory" irc
+LEFT JOIN latest_signed ls 
+    ON ls."refIRCId" = irc."refIRCId"
+GROUP BY irc."refIRCName"
+ORDER BY irc."refIRCName";
 `
 
 var RightRecommendationScancenterSQL = `
-WITH
-  latest_report_history AS (
-    SELECT
-      *
-    FROM
-      (
-        SELECT
-          rrh.*,
-          ROW_NUMBER() OVER (
-            PARTITION BY
-              rrh."refAppointmentId"
-            ORDER BY
-              rrh."refRHHandleStartTime" DESC
-          ) AS rn
-        FROM
-          notes."refReportsHistory" rrh
-        WHERE
-          rrh."refRHHandleStatus" = 'Signed Off'
-          AND rrh."refRHHandleEndTime" IS NOT NULL
-      ) sub
+WITH latest_signed AS (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refAppointmentRecommendation",
+        irv."refIRCId",
+        irc."refIRCName"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    JOIN impressionrecommendation."ImpressionRecommendationVal" irv 
+        ON irv."refIRVCustId" = ra."refAppointmentRecommendationRight"
+    JOIN impressionrecommendation."ImpressionRecommendationCategory" irc 
+        ON irc."refIRCId" = irv."refIRCId"
     WHERE
-      rn = 1
-  ),
-  groups AS (
-    SELECT DISTINCT
-      irc."refIRCName" AS group_name
-    FROM
-      impressionrecommendation."ImpressionRecommendationCategory" irc
-      JOIN impressionrecommendation."ImpressionRecommendationVal" irv ON irv."refIRCId" = irc."refIRCId"
-    WHERE
-      irv."refIRVSystemType" = 'WR'
-  ),
-  counts AS (
-    SELECT
-      irc."refIRCName" AS group_name,
-      COUNT(*) AS total_count
-    FROM
-      latest_report_history rrh
-      JOIN appointment."refAppointments" ra ON ra."refAppointmentId" = rrh."refAppointmentId"
-      JOIN public."Users" rrhu ON rrh."refRHHandledUserId" = rrhu."refUserId"
-      JOIN impressionrecommendation."ImpressionRecommendationVal" irv ON irv."refIRVCustId" = ra."refAppointmentRecommendationRight"
-      JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
-    WHERE
-      irv."refIRVSystemType" = 'WR'
-      AND ra."refAppointmentStatus" = TRUE
-      AND rrh."refRHHandleStartTime" >= $1
-      AND rrh."refRHHandleStartTime" <= $2
-      AND (
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+        AND TO_TIMESTAMP(rrh."refRHHandleEndTime",'YYYY-MM-DD HH24:MI:SS')::date 
+            BETWEEN $1::date AND $2::date
+  AND irv."refIRVSystemType" = 'WR'
+AND (
         $3 = 0
         OR ra."refSCId" = $3
-      ) -- scan center filter
-      AND (
-        $4 = FALSE
-        OR rrhu."refRTId" IN (1, 6, 7, 10)
-      ) -- user role filter
-      AND rrh."refRHHandleStartTime" IS NOT NULL
-      AND rrh."refRHHandleEndTime" IS NOT NULL
-    GROUP BY
-      irc."refIRCName"
-  )
-SELECT
-  g.group_name,
-  COALESCE(c.total_count, 0) AS total_count
-FROM
-  groups g
-  LEFT JOIN counts c ON g.group_name = c.group_name
-ORDER BY
-  g.group_name;
+      )
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+)
+
+SELECT 
+    irc."refIRCName" AS group_name,
+    COUNT(ls."refIRCId") AS total_count
+FROM impressionrecommendation."ImpressionRecommendationCategory" irc
+LEFT JOIN latest_signed ls 
+    ON ls."refIRCId" = irc."refIRCId"
+GROUP BY irc."refIRCName"
+ORDER BY irc."refIRCName";
 `
 
 var LeftRecommendationUserSQL = `
@@ -903,38 +891,92 @@ FROM
   ) AS subquery;
 `
 
+// var TechArtificatsAll = `
+// SELECT
+//
+//	COUNT(CASE WHEN ra."refAppointmentTechArtifactsLeft" = TRUE
+//	            AND ra."refAppointmentTechArtifactsRight" = FALSE THEN 1 END) AS leftartifacts,
+//	COUNT(CASE WHEN ra."refAppointmentTechArtifactsLeft" = FALSE
+//	            AND ra."refAppointmentTechArtifactsRight" = TRUE THEN 1 END) AS rightartifacts,
+//	COUNT(CASE WHEN ra."refAppointmentTechArtifactsLeft" = TRUE
+//	            AND ra."refAppointmentTechArtifactsRight" = TRUE THEN 1 END) AS bothartifacts
+//
+// FROM
+//
+//	appointment."refAppointments" ra
+//
+// WHERE
+//
+//	($1 = 0 OR ra."refSCId" = $1) AND
+//	ra."refAppointmentStatus" = TRUE AND
+//	ra."refAppointmentDate" >= $2 AND
+//	ra."refAppointmentDate" <= $3;
+//
+// `
 var TechArtificatsAll = `
-SELECT
-    COUNT(CASE WHEN ra."refAppointmentTechArtifactsLeft" = TRUE 
-                AND ra."refAppointmentTechArtifactsRight" = FALSE THEN 1 END) AS leftartifacts,
-    COUNT(CASE WHEN ra."refAppointmentTechArtifactsLeft" = FALSE 
-                AND ra."refAppointmentTechArtifactsRight" = TRUE THEN 1 END) AS rightartifacts,
-    COUNT(CASE WHEN ra."refAppointmentTechArtifactsLeft" = TRUE 
-                AND ra."refAppointmentTechArtifactsRight" = TRUE THEN 1 END) AS bothartifacts
-FROM
-    appointment."refAppointments" ra
-WHERE
-    ($1 = 0 OR ra."refSCId" = $1) AND
-    ra."refAppointmentStatus" = TRUE AND
-    ra."refAppointmentDate" >= $2 AND
-    ra."refAppointmentDate" <= $3;
+SELECT 
+ COUNT(CASE WHEN "refAppointmentTechArtifactsLeft" = TRUE 
+                AND "refAppointmentTechArtifactsRight" = FALSE THEN 1 END) AS leftartifacts,
+    COUNT(CASE WHEN "refAppointmentTechArtifactsLeft" = FALSE 
+                AND "refAppointmentTechArtifactsRight" = TRUE THEN 1 END) AS rightartifacts,
+    COUNT(CASE WHEN "refAppointmentTechArtifactsLeft" = TRUE 
+                AND "refAppointmentTechArtifactsRight" = TRUE THEN 1 END) AS bothartifacts
+FROM (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refCategoryId",
+  ra."refAppointmentTechArtifactsLeft",
+  ra."refAppointmentTechArtifactsRight"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    WHERE
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+        AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date 
+              AND $2::date
+  AND (
+            $3 = 0
+            OR ra."refSCId" = $3
+          )
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+) AS t;
 `
 
 var ReportArtificatsAll = `
-SELECT
-    COUNT(CASE WHEN ra."refAppointmentReportArtifactsLeft" = TRUE 
-                AND ra."refAppointmentReportArtifactsRight" = FALSE THEN 1 END) AS leftartifacts,
-    COUNT(CASE WHEN ra."refAppointmentReportArtifactsLeft" = FALSE 
-                AND ra."refAppointmentReportArtifactsRight" = TRUE THEN 1 END) AS rightartifacts,
-    COUNT(CASE WHEN ra."refAppointmentReportArtifactsLeft" = TRUE 
-                AND ra."refAppointmentReportArtifactsRight" = TRUE THEN 1 END) AS bothartifacts
-FROM
-    appointment."refAppointments" ra
-WHERE
-    ($1 = 0 OR ra."refSCId" = $1) AND
-    ra."refAppointmentStatus" = TRUE AND
-    ra."refAppointmentDate" >= $2 AND
-    ra."refAppointmentDate" <= $3;
+SELECT 
+ COUNT(CASE WHEN "refAppointmentReportArtifactsLeft" = TRUE 
+                AND "refAppointmentReportArtifactsRight" = FALSE THEN 1 END) AS leftartifacts,
+    COUNT(CASE WHEN "refAppointmentReportArtifactsLeft" = FALSE 
+                AND "refAppointmentReportArtifactsRight" = TRUE THEN 1 END) AS rightartifacts,
+    COUNT(CASE WHEN "refAppointmentReportArtifactsLeft" = TRUE 
+                AND "refAppointmentReportArtifactsRight" = TRUE THEN 1 END) AS bothartifacts
+FROM (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refCategoryId",
+        ra."refAppointmentReportArtifactsLeft",
+  ra."refAppointmentReportArtifactsRight"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    WHERE
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+        AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date 
+              AND $2::date
+  AND (
+            $3 = 0
+            OR ra."refSCId" = $3
+          )
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+) AS t;
 `
 
 var TechArtificats = `
@@ -1762,561 +1804,1266 @@ ORDER BY
   u."refUserId";
   `
 
+// var GetOverAllScanCenterList = `
+// SELECT
+//   sc."refSCId",
+//   sc."refSCCustId",
+//   (
+//     SELECT
+//       COUNT(DISTINCT ra."refAppointmentId")
+//     FROM
+//       appointment."refAppointments" ra
+//     WHERE
+//       ra."refAppointmentDate"::timestamp >= $1
+//       AND ra."refAppointmentDate"::timestamp <= $2
+//       AND ra."refSCId" = sc."refSCId"
+//       AND ra."refAppointmentStatus" = TRUE
+//   ) AS "totalcase",
+//   (
+//     SELECT
+//       COUNT(
+//         DISTINCT CASE
+//           WHEN ra."refCategoryId" = 1 THEN ra."refAppointmentId"
+//         END
+//       ) AS category_count
+//     FROM
+//       appointment."refAppointments" ra
+//     WHERE
+//       ra."refAppointmentDate"::timestamp >= $1
+//       AND ra."refAppointmentDate"::timestamp <= $2
+//       AND ra."refSCId" = sc."refSCId"
+//       AND ra."refAppointmentStatus" = TRUE
+//   ) AS "totalsform",
+//   (
+//     SELECT
+//       COUNT(
+//         DISTINCT CASE
+//           WHEN ra."refCategoryId" = 2 THEN ra."refAppointmentId"
+//         END
+//       ) AS category_count
+//     FROM
+//       appointment."refAppointments" ra
+//     WHERE
+//       ra."refAppointmentDate"::timestamp >= $1
+//       AND ra."refAppointmentDate"::timestamp <= $2
+//       AND ra."refSCId" = sc."refSCId"
+//       AND ra."refAppointmentStatus" = TRUE
+//   ) AS "totaldaform",
+//   (
+//     SELECT
+//       COUNT(
+//         DISTINCT CASE
+//           WHEN ra."refCategoryId" = 3 THEN ra."refAppointmentId"
+//         END
+//       ) AS category_count
+//     FROM
+//       appointment."refAppointments" ra
+//     WHERE
+//       ra."refAppointmentDate"::timestamp >= $1
+//       AND ra."refAppointmentDate"::timestamp <= $2
+//       AND ra."refSCId" = sc."refSCId"
+//       AND ra."refAppointmentStatus" = TRUE
+//   ) AS "totaldbform",
+//   (
+//     SELECT
+//       COUNT(
+//         DISTINCT CASE
+//           WHEN ra."refCategoryId" = 4 THEN ra."refAppointmentId"
+//         END
+//       ) AS category_count
+//     FROM
+//       appointment."refAppointments" ra
+//     WHERE
+//       ra."refAppointmentDate"::timestamp >= $1
+//       AND ra."refAppointmentDate"::timestamp <= $2
+//       AND ra."refSCId" = sc."refSCId"
+//       AND ra."refAppointmentStatus" = TRUE
+//   ) AS "totaldcform",
+//   (
+//     SELECT
+//       COUNT(
+//         DISTINCT CASE
+//           WHEN ra."refAppointmentTechArtifactsLeft" = true THEN ra."refAppointmentId"
+//         END
+//       ) AS category_count
+//     FROM
+//       appointment."refAppointments" ra
+//     WHERE
+//       ra."refAppointmentDate"::timestamp >= $1
+//       AND ra."refAppointmentDate"::timestamp <= $2
+//       AND ra."refSCId" = sc."refSCId"
+//       AND ra."refAppointmentStatus" = TRUE
+//   ) AS "techartificatsleft",
+//   (
+//     SELECT
+//       COUNT(
+//         DISTINCT CASE
+//           WHEN ra."refAppointmentTechArtifactsRight" = true THEN ra."refAppointmentId"
+//         END
+//       ) AS category_count
+//     FROM
+//       appointment."refAppointments" ra
+//     WHERE
+//       ra."refAppointmentDate"::timestamp >= $1
+//       AND ra."refAppointmentDate"::timestamp <= $2
+//       AND ra."refSCId" = sc."refSCId"
+//       AND ra."refAppointmentStatus" = TRUE
+//   ) AS "techartificatsright",
+//   (
+//     SELECT
+//       COUNT(
+//         DISTINCT CASE
+//           WHEN ra."refAppointmentReportArtifactsLeft" = true THEN ra."refAppointmentId"
+//         END
+//       ) AS category_count
+//     FROM
+//       appointment."refAppointments" ra
+//     WHERE
+//       ra."refAppointmentDate"::timestamp >= $1
+//       AND ra."refAppointmentDate"::timestamp <= $2
+//       AND ra."refSCId" = sc."refSCId"
+//       AND ra."refAppointmentStatus" = TRUE
+//   ) AS "reportartificatsleft",
+//   (
+//     SELECT
+//       COUNT(
+//         DISTINCT CASE
+//           WHEN ra."refAppointmentReportArtifactsRight" = true THEN ra."refAppointmentId"
+//         END
+//       ) AS category_count
+//     FROM
+//       appointment."refAppointments" ra
+//     WHERE
+//       ra."refAppointmentDate"::timestamp >= $1
+//       AND ra."refAppointmentDate"::timestamp <= $2
+//       AND ra."refSCId" = sc."refSCId"
+//       AND ra."refAppointmentStatus" = TRUE
+//   ) AS "reportartificatsright",
+//   (
+//     SELECT
+//       COUNT(*)
+//     FROM
+//       (
+//         SELECT DISTINCT
+//           ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
+//         FROM
+//           appointment."refAppointments" ra
+//         WHERE
+//           ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentDate"::timestamp >= $1
+//           AND ra."refAppointmentDate"::timestamp <= $2
+//           AND ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentStatus" = TRUE
+//         ORDER BY
+//           ra."refAppointmentId"
+//       ) t
+//     WHERE
+//       t."refAppointmentRecommendation" IN (
+//         SELECT
+//           irv."refIRVCustId"
+//         FROM
+//           impressionrecommendation."ImpressionRecommendationVal" irv
+//           JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+//         WHERE
+//           irv."refIRVSystemType" = 'WR'
+//           AND irc."refIRCName" = 'Annual Screening' -- 👈 Replace this with your desired category
+//       )
+//   ) AS "leftannualscreening",
+//   (
+//     SELECT
+//       COUNT(*)
+//     FROM
+//       (
+//         SELECT DISTINCT
+//           ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
+//         FROM
+//           appointment."refAppointments" ra
+//         WHERE
+//           ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentDate"::timestamp >= $1
+//           AND ra."refAppointmentDate"::timestamp <= $2
+//           AND ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentStatus" = TRUE
+//         ORDER BY
+//           ra."refAppointmentId"
+//       ) t
+//     WHERE
+//       t."refAppointmentRecommendation" IN (
+//         SELECT
+//           irv."refIRVCustId"
+//         FROM
+//           impressionrecommendation."ImpressionRecommendationVal" irv
+//           JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+//         WHERE
+//           irv."refIRVSystemType" = 'WR'
+//           AND irc."refIRCName" = 'USG/SFU' -- 👈 Replace this with your desired category
+//       )
+//   ) AS "leftusgsfu",
+//   (
+//     SELECT
+//       COUNT(*)
+//     FROM
+//       (
+//         SELECT DISTINCT
+//           ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
+//         FROM
+//           appointment."refAppointments" ra
+//         WHERE
+//           ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentDate"::timestamp >= $1
+//           AND ra."refAppointmentDate"::timestamp <= $2
+//           AND ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentStatus" = TRUE
+//         ORDER BY
+//           ra."refAppointmentId"
+//       ) t
+//     WHERE
+//       t."refAppointmentRecommendation" IN (
+//         SELECT
+//           irv."refIRVCustId"
+//         FROM
+//           impressionrecommendation."ImpressionRecommendationVal" irv
+//           JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+//         WHERE
+//           irv."refIRVSystemType" = 'WR'
+//           AND irc."refIRCName" = 'Biopsy' -- 👈 Replace this with your desired category
+//       )
+//   ) AS "leftBiopsy",
+//   (
+//     SELECT
+//       COUNT(*)
+//     FROM
+//       (
+//         SELECT DISTINCT
+//           ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
+//         FROM
+//           appointment."refAppointments" ra
+//         WHERE
+//           ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentDate"::timestamp >= $1
+//           AND ra."refAppointmentDate"::timestamp <= $2
+//           AND ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentStatus" = TRUE
+//         ORDER BY
+//           ra."refAppointmentId"
+//       ) t
+//     WHERE
+//       t."refAppointmentRecommendation" IN (
+//         SELECT
+//           irv."refIRVCustId"
+//         FROM
+//           impressionrecommendation."ImpressionRecommendationVal" irv
+//           JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+//         WHERE
+//           irv."refIRVSystemType" = 'WR'
+//           AND irc."refIRCName" = 'Breast Radiologist' -- 👈 Replace this with your desired category
+//       )
+//   ) AS "leftBreastradiologist",
+//   (
+//     SELECT
+//       COUNT(*)
+//     FROM
+//       (
+//         SELECT DISTINCT
+//           ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
+//         FROM
+//           appointment."refAppointments" ra
+//         WHERE
+//           ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentDate"::timestamp >= $1
+//           AND ra."refAppointmentDate"::timestamp <= $2
+//           AND ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentStatus" = TRUE
+//         ORDER BY
+//           ra."refAppointmentId"
+//       ) t
+//     WHERE
+//       t."refAppointmentRecommendation" IN (
+//         SELECT
+//           irv."refIRVCustId"
+//         FROM
+//           impressionrecommendation."ImpressionRecommendationVal" irv
+//           JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+//         WHERE
+//           irv."refIRVSystemType" = 'WR'
+//           AND irc."refIRCName" = 'Clinical Correlation' -- 👈 Replace this with your desired category
+//       )
+//   ) AS "leftClinicalCorrelation",
+//   (
+//     SELECT
+//       COUNT(*)
+//     FROM
+//       (
+//         SELECT DISTINCT
+//           ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
+//         FROM
+//           appointment."refAppointments" ra
+//         WHERE
+//           ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentDate"::timestamp >= $1
+//           AND ra."refAppointmentDate"::timestamp <= $2
+//           AND ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentStatus" = TRUE
+//         ORDER BY
+//           ra."refAppointmentId"
+//       ) t
+//     WHERE
+//       t."refAppointmentRecommendation" IN (
+//         SELECT
+//           irv."refIRVCustId"
+//         FROM
+//           impressionrecommendation."ImpressionRecommendationVal" irv
+//           JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+//         WHERE
+//           irv."refIRVSystemType" = 'WR'
+//           AND irc."refIRCName" = 'Onco Consult' -- 👈 Replace this with your desired category
+//       )
+//   ) AS "leftOncoConsult",
+//   (
+//     SELECT
+//       COUNT(*)
+//     FROM
+//       (
+//         SELECT DISTINCT
+//           ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
+//         FROM
+//           appointment."refAppointments" ra
+//         WHERE
+//           ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentDate"::timestamp >= $1
+//           AND ra."refAppointmentDate"::timestamp <= $2
+//           AND ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentStatus" = TRUE
+//         ORDER BY
+//           ra."refAppointmentId"
+//       ) t
+//     WHERE
+//       t."refAppointmentRecommendation" IN (
+//         SELECT
+//           irv."refIRVCustId"
+//         FROM
+//           impressionrecommendation."ImpressionRecommendationVal" irv
+//           JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+//         WHERE
+//           irv."refIRVSystemType" = 'WR'
+//           AND irc."refIRCName" = 'Redo' -- 👈 Replace this with your desired category
+//       )
+//   ) AS "leftRedo",
+//   (
+//     SELECT
+//       COUNT(*)
+//     FROM
+//       (
+//         SELECT DISTINCT
+//           ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
+//         FROM
+//           appointment."refAppointments" ra
+//         WHERE
+//           ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentDate"::timestamp >= $1
+//           AND ra."refAppointmentDate"::timestamp <= $2
+//           AND ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentStatus" = TRUE
+//         ORDER BY
+//           ra."refAppointmentId"
+//       ) t
+//     WHERE
+//       t."refAppointmentRecommendationRight" IN (
+//         SELECT
+//           irv."refIRVCustId"
+//         FROM
+//           impressionrecommendation."ImpressionRecommendationVal" irv
+//           JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+//         WHERE
+//           irv."refIRVSystemType" = 'WR'
+//           AND irc."refIRCName" = 'Annual Screening' -- 👈 Replace this with your desired category
+//       )
+//   ) AS "rightannualscreening",
+//   (
+//     SELECT
+//       COUNT(*)
+//     FROM
+//       (
+//         SELECT DISTINCT
+//           ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
+//         FROM
+//           appointment."refAppointments" ra
+//         WHERE
+//           ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentDate"::timestamp >= $1
+//           AND ra."refAppointmentDate"::timestamp <= $2
+//           AND ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentStatus" = TRUE
+//         ORDER BY
+//           ra."refAppointmentId"
+//       ) t
+//     WHERE
+//       t."refAppointmentRecommendationRight" IN (
+//         SELECT
+//           irv."refIRVCustId"
+//         FROM
+//           impressionrecommendation."ImpressionRecommendationVal" irv
+//           JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+//         WHERE
+//           irv."refIRVSystemType" = 'WR'
+//           AND irc."refIRCName" = 'USG/SFU' -- 👈 Replace this with your desired category
+//       )
+//   ) AS "rightusgsfu",
+//   (
+//     SELECT
+//       COUNT(*)
+//     FROM
+//       (
+//         SELECT DISTINCT
+//           ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
+//         FROM
+//           appointment."refAppointments" ra
+//         WHERE
+//           ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentDate"::timestamp >= $1
+//           AND ra."refAppointmentDate"::timestamp <= $2
+//           AND ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentStatus" = TRUE
+//         ORDER BY
+//           ra."refAppointmentId"
+//       ) t
+//     WHERE
+//       t."refAppointmentRecommendationRight" IN (
+//         SELECT
+//           irv."refIRVCustId"
+//         FROM
+//           impressionrecommendation."ImpressionRecommendationVal" irv
+//           JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+//         WHERE
+//           irv."refIRVSystemType" = 'WR'
+//           AND irc."refIRCName" = 'Biopsy' -- 👈 Replace this with your desired category
+//       )
+//   ) AS "rightBiopsy",
+//   (
+//     SELECT
+//       COUNT(*)
+//     FROM
+//       (
+//         SELECT DISTINCT
+//           ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
+//         FROM
+//           appointment."refAppointments" ra
+//         WHERE
+//           ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentDate"::timestamp >= $1
+//           AND ra."refAppointmentDate"::timestamp <= $2
+//           AND ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentStatus" = TRUE
+//         ORDER BY
+//           ra."refAppointmentId"
+//       ) t
+//     WHERE
+//       t."refAppointmentRecommendationRight" IN (
+//         SELECT
+//           irv."refIRVCustId"
+//         FROM
+//           impressionrecommendation."ImpressionRecommendationVal" irv
+//           JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+//         WHERE
+//           irv."refIRVSystemType" = 'WR'
+//           AND irc."refIRCName" = 'Breast Radiologist' -- 👈 Replace this with your desired category
+//       )
+//   ) AS "rightBreastradiologist",
+//   (
+//     SELECT
+//       COUNT(*)
+//     FROM
+//       (
+//         SELECT DISTINCT
+//           ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
+//         FROM
+//           appointment."refAppointments" ra
+//         WHERE
+//           ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentDate"::timestamp >= $1
+//           AND ra."refAppointmentDate"::timestamp <= $2
+//           AND ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentStatus" = TRUE
+//         ORDER BY
+//           ra."refAppointmentId"
+//       ) t
+//     WHERE
+//       t."refAppointmentRecommendationRight" IN (
+//         SELECT
+//           irv."refIRVCustId"
+//         FROM
+//           impressionrecommendation."ImpressionRecommendationVal" irv
+//           JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+//         WHERE
+//           irv."refIRVSystemType" = 'WR'
+//           AND irc."refIRCName" = 'Clinical Correlation' -- 👈 Replace this with your desired category
+//       )
+//   ) AS "rightClinicalCorrelation",
+//   (
+//     SELECT
+//       COUNT(*)
+//     FROM
+//       (
+//         SELECT DISTINCT
+//           ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
+//         FROM
+//           appointment."refAppointments" ra
+//         WHERE
+//           ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentDate"::timestamp >= $1
+//           AND ra."refAppointmentDate"::timestamp <= $2
+//           AND ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentStatus" = TRUE
+//         ORDER BY
+//           ra."refAppointmentId"
+//       ) t
+//     WHERE
+//       t."refAppointmentRecommendationRight" IN (
+//         SELECT
+//           irv."refIRVCustId"
+//         FROM
+//           impressionrecommendation."ImpressionRecommendationVal" irv
+//           JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+//         WHERE
+//           irv."refIRVSystemType" = 'WR'
+//           AND irc."refIRCName" = 'Onco Consult' -- 👈 Replace this with your desired category
+//       )
+//   ) AS "rightOncoConsult",
+//   (
+//     SELECT
+//       COUNT(*)
+//     FROM
+//       (
+//         SELECT DISTINCT
+//           ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
+//         FROM
+//           appointment."refAppointments" ra
+//         WHERE
+//           ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentDate"::timestamp >= $1
+//           AND ra."refAppointmentDate"::timestamp <= $2
+//           AND ra."refSCId" = sc."refSCId"
+//           AND ra."refAppointmentStatus" = TRUE
+//         ORDER BY
+//           ra."refAppointmentId"
+//       ) t
+//     WHERE
+//       t."refAppointmentRecommendationRight" IN (
+//         SELECT
+//           irv."refIRVCustId"
+//         FROM
+//           impressionrecommendation."ImpressionRecommendationVal" irv
+//           JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
+//         WHERE
+//           irv."refIRVSystemType" = 'WR'
+//           AND irc."refIRCName" = 'Redo' -- 👈 Replace this with your desired category
+//       )
+//   ) AS "rightRedo"
+// FROM
+//   public."ScanCenter" sc
+// WHERE
+//   (
+//     $3 = 0
+//     OR sc."refSCId" = $3
+//   )
+// `
+
 var GetOverAllScanCenterList = `
 SELECT
   sc."refSCId",
   sc."refSCCustId",
-  (
-    SELECT
-      COUNT(DISTINCT ra."refAppointmentId")
+  (SELECT COUNT(*) AS total_rows
+FROM (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus"
     FROM
-      appointment."refAppointments" ra
+        notes."refReportsHistory" rrh
+        JOIN appointment."refAppointments" ra 
+            ON ra."refAppointmentId" = rrh."refAppointmentId"
     WHERE
-      ra."refAppointmentDate"::timestamp >= $1
-      AND ra."refAppointmentDate"::timestamp <= $2
-      AND ra."refSCId" = sc."refSCId"
-      AND ra."refAppointmentStatus" = TRUE
-  ) AS "totalcase",
+        ra."refAppointmentStatus" = TRUE
+        AND ra."refSCId" = sc."refSCId"
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+        AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+) AS t) AS totalcase,
+  (SELECT 
+  COUNT(CASE WHEN "refCategoryId" = 1 THEN 1 END) AS "SForm"
+FROM (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refCategoryId"   -- ✅ REQUIRED for outer COUNT()
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    WHERE
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+) AS t) AS totalsform,
+  (SELECT 
+  COUNT(CASE WHEN "refCategoryId" = 2 THEN 1 END) AS "SForm"
+FROM (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refCategoryId"   -- ✅ REQUIRED for outer COUNT()
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    WHERE
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+) AS t) AS totaldaform,
+  (SELECT 
+  COUNT(CASE WHEN "refCategoryId" = 3 THEN 1 END) AS "SForm"
+FROM (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refCategoryId"   -- ✅ REQUIRED for outer COUNT()
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    WHERE
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+) AS t) AS totaldbform,
+  (SELECT 
+  COUNT(CASE WHEN "refCategoryId" = 4 THEN 1 END) AS "SForm"
+FROM (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refCategoryId"   -- ✅ REQUIRED for outer COUNT()
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    WHERE
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+) AS t) AS totaldcform,
   (
-    SELECT
-      COUNT(
-        DISTINCT CASE
-          WHEN ra."refCategoryId" = 1 THEN ra."refAppointmentId"
-        END
-      ) AS category_count
-    FROM
-      appointment."refAppointments" ra
+  SELECT 
+ COUNT(CASE WHEN "refAppointmentTechArtifactsLeft" = TRUE THEN 1 END) AS leftartifacts
+    -- COUNT(CASE WHEN "refAppointmentTechArtifactsRight" = TRUE THEN 1 END) AS rightartifacts
+FROM (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refCategoryId",
+  ra."refAppointmentTechArtifactsLeft",
+  ra."refAppointmentTechArtifactsRight"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
     WHERE
-      ra."refAppointmentDate"::timestamp >= $1
-      AND ra."refAppointmentDate"::timestamp <= $2
-      AND ra."refSCId" = sc."refSCId"
-      AND ra."refAppointmentStatus" = TRUE
-  ) AS "totalsform",
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+) AS t
+  ) AS techartificatsleft,
   (
-    SELECT
-      COUNT(
-        DISTINCT CASE
-          WHEN ra."refCategoryId" = 2 THEN ra."refAppointmentId"
-        END
-      ) AS category_count
-    FROM
-      appointment."refAppointments" ra
+  SELECT 
+    COUNT(CASE WHEN "refAppointmentTechArtifactsRight" = TRUE THEN 1 END) AS rightartifacts
+FROM (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refCategoryId",
+  ra."refAppointmentTechArtifactsLeft",
+  ra."refAppointmentTechArtifactsRight"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
     WHERE
-      ra."refAppointmentDate"::timestamp >= $1
-      AND ra."refAppointmentDate"::timestamp <= $2
-      AND ra."refSCId" = sc."refSCId"
-      AND ra."refAppointmentStatus" = TRUE
-  ) AS "totaldaform",
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+) AS t
+  ) AS techartificatsright,
   (
-    SELECT
-      COUNT(
-        DISTINCT CASE
-          WHEN ra."refCategoryId" = 3 THEN ra."refAppointmentId"
-        END
-      ) AS category_count
-    FROM
-      appointment."refAppointments" ra
+  SELECT 
+ COUNT(CASE WHEN "refAppointmentReportArtifactsLeft" = TRUE THEN 1 END) AS leftartifacts
+FROM (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refCategoryId",
+        ra."refAppointmentReportArtifactsLeft",
+  ra."refAppointmentReportArtifactsRight"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
     WHERE
-      ra."refAppointmentDate"::timestamp >= $1
-      AND ra."refAppointmentDate"::timestamp <= $2
-      AND ra."refSCId" = sc."refSCId"
-      AND ra."refAppointmentStatus" = TRUE
-  ) AS "totaldbform",
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+) AS t
+  ) AS reportartificatsleft,
   (
-    SELECT
-      COUNT(
-        DISTINCT CASE
-          WHEN ra."refCategoryId" = 4 THEN ra."refAppointmentId"
-        END
-      ) AS category_count
-    FROM
-      appointment."refAppointments" ra
+  SELECT 
+ COUNT(CASE WHEN "refAppointmentReportArtifactsRight" = TRUE THEN 1 END) AS rightartifacts
+FROM (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refCategoryId",
+        ra."refAppointmentReportArtifactsLeft",
+  ra."refAppointmentReportArtifactsRight"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
     WHERE
-      ra."refAppointmentDate"::timestamp >= $1
-      AND ra."refAppointmentDate"::timestamp <= $2
-      AND ra."refSCId" = sc."refSCId"
-      AND ra."refAppointmentStatus" = TRUE
-  ) AS "totaldcform",
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+) AS t
+  ) AS reportartificatsright,
+  --Left Annual Screening
   (
-    SELECT
-      COUNT(
-        DISTINCT CASE
-          WHEN ra."refAppointmentTechArtifactsLeft" = true THEN ra."refAppointmentId"
-        END
-      ) AS category_count
-    FROM
-      appointment."refAppointments" ra
+  WITH latest_signed AS (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refAppointmentRecommendation",
+        irv."refIRCId",
+        irc."refIRCName"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    JOIN impressionrecommendation."ImpressionRecommendationVal" irv 
+        ON irv."refIRVCustId" = ra."refAppointmentRecommendation"
+    JOIN impressionrecommendation."ImpressionRecommendationCategory" irc 
+        ON irc."refIRCId" = irv."refIRCId"
     WHERE
-      ra."refAppointmentDate"::timestamp >= $1
-      AND ra."refAppointmentDate"::timestamp <= $2
-      AND ra."refSCId" = sc."refSCId"
-      AND ra."refAppointmentStatus" = TRUE
-  ) AS "techartificatsleft",
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND irv."refIRVSystemType" = 'WR'
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+)
+
+SELECT 
+    COUNT(ls."refIRCId") AS total_count
+FROM impressionrecommendation."ImpressionRecommendationCategory" irc
+LEFT JOIN latest_signed ls 
+    ON ls."refIRCId" = irc."refIRCId"
+  WHERE irc."refIRCId" = 1
+GROUP BY irc."refIRCName"
+ORDER BY irc."refIRCName"
+  ) AS leftannualscreening,
+  -- Left USG/SFU
   (
-    SELECT
-      COUNT(
-        DISTINCT CASE
-          WHEN ra."refAppointmentTechArtifactsRight" = true THEN ra."refAppointmentId"
-        END
-      ) AS category_count
-    FROM
-      appointment."refAppointments" ra
+  WITH latest_signed AS (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refAppointmentRecommendation",
+        irv."refIRCId",
+        irc."refIRCName"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    JOIN impressionrecommendation."ImpressionRecommendationVal" irv 
+        ON irv."refIRVCustId" = ra."refAppointmentRecommendation"
+    JOIN impressionrecommendation."ImpressionRecommendationCategory" irc 
+        ON irc."refIRCId" = irv."refIRCId"
     WHERE
-      ra."refAppointmentDate"::timestamp >= $1
-      AND ra."refAppointmentDate"::timestamp <= $2
-      AND ra."refSCId" = sc."refSCId"
-      AND ra."refAppointmentStatus" = TRUE
-  ) AS "techartificatsright",
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND irv."refIRVSystemType" = 'WR'
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+)
+
+SELECT 
+    COUNT(ls."refIRCId") AS total_count
+FROM impressionrecommendation."ImpressionRecommendationCategory" irc
+LEFT JOIN latest_signed ls 
+    ON ls."refIRCId" = irc."refIRCId"
+  WHERE irc."refIRCId" = 2
+GROUP BY irc."refIRCName"
+ORDER BY irc."refIRCName"
+  ) AS leftusgsfu,
+-- Left Biopsy
   (
-    SELECT
-      COUNT(
-        DISTINCT CASE
-          WHEN ra."refAppointmentReportArtifactsLeft" = true THEN ra."refAppointmentId"
-        END
-      ) AS category_count
-    FROM
-      appointment."refAppointments" ra
+  WITH latest_signed AS (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refAppointmentRecommendation",
+        irv."refIRCId",
+        irc."refIRCName"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    JOIN impressionrecommendation."ImpressionRecommendationVal" irv 
+        ON irv."refIRVCustId" = ra."refAppointmentRecommendation"
+    JOIN impressionrecommendation."ImpressionRecommendationCategory" irc 
+        ON irc."refIRCId" = irv."refIRCId"
     WHERE
-      ra."refAppointmentDate"::timestamp >= $1
-      AND ra."refAppointmentDate"::timestamp <= $2
-      AND ra."refSCId" = sc."refSCId"
-      AND ra."refAppointmentStatus" = TRUE
-  ) AS "reportartificatsleft",
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND irv."refIRVSystemType" = 'WR'
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+)
+
+SELECT 
+    COUNT(ls."refIRCId") AS total_count
+FROM impressionrecommendation."ImpressionRecommendationCategory" irc
+LEFT JOIN latest_signed ls 
+    ON ls."refIRCId" = irc."refIRCId"
+  WHERE irc."refIRCId" = 3
+GROUP BY irc."refIRCName"
+ORDER BY irc."refIRCName"
+  ) AS leftBiopsy,
+  --Left Breast Radiologist
   (
-    SELECT
-      COUNT(
-        DISTINCT CASE
-          WHEN ra."refAppointmentReportArtifactsRight" = true THEN ra."refAppointmentId"
-        END
-      ) AS category_count
-    FROM
-      appointment."refAppointments" ra
+  WITH latest_signed AS (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refAppointmentRecommendation",
+        irv."refIRCId",
+        irc."refIRCName"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    JOIN impressionrecommendation."ImpressionRecommendationVal" irv 
+        ON irv."refIRVCustId" = ra."refAppointmentRecommendation"
+    JOIN impressionrecommendation."ImpressionRecommendationCategory" irc 
+        ON irc."refIRCId" = irv."refIRCId"
     WHERE
-      ra."refAppointmentDate"::timestamp >= $1
-      AND ra."refAppointmentDate"::timestamp <= $2
-      AND ra."refSCId" = sc."refSCId"
-      AND ra."refAppointmentStatus" = TRUE
-  ) AS "reportartificatsright",
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND irv."refIRVSystemType" = 'WR'
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+)
+
+SELECT 
+    COUNT(ls."refIRCId") AS total_count
+FROM impressionrecommendation."ImpressionRecommendationCategory" irc
+LEFT JOIN latest_signed ls 
+    ON ls."refIRCId" = irc."refIRCId"
+  WHERE irc."refIRCId" = 4
+GROUP BY irc."refIRCName"
+ORDER BY irc."refIRCName"
+  ) AS leftBreastradiologist,
+  --Left Clinical Correlation
   (
-    SELECT
-      COUNT(*)
-    FROM
-      (
-        SELECT DISTINCT
-          ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
-        FROM
-          appointment."refAppointments" ra
-        WHERE
-          ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentDate"::timestamp >= $1
-          AND ra."refAppointmentDate"::timestamp <= $2
-          AND ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentStatus" = TRUE
-        ORDER BY
-          ra."refAppointmentId"
-      ) t
+  WITH latest_signed AS (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refAppointmentRecommendation",
+        irv."refIRCId",
+        irc."refIRCName"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    JOIN impressionrecommendation."ImpressionRecommendationVal" irv 
+        ON irv."refIRVCustId" = ra."refAppointmentRecommendation"
+    JOIN impressionrecommendation."ImpressionRecommendationCategory" irc 
+        ON irc."refIRCId" = irv."refIRCId"
     WHERE
-      t."refAppointmentRecommendation" IN (
-        SELECT
-          irv."refIRVCustId"
-        FROM
-          impressionrecommendation."ImpressionRecommendationVal" irv
-          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
-        WHERE
-          irv."refIRVSystemType" = 'WR'
-          AND irc."refIRCName" = 'Annual Screening' -- 👈 Replace this with your desired category
-      )
-  ) AS "leftannualscreening",
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND irv."refIRVSystemType" = 'WR'
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+)
+
+SELECT 
+    COUNT(ls."refIRCId") AS total_count
+FROM impressionrecommendation."ImpressionRecommendationCategory" irc
+LEFT JOIN latest_signed ls 
+    ON ls."refIRCId" = irc."refIRCId"
+  WHERE irc."refIRCId" = 5
+GROUP BY irc."refIRCName"
+ORDER BY irc."refIRCName"
+  ) AS leftClinicalCorrelation,
+  --Left Onco Consult
   (
-    SELECT
-      COUNT(*)
-    FROM
-      (
-        SELECT DISTINCT
-          ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
-        FROM
-          appointment."refAppointments" ra
-        WHERE
-          ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentDate"::timestamp >= $1
-          AND ra."refAppointmentDate"::timestamp <= $2
-          AND ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentStatus" = TRUE
-        ORDER BY
-          ra."refAppointmentId"
-      ) t
+  WITH latest_signed AS (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refAppointmentRecommendation",
+        irv."refIRCId",
+        irc."refIRCName"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    JOIN impressionrecommendation."ImpressionRecommendationVal" irv 
+        ON irv."refIRVCustId" = ra."refAppointmentRecommendation"
+    JOIN impressionrecommendation."ImpressionRecommendationCategory" irc 
+        ON irc."refIRCId" = irv."refIRCId"
     WHERE
-      t."refAppointmentRecommendation" IN (
-        SELECT
-          irv."refIRVCustId"
-        FROM
-          impressionrecommendation."ImpressionRecommendationVal" irv
-          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
-        WHERE
-          irv."refIRVSystemType" = 'WR'
-          AND irc."refIRCName" = 'USG/SFU' -- 👈 Replace this with your desired category
-      )
-  ) AS "leftusgsfu",
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND irv."refIRVSystemType" = 'WR'
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+)
+
+SELECT 
+    COUNT(ls."refIRCId") AS total_count
+FROM impressionrecommendation."ImpressionRecommendationCategory" irc
+LEFT JOIN latest_signed ls 
+    ON ls."refIRCId" = irc."refIRCId"
+  WHERE irc."refIRCId" = 6
+GROUP BY irc."refIRCName"
+ORDER BY irc."refIRCName"
+  ) AS leftOncoConsult,
+  --Left Redo
   (
-    SELECT
-      COUNT(*)
-    FROM
-      (
-        SELECT DISTINCT
-          ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
-        FROM
-          appointment."refAppointments" ra
-        WHERE
-          ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentDate"::timestamp >= $1
-          AND ra."refAppointmentDate"::timestamp <= $2
-          AND ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentStatus" = TRUE
-        ORDER BY
-          ra."refAppointmentId"
-      ) t
+  WITH latest_signed AS (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refAppointmentRecommendation",
+        irv."refIRCId",
+        irc."refIRCName"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    JOIN impressionrecommendation."ImpressionRecommendationVal" irv 
+        ON irv."refIRVCustId" = ra."refAppointmentRecommendation"
+    JOIN impressionrecommendation."ImpressionRecommendationCategory" irc 
+        ON irc."refIRCId" = irv."refIRCId"
     WHERE
-      t."refAppointmentRecommendation" IN (
-        SELECT
-          irv."refIRVCustId"
-        FROM
-          impressionrecommendation."ImpressionRecommendationVal" irv
-          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
-        WHERE
-          irv."refIRVSystemType" = 'WR'
-          AND irc."refIRCName" = 'Biopsy' -- 👈 Replace this with your desired category
-      )
-  ) AS "leftBiopsy",
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND irv."refIRVSystemType" = 'WR'
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+)
+
+SELECT 
+    COUNT(ls."refIRCId") AS total_count
+FROM impressionrecommendation."ImpressionRecommendationCategory" irc
+LEFT JOIN latest_signed ls 
+    ON ls."refIRCId" = irc."refIRCId"
+  WHERE irc."refIRCId" = 7
+GROUP BY irc."refIRCName"
+ORDER BY irc."refIRCName"
+  ) AS leftRedo,
+  --Right Annual Screening
   (
-    SELECT
-      COUNT(*)
-    FROM
-      (
-        SELECT DISTINCT
-          ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
-        FROM
-          appointment."refAppointments" ra
-        WHERE
-          ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentDate"::timestamp >= $1
-          AND ra."refAppointmentDate"::timestamp <= $2
-          AND ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentStatus" = TRUE
-        ORDER BY
-          ra."refAppointmentId"
-      ) t
+  WITH latest_signed AS (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refAppointmentRecommendationRight",
+        irv."refIRCId",
+        irc."refIRCName"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    JOIN impressionrecommendation."ImpressionRecommendationVal" irv 
+        ON irv."refIRVCustId" = ra."refAppointmentRecommendationRight"
+    JOIN impressionrecommendation."ImpressionRecommendationCategory" irc 
+        ON irc."refIRCId" = irv."refIRCId"
     WHERE
-      t."refAppointmentRecommendation" IN (
-        SELECT
-          irv."refIRVCustId"
-        FROM
-          impressionrecommendation."ImpressionRecommendationVal" irv
-          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
-        WHERE
-          irv."refIRVSystemType" = 'WR'
-          AND irc."refIRCName" = 'Breast Radiologist' -- 👈 Replace this with your desired category
-      )
-  ) AS "leftBreastradiologist",
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND irv."refIRVSystemType" = 'WR'
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+)
+
+SELECT 
+    COUNT(ls."refIRCId") AS total_count
+FROM impressionrecommendation."ImpressionRecommendationCategory" irc
+LEFT JOIN latest_signed ls 
+    ON ls."refIRCId" = irc."refIRCId"
+  WHERE irc."refIRCId" = 1
+GROUP BY irc."refIRCName"
+ORDER BY irc."refIRCName"
+  ) AS rightannualscreening,
+  --Right USG/SFU
   (
-    SELECT
-      COUNT(*)
-    FROM
-      (
-        SELECT DISTINCT
-          ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
-        FROM
-          appointment."refAppointments" ra
-        WHERE
-          ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentDate"::timestamp >= $1
-          AND ra."refAppointmentDate"::timestamp <= $2
-          AND ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentStatus" = TRUE
-        ORDER BY
-          ra."refAppointmentId"
-      ) t
+  WITH latest_signed AS (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refAppointmentRecommendationRight",
+        irv."refIRCId",
+        irc."refIRCName"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    JOIN impressionrecommendation."ImpressionRecommendationVal" irv 
+        ON irv."refIRVCustId" = ra."refAppointmentRecommendationRight"
+    JOIN impressionrecommendation."ImpressionRecommendationCategory" irc 
+        ON irc."refIRCId" = irv."refIRCId"
     WHERE
-      t."refAppointmentRecommendation" IN (
-        SELECT
-          irv."refIRVCustId"
-        FROM
-          impressionrecommendation."ImpressionRecommendationVal" irv
-          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
-        WHERE
-          irv."refIRVSystemType" = 'WR'
-          AND irc."refIRCName" = 'Clinical Correlation' -- 👈 Replace this with your desired category
-      )
-  ) AS "leftClinicalCorrelation",
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND irv."refIRVSystemType" = 'WR'
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+)
+
+SELECT 
+    COUNT(ls."refIRCId") AS total_count
+FROM impressionrecommendation."ImpressionRecommendationCategory" irc
+LEFT JOIN latest_signed ls 
+    ON ls."refIRCId" = irc."refIRCId"
+  WHERE irc."refIRCId" = 2
+GROUP BY irc."refIRCName"
+ORDER BY irc."refIRCName"
+  ) AS rightusgsfu,
+  --Right Biopsy
   (
-    SELECT
-      COUNT(*)
-    FROM
-      (
-        SELECT DISTINCT
-          ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
-        FROM
-          appointment."refAppointments" ra
-        WHERE
-          ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentDate"::timestamp >= $1
-          AND ra."refAppointmentDate"::timestamp <= $2
-          AND ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentStatus" = TRUE
-        ORDER BY
-          ra."refAppointmentId"
-      ) t
+  WITH latest_signed AS (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refAppointmentRecommendationRight",
+        irv."refIRCId",
+        irc."refIRCName"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    JOIN impressionrecommendation."ImpressionRecommendationVal" irv 
+        ON irv."refIRVCustId" = ra."refAppointmentRecommendationRight"
+    JOIN impressionrecommendation."ImpressionRecommendationCategory" irc 
+        ON irc."refIRCId" = irv."refIRCId"
     WHERE
-      t."refAppointmentRecommendation" IN (
-        SELECT
-          irv."refIRVCustId"
-        FROM
-          impressionrecommendation."ImpressionRecommendationVal" irv
-          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
-        WHERE
-          irv."refIRVSystemType" = 'WR'
-          AND irc."refIRCName" = 'Onco Consult' -- 👈 Replace this with your desired category
-      )
-  ) AS "leftOncoConsult",
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND irv."refIRVSystemType" = 'WR'
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+)
+
+SELECT 
+    COUNT(ls."refIRCId") AS total_count
+FROM impressionrecommendation."ImpressionRecommendationCategory" irc
+LEFT JOIN latest_signed ls 
+    ON ls."refIRCId" = irc."refIRCId"
+  WHERE irc."refIRCId" = 3
+GROUP BY irc."refIRCName"
+ORDER BY irc."refIRCName"
+  ) AS rightBiopsy,
+  --Right Breast Radiologist
   (
-    SELECT
-      COUNT(*)
-    FROM
-      (
-        SELECT DISTINCT
-          ON (ra."refAppointmentId") ra."refAppointmentRecommendation"
-        FROM
-          appointment."refAppointments" ra
-        WHERE
-          ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentDate"::timestamp >= $1
-          AND ra."refAppointmentDate"::timestamp <= $2
-          AND ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentStatus" = TRUE
-        ORDER BY
-          ra."refAppointmentId"
-      ) t
+  WITH latest_signed AS (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refAppointmentRecommendationRight",
+        irv."refIRCId",
+        irc."refIRCName"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    JOIN impressionrecommendation."ImpressionRecommendationVal" irv 
+        ON irv."refIRVCustId" = ra."refAppointmentRecommendationRight"
+    JOIN impressionrecommendation."ImpressionRecommendationCategory" irc 
+        ON irc."refIRCId" = irv."refIRCId"
     WHERE
-      t."refAppointmentRecommendation" IN (
-        SELECT
-          irv."refIRVCustId"
-        FROM
-          impressionrecommendation."ImpressionRecommendationVal" irv
-          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
-        WHERE
-          irv."refIRVSystemType" = 'WR'
-          AND irc."refIRCName" = 'Redo' -- 👈 Replace this with your desired category
-      )
-  ) AS "leftRedo",
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND irv."refIRVSystemType" = 'WR'
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+)
+
+SELECT 
+    COUNT(ls."refIRCId") AS total_count
+FROM impressionrecommendation."ImpressionRecommendationCategory" irc
+LEFT JOIN latest_signed ls 
+    ON ls."refIRCId" = irc."refIRCId"
+  WHERE irc."refIRCId" = 4
+GROUP BY irc."refIRCName"
+ORDER BY irc."refIRCName"
+  ) AS rightBreastradiologist,
+  --Right Clinical Correlation
   (
-    SELECT
-      COUNT(*)
-    FROM
-      (
-        SELECT DISTINCT
-          ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
-        FROM
-          appointment."refAppointments" ra
-        WHERE
-          ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentDate"::timestamp >= $1
-          AND ra."refAppointmentDate"::timestamp <= $2
-          AND ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentStatus" = TRUE
-        ORDER BY
-          ra."refAppointmentId"
-      ) t
+  WITH latest_signed AS (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refAppointmentRecommendationRight",
+        irv."refIRCId",
+        irc."refIRCName"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    JOIN impressionrecommendation."ImpressionRecommendationVal" irv 
+        ON irv."refIRVCustId" = ra."refAppointmentRecommendationRight"
+    JOIN impressionrecommendation."ImpressionRecommendationCategory" irc 
+        ON irc."refIRCId" = irv."refIRCId"
     WHERE
-      t."refAppointmentRecommendationRight" IN (
-        SELECT
-          irv."refIRVCustId"
-        FROM
-          impressionrecommendation."ImpressionRecommendationVal" irv
-          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
-        WHERE
-          irv."refIRVSystemType" = 'WR'
-          AND irc."refIRCName" = 'Annual Screening' -- 👈 Replace this with your desired category
-      )
-  ) AS "rightannualscreening",
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND irv."refIRVSystemType" = 'WR'
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+)
+
+SELECT 
+    COUNT(ls."refIRCId") AS total_count
+FROM impressionrecommendation."ImpressionRecommendationCategory" irc
+LEFT JOIN latest_signed ls 
+    ON ls."refIRCId" = irc."refIRCId"
+  WHERE irc."refIRCId" = 5
+GROUP BY irc."refIRCName"
+ORDER BY irc."refIRCName"
+  ) AS rightClinicalCorrelation,
+  --Right Onco Consult
   (
-    SELECT
-      COUNT(*)
-    FROM
-      (
-        SELECT DISTINCT
-          ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
-        FROM
-          appointment."refAppointments" ra
-        WHERE
-          ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentDate"::timestamp >= $1
-          AND ra."refAppointmentDate"::timestamp <= $2
-          AND ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentStatus" = TRUE
-        ORDER BY
-          ra."refAppointmentId"
-      ) t
+  WITH latest_signed AS (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refAppointmentRecommendationRight",
+        irv."refIRCId",
+        irc."refIRCName"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    JOIN impressionrecommendation."ImpressionRecommendationVal" irv 
+        ON irv."refIRVCustId" = ra."refAppointmentRecommendationRight"
+    JOIN impressionrecommendation."ImpressionRecommendationCategory" irc 
+        ON irc."refIRCId" = irv."refIRCId"
     WHERE
-      t."refAppointmentRecommendationRight" IN (
-        SELECT
-          irv."refIRVCustId"
-        FROM
-          impressionrecommendation."ImpressionRecommendationVal" irv
-          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
-        WHERE
-          irv."refIRVSystemType" = 'WR'
-          AND irc."refIRCName" = 'USG/SFU' -- 👈 Replace this with your desired category
-      )
-  ) AS "rightusgsfu",
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND irv."refIRVSystemType" = 'WR'
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+)
+
+SELECT 
+    COUNT(ls."refIRCId") AS total_count
+FROM impressionrecommendation."ImpressionRecommendationCategory" irc
+LEFT JOIN latest_signed ls 
+    ON ls."refIRCId" = irc."refIRCId"
+  WHERE irc."refIRCId" = 6
+GROUP BY irc."refIRCName"
+ORDER BY irc."refIRCName"
+  ) AS rightOncoConsult,
+  --Right Redo
   (
-    SELECT
-      COUNT(*)
-    FROM
-      (
-        SELECT DISTINCT
-          ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
-        FROM
-          appointment."refAppointments" ra
-        WHERE
-          ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentDate"::timestamp >= $1
-          AND ra."refAppointmentDate"::timestamp <= $2
-          AND ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentStatus" = TRUE
-        ORDER BY
-          ra."refAppointmentId"
-      ) t
+  WITH latest_signed AS (
+    SELECT DISTINCT ON (rrh."refAppointmentId")
+        rrh."refAppointmentId",
+        rrh."refRHHandleEndTime",
+        rrh."refRHHandleStatus",
+        ra."refAppointmentRecommendationRight",
+        irv."refIRCId",
+        irc."refIRCName"
+    FROM notes."refReportsHistory" rrh
+    JOIN appointment."refAppointments" ra 
+        ON ra."refAppointmentId" = rrh."refAppointmentId"
+    JOIN impressionrecommendation."ImpressionRecommendationVal" irv 
+        ON irv."refIRVCustId" = ra."refAppointmentRecommendationRight"
+    JOIN impressionrecommendation."ImpressionRecommendationCategory" irc 
+        ON irc."refIRCId" = irv."refIRCId"
     WHERE
-      t."refAppointmentRecommendationRight" IN (
-        SELECT
-          irv."refIRVCustId"
-        FROM
-          impressionrecommendation."ImpressionRecommendationVal" irv
-          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
-        WHERE
-          irv."refIRVSystemType" = 'WR'
-          AND irc."refIRCName" = 'Biopsy' -- 👈 Replace this with your desired category
-      )
-  ) AS "rightBiopsy",
-  (
-    SELECT
-      COUNT(*)
-    FROM
-      (
-        SELECT DISTINCT
-          ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
-        FROM
-          appointment."refAppointments" ra
-        WHERE
-          ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentDate"::timestamp >= $1
-          AND ra."refAppointmentDate"::timestamp <= $2
-          AND ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentStatus" = TRUE
-        ORDER BY
-          ra."refAppointmentId"
-      ) t
-    WHERE
-      t."refAppointmentRecommendationRight" IN (
-        SELECT
-          irv."refIRVCustId"
-        FROM
-          impressionrecommendation."ImpressionRecommendationVal" irv
-          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
-        WHERE
-          irv."refIRVSystemType" = 'WR'
-          AND irc."refIRCName" = 'Breast Radiologist' -- 👈 Replace this with your desired category
-      )
-  ) AS "rightBreastradiologist",
-  (
-    SELECT
-      COUNT(*)
-    FROM
-      (
-        SELECT DISTINCT
-          ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
-        FROM
-          appointment."refAppointments" ra
-        WHERE
-          ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentDate"::timestamp >= $1
-          AND ra."refAppointmentDate"::timestamp <= $2
-          AND ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentStatus" = TRUE
-        ORDER BY
-          ra."refAppointmentId"
-      ) t
-    WHERE
-      t."refAppointmentRecommendationRight" IN (
-        SELECT
-          irv."refIRVCustId"
-        FROM
-          impressionrecommendation."ImpressionRecommendationVal" irv
-          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
-        WHERE
-          irv."refIRVSystemType" = 'WR'
-          AND irc."refIRCName" = 'Clinical Correlation' -- 👈 Replace this with your desired category
-      )
-  ) AS "rightClinicalCorrelation",
-  (
-    SELECT
-      COUNT(*)
-    FROM
-      (
-        SELECT DISTINCT
-          ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
-        FROM
-          appointment."refAppointments" ra
-        WHERE
-          ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentDate"::timestamp >= $1
-          AND ra."refAppointmentDate"::timestamp <= $2
-          AND ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentStatus" = TRUE
-        ORDER BY
-          ra."refAppointmentId"
-      ) t
-    WHERE
-      t."refAppointmentRecommendationRight" IN (
-        SELECT
-          irv."refIRVCustId"
-        FROM
-          impressionrecommendation."ImpressionRecommendationVal" irv
-          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
-        WHERE
-          irv."refIRVSystemType" = 'WR'
-          AND irc."refIRCName" = 'Onco Consult' -- 👈 Replace this with your desired category
-      )
-  ) AS "rightOncoConsult",
-  (
-    SELECT
-      COUNT(*)
-    FROM
-      (
-        SELECT DISTINCT
-          ON (ra."refAppointmentId") ra."refAppointmentRecommendationRight"
-        FROM
-          appointment."refAppointments" ra
-        WHERE
-          ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentDate"::timestamp >= $1
-          AND ra."refAppointmentDate"::timestamp <= $2
-          AND ra."refSCId" = sc."refSCId"
-          AND ra."refAppointmentStatus" = TRUE
-        ORDER BY
-          ra."refAppointmentId"
-      ) t
-    WHERE
-      t."refAppointmentRecommendationRight" IN (
-        SELECT
-          irv."refIRVCustId"
-        FROM
-          impressionrecommendation."ImpressionRecommendationVal" irv
-          JOIN impressionrecommendation."ImpressionRecommendationCategory" irc ON irc."refIRCId" = irv."refIRCId"
-        WHERE
-          irv."refIRVSystemType" = 'WR'
-          AND irc."refIRCName" = 'Redo' -- 👈 Replace this with your desired category
-      )
-  ) AS "rightRedo"
+        ra."refAppointmentStatus" = TRUE
+        AND rrh."refRHHandleStatus" = 'Signed Off'
+       AND TO_TIMESTAMP(rrh."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+            BETWEEN $1::date AND $2::date
+  AND irv."refIRVSystemType" = 'WR'
+  AND ra."refSCId" = sc."refSCId"
+    ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC
+)
+
+SELECT 
+    COUNT(ls."refIRCId") AS total_count
+FROM impressionrecommendation."ImpressionRecommendationCategory" irc
+LEFT JOIN latest_signed ls 
+    ON ls."refIRCId" = irc."refIRCId"
+  WHERE irc."refIRCId" = 7
+GROUP BY irc."refIRCName"
+ORDER BY irc."refIRCName"
+  ) AS rightRedo
+  --ENd
 FROM
   public."ScanCenter" sc
 WHERE
