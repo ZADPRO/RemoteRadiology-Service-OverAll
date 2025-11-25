@@ -57,18 +57,18 @@ type OverAllScancenterAnalaytics struct {
 	ReportArtificatesRight   int    `json:"reportartificatsright" gorm:"column:reportartificatsright"`
 	Leftannualscreening      int    `json:"leftannualscreening" gorm:"column:leftannualscreening"`
 	Leftusgsfu               int    `json:"leftusgsfu" gorm:"column:leftusgsfu"`
-	LeftBiopsy               int    `json:"leftBiopsy" gorm:"column:leftBiopsy"`
-	LeftBreastradiologist    int    `json:"leftBreastradiologist" gorm:"column:leftBreastradiologist"`
-	LeftClinicalCorrelation  int    `json:"leftClinicalCorrelation" gorm:"column:leftClinicalCorrelation"`
-	LeftOncoConsult          int    `json:"leftOncoConsult" gorm:"column:leftOncoConsult"`
-	LeftRedo                 int    `json:"leftRedo" gorm:"column:leftRedo"`
+	LeftBiopsy               int    `json:"leftbiopsy" gorm:"column:leftbiopsy"`
+	LeftBreastradiologist    int    `json:"leftbreastradiologist" gorm:"column:leftbreastradiologist"`
+	LeftClinicalCorrelation  int    `json:"leftclinicalcorrelation" gorm:"column:leftclinicalcorrelation"`
+	LeftOncoConsult          int    `json:"leftoncoconsult" gorm:"column:leftoncoconsult"`
+	LeftRedo                 int    `json:"leftredo" gorm:"column:leftredo"`
 	Rightannualscreening     int    `json:"rightannualscreening" gorm:"column:rightannualscreening"`
 	Rightusgsfu              int    `json:"rightusgsfu" gorm:"column:rightusgsfu"`
-	RightBiopsy              int    `json:"rightBiopsy" gorm:"column:rightBiopsy"`
-	RightBreastradiologist   int    `json:"rightBreastradiologist" gorm:"column:rightBreastradiologist"`
-	RightClinicalCorrelation int    `json:"rightClinicalCorrelation" gorm:"column:rightClinicalCorrelation"`
-	RightOncoConsult         int    `json:"rightOncoConsult" gorm:"column:rightOncoConsult"`
-	RightRedo                int    `json:"rightRedo" gorm:"column:rightRedo"`
+	RightBiopsy              int    `json:"rightbiopsy" gorm:"column:rightbiopsy"`
+	RightBreastradiologist   int    `json:"rightbreastradiologist" gorm:"column:rightbreastradiologist"`
+	RightClinicalCorrelation int    `json:"rightclinicalcorrelation" gorm:"column:rightclinicalcorrelation"`
+	RightOncoConsult         int    `json:"rightoncoconsult" gorm:"column:rightoncoconsult"`
+	RightRedo                int    `json:"rightredo" gorm:"column:rightredo"`
 }
 
 type AdminOverallAnalyticsResponse struct {

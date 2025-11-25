@@ -78,7 +78,8 @@ SET
   "refAppointmentComplete" = ?,
   "refAppointmentPriority" = ?,
   "refAppointmentTechArtifactsLeft" = ?,
-  "refAppointmentTechArtifactsRight" = ?
+  "refAppointmentTechArtifactsRight" = ?,
+  "refAppointmentDicomSide" = ?
 WHERE
   "refAppointmentId" = ?
 `

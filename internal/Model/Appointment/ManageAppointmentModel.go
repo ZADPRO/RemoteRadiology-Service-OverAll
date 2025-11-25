@@ -107,6 +107,7 @@ type ViewTechnicianPatientQueueModel struct {
 	UserId                     int                 `json:"refUserId" gorm:"column:refUserId"`
 	AssignedUserId             int                 `json:"refAppointmentAssignedUserId" gorm:"column:refAppointmentAssignedUserId"`
 	AppointmentComplete        string              `json:"refAppointmentComplete" gorm:"column:refAppointmentComplete"`
+	AppointmentDicomSide       string              `json:"refAppointmentDicomSide" gorm:"column:refAppointmentDicomSide"`
 	ScanCenterCustId           string              `json:"refSCCustId" gorm:"column:refSCCustId"`
 	SCAddress                  string              `json:"refSCAddress" gorm:"column:refSCAddress"`
 	ScanCenterId               string              `json:"refSCId" gorm:"column:refSCId"`
