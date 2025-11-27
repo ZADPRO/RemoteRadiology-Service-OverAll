@@ -2625,90 +2625,94 @@ func SubmitReportService(db *gorm.DB, reqVal model.SubmitReportReq, idValue int,
 	}
 
 	//totalCorrectEdit
-	switch roleIdValue {
-	case 1:
-		var ListUserData []model.ListUserModel
+	if reportStatus == "Reviewed 1" || reportStatus == "Reviewed 2" {
+		switch roleIdValue {
+		case 1, 10:
+			var ListUserData []model.ListUserModel
 
-		ListUserDataErr := db.Raw(query.ListUserDataSQL, reqVal.PatientId, reqVal.AppointmentId, []int{6}).Scan(&ListUserData).Error
-		if ListUserDataErr != nil {
-			log.Error(ListUserDataErr.Error())
-			return false, "Something went wrong, Try Again"
-		}
-
-		var correct = 0
-		var edit = 0
-
-		if reqVal.EditStatus {
-			edit = 1
-		} else {
-			correct = 1
-		}
-
-		if len(ListUserData) > 0 {
-			// for _, data := range ListUserData {
-			UpdateChangesErr := tx.Exec(
-				query.UpdateCorrectEditSQL,
-				correct,
-				edit,
-				ListUserData[0].RHId,
-			).Error
-			if UpdateChangesErr != nil {
-				log.Printf("ERROR: Failed to Update Report History: %v\n", UpdateChangesErr)
-				tx.Rollback()
-				return false, "Something went wrong, Try Again"
-			}
-			// }
-		}
-	case 8:
-		var ListUserData []model.ListUserModel
-
-		ListUserDataErr := db.Raw(query.ListUserDataSQL, reqVal.PatientId, reqVal.AppointmentId, []int{1, 10}).Scan(&ListUserData).Error
-		if ListUserDataErr != nil {
-			log.Error(ListUserDataErr.Error())
-			return false, "Something went wrong, Try Again"
-		}
-
-		var correct = 0
-		var edit = 0
-
-		if reqVal.EditStatus {
-			edit = 1
-		} else {
-			correct = 1
-		}
-
-		if len(ListUserData) > 0 {
-			// for _, data := range ListUserData {
-			//Handler User
-			UpdateChangesErr := tx.Exec(
-				query.UpdateCorrectEditSQL,
-				correct,
-				edit,
-				ListUserData[0].RHId,
-			).Error
-			if UpdateChangesErr != nil {
-				log.Printf("ERROR: Failed to Update Report History: %v\n", UpdateChangesErr)
-				tx.Rollback()
+			ListUserDataErr := db.Raw(query.ListUserDataSQL, reqVal.PatientId, reqVal.AppointmentId, []int{6}).Scan(&ListUserData).Error
+			if ListUserDataErr != nil {
+				log.Error(ListUserDataErr.Error())
 				return false, "Something went wrong, Try Again"
 			}
 
-			//Update the Handler User
-			UpdateChangesUserErr := tx.Exec(
-				query.UpdateHandlerCorrectEditIdSQL,
-				correct,
-				edit,
-				idValue,
-				reqVal.AppointmentId,
-			).Error
-			if UpdateChangesUserErr != nil {
-				log.Printf("ERROR: Failed to Update Report History: %v\n", UpdateChangesUserErr)
-				tx.Rollback()
+			var correct = 0
+			var edit = 0
+
+			if reqVal.EditStatus {
+				edit = 1
+			} else {
+				correct = 1
+			}
+
+			fmt.Println("------------------->", edit, correct)
+
+			if len(ListUserData) > 0 {
+				// for _, data := range ListUserData {
+				UpdateChangesErr := tx.Exec(
+					query.UpdateCorrectEditSQL,
+					correct,
+					edit,
+					ListUserData[0].RHId,
+				).Error
+				if UpdateChangesErr != nil {
+					log.Printf("ERROR: Failed to Update Report History: %v\n", UpdateChangesErr)
+					tx.Rollback()
+					return false, "Something went wrong, Try Again"
+				}
+				// }
+			}
+		case 8:
+			var ListUserData []model.ListUserModel
+
+			ListUserDataErr := db.Raw(query.ListUserDataSQL, reqVal.PatientId, reqVal.AppointmentId, []int{1, 10}).Scan(&ListUserData).Error
+			if ListUserDataErr != nil {
+				log.Error(ListUserDataErr.Error())
 				return false, "Something went wrong, Try Again"
 			}
-			// }
+
+			var correct = 0
+			var edit = 0
+
+			if reqVal.EditStatus {
+				edit = 1
+			} else {
+				correct = 1
+			}
+
+			if len(ListUserData) > 0 {
+				// for _, data := range ListUserData {
+				//Handler User
+				UpdateChangesErr := tx.Exec(
+					query.UpdateCorrectEditSQL,
+					correct,
+					edit,
+					ListUserData[0].RHId,
+				).Error
+				if UpdateChangesErr != nil {
+					log.Printf("ERROR: Failed to Update Report History: %v\n", UpdateChangesErr)
+					tx.Rollback()
+					return false, "Something went wrong, Try Again"
+				}
+
+				//Update the Handler User
+				UpdateChangesUserErr := tx.Exec(
+					query.UpdateHandlerCorrectEditIdSQL,
+					correct,
+					edit,
+					idValue,
+					reqVal.AppointmentId,
+				).Error
+				if UpdateChangesUserErr != nil {
+					log.Printf("ERROR: Failed to Update Report History: %v\n", UpdateChangesUserErr)
+					tx.Rollback()
+					return false, "Something went wrong, Try Again"
+				}
+				// }
+
+			}
 
 		}
-
 	}
 
 	var AddedumContent []string
