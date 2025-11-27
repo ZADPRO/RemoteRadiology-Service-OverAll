@@ -615,17 +615,14 @@ WHERE
 `
 
 var ListUserDataSQL = `
-SELECT
-  *
-FROM
-  notes."refReportsHistory" rrh
-  JOIN public."Users" u ON u."refUserId" = rrh."refRHHandledUserId"
-WHERE
-  rrh."refUserId" = ?
+SELECT *
+FROM notes."refReportsHistory" rrh
+         JOIN public."Users" u ON u."refUserId" = rrh."refRHHandledUserId"
+WHERE rrh."refUserId" = ?
   AND rrh."refAppointmentId" = ?
   AND u."refRTId" IN ?
-ORDER BY
-  rrh."refRHId" DESC
+  AND rrh."refRHHandleStatus" NOT IN ('Changes')
+ORDER BY rrh."refRHId" DESC
 `
 
 var UpdateCorrectEditSQL = `
