@@ -36,6 +36,7 @@ type AddTechnicianIntakeFormReq struct {
 
 type SaveDicomReq struct {
 	PatientId     int         `json:"patientId" binding:"required" mapstructure:"patientId"`
+	TechStartTime string      `json:"techStartTime" binding:"required" mapstructure:"techStartTime"`
 	AppointmentId int         `json:"appointmentId" binding:"required" mapstructure:"appointmentId"`
 	DicomFiles    []DicomFile `json:"dicom_files" binding:"required" mapstructure:"dicom_files"`
 }

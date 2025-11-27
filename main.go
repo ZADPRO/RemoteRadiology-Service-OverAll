@@ -246,6 +246,12 @@ func main() {
 	routesAnalaytics.InitAnalayticsRoutes(r)
 
 	fmt.Println()
+	fmt.Println("=================Daily List=================")
+	fmt.Println()
+
+	routesAnalaytics.InitDailyListRoutes(r)
+
+	fmt.Println()
 	fmt.Println("=================Training Material=================")
 	fmt.Println()
 
