@@ -512,6 +512,7 @@ func ViewDicomController() gin.HandlerFunc {
 		payload := map[string]interface{}{
 			"status":    true,
 			"DicomData": DicomData,
+			"currentTime": timeZone.GetPacificTime(),
 		}
 
 		token := accesstoken.CreateToken(idValue, roleIdValue)

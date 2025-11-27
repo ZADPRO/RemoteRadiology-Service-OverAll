@@ -33,17 +33,15 @@ var UpdateAmountSQL = `
 UPDATE
   invoice."totalAmount"
 SET
-  "refTASformEdit" = $1,
-  "refTASformCorrect" = $2,
-  "refTADaformEdit" = $3,
-  "refTADaformCorrect" = $4,
-  "refTADbformEdit" = $5,
-  "refTADbformCorrect" = $6,
-  "refTADcformEdit" = $7,
-  "refTADcformCorrect" = $8,
-  "refTADScribeTotalcase" = $9
+  "refTASform" = $1,
+  "refTADaform" = $2,
+  "refTADbform" = $3,
+  "refTADcform" = $4,
+  "refTAXform" = $5,
+  "refTAEditform" = $6,
+  "refTADScribeTotalcase" = $7
 WHERE
-  "refTAId" = $10
+  "refTAId" = $8
 `
 
 var ListOneScanCenter = `
@@ -56,21 +54,26 @@ WHERE
 `
 
 var GetScanCenterCountPerMonthSQL = `
-SELECT
-  sc."refSCId",
-  COUNT(ra."refAppointmentId") AS total_appointments
-FROM
-  public."ScanCenter" sc
-  LEFT JOIN appointment."refAppointments" ra ON ra."refSCId" = sc."refSCId"
-  -- AND ra."refAppointmentComplete" = 'Signed Off'
-  AND TO_CHAR(
-    TO_DATE(ra."refAppointmentDate", 'YYYY-MM-DD'),
-    'YYYY-MM'
-  ) = ?
-WHERE
-  sc."refSCId" = ?
-GROUP BY
-  sc."refSCId";
+SELECT $1 AS "refSCId", COUNT(*) AS total_appointments
+FROM (SELECT *
+      FROM (SELECT DISTINCT ON (rrh."refAppointmentId") rrh."refAppointmentId",
+                                                        rrh."refRHHandleEndTime",
+                                                        rrh."refRHHandleStatus",
+                                                        ra."refCategoryId",
+                                                        ra."refSCId"
+            FROM notes."refReportsHistory" rrh
+                     JOIN appointment."refAppointments" ra
+                          ON ra."refAppointmentId" = rrh."refAppointmentId"
+            WHERE ra."refAppointmentStatus" = TRUE
+              AND rrh."refRHHandleStatus" = 'Signed Off'
+              AND ra."refSCId" = $1
+            ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC) s
+      WHERE TO_TIMESTAMP(s."refRHHandleEndTime", 'YYYY-MM-DD HH24:MI:SS')::date
+                BETWEEN date_trunc('month', to_date($2, 'YYYY-MM'))
+                AND (
+              date_trunc('month', to_date($2, 'YYYY-MM'))
+                  + INTERVAL '1 month - 1 day'
+              )) t;
 `
 
 // SELECT
@@ -127,26 +130,22 @@ INSERT INTO invoice."invoiceHistory" (
   "refIHCreatedBy",
   "refIHToAddress",
   "refIHSignature",
-  "refIHSformEditquantity",
-  "refIHSformEditamount",
-  "refIHSformCorrectquantity",
-  "refIHSformCorrectamount",
-  "refIHDaformEditquantity",
-  "refIHDaformEditamount",
-  "refIHDaformCorrectquantity",
-  "refIHDaformCorrectamount",
-  "refIHDbformEditquantity",
-  "refIHDbformEditamount",
-  "refIHDbformCorrectquantity",
-  "refIHDbformCorrectamount",
-  "refIHDcformEditquantity",
-  "refIHDcformEditamount",
-  "refIHDcformCorrectquantity",
-  "refIHDcformCorrectamount",
+  "refIHSFormquantity",
+  "refIHSFormamount",
+  "refIHDaFormquantity",
+  "refIHDaFormamount",
+  "refIHDbFormquantity",
+  "refIHDbFormamount",
+  "refIHDcFormquantity",
+  "refIHDcFormamount",
+  "refIHxFormquantity",
+  "refIHxFormamount",
+  "refIHEditquantity",
+  "refIHEditFormamount",
   "refIHScribeTotalcasequantity",
   "refIHScribeTotalcaseamount",
-  "refIHOtherExpensiveName",
-  "refIHOtherAmount",
+  "refIHAddtionalAmount",
+  "refIHDeductibleAmount",
   "refIHScanCenterTotalCase",
   "refIHScancentercaseAmount",
   "refIHTotal"
@@ -156,7 +155,7 @@ VALUES (
   $11, $12, $13, $14, $15, $16, $17, $18, $19, $20,
   $21, $22, $23, $24, $25, $26, $27, $28, $29, $30,
   $31, $32, $33, $34, $35, $36, $37, $38, $39, $40,
-  $41, $42, $43, $44, $45, $46, $47
+  $41, $42, $43
 )
 RETURNING "refIHId";
 `
@@ -208,9 +207,9 @@ WHERE
 
 var InsertOtherInvoiceAmount = `
 INSERT INTO
-  invoice."otherInvoiceAmount" ("refIHId", "refOIAName", "refOIAAmount")
+  invoice."otherInvoiceAmount" ("refIHId", "refOIAName", "refOIAAmount", "refOIAAmountType")
 VALUES
-  ($1, $2, $3);
+  ($1, $2, $3, $4);
 `
 
 var GetInvoiceOtherAmount = `

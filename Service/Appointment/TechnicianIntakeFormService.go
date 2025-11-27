@@ -644,19 +644,54 @@ func SaveDicomService(db *gorm.DB, reqVal model.SaveDicomReq, idValue int) (bool
 
 	// --- 5️⃣ Update Report History if no previous DICOMs existed ---
 	if len(existingDicoms) == 0 {
-		if err := tx.Exec(
-			query.CompleteReportHistorySQL,
-			timeZone.GetPacificTime(),
-			"Technologist Form Fill",
-			"",
+
+		var refRHId int
+
+		//check Id
+		checkIderr := tx.Raw(
+			query.CheckUserId,
 			reqVal.AppointmentId,
 			idValue,
 			reqVal.PatientId,
-		).Error; err != nil {
-			log.Printf("ERROR: Failed to update Report History: %v\n", err)
+		).Scan(&refRHId).Error
+
+		if checkIderr != nil {
+			log.Printf("ERROR: Failed to check Report History ID: %v\n", checkIderr)
 			tx.Rollback()
 			return false, "Something went wrong while updating report history"
 		}
+
+		if refRHId == 0 {
+			if err := tx.Exec(
+				query.ReportHistorySQL,
+				reqVal.PatientId,
+				reqVal.AppointmentId,
+				idValue,
+				reqVal.TechStartTime,
+				timeZone.GetPacificTime(),
+				"Technologist Form Fill",
+			).Error; err != nil {
+				log.Printf("ERROR: Failed to insert Report History: %v\n", err)
+				tx.Rollback()
+				return false, "Something went wrong while updating report history"
+			}
+
+		} else {
+			if err := tx.Exec(
+				query.CompleteReportHistorySQL,
+				timeZone.GetPacificTime(),
+				"Technologist Form Fill",
+				"",
+				reqVal.AppointmentId,
+				idValue,
+				reqVal.PatientId,
+			).Error; err != nil {
+				log.Printf("ERROR: Failed to update Report History: %v\n", err)
+				tx.Rollback()
+				return false, "Something went wrong while updating report history"
+			}
+		}
+
 	}
 
 	// --- 6️⃣ Commit Transaction ---

@@ -2,14 +2,12 @@ package model
 
 type AmountModel struct {
 	TAId               int    `json:"refTAId" gorm:"column:refTAId"  mapstructure:"refTAId"`
-	TASformEdit        string `json:"refTASformEdit" gorm:"column:refTASformEdit"  mapstructure:"refTASformEdit"`
-	TASformCorrect     string `json:"refTASformCorrect" gorm:"column:refTASformCorrect"  mapstructure:"refTASformCorrect"`
-	TADaformEdit       string `json:"refTADaformEdit" gorm:"column:refTADaformEdit"  mapstructure:"refTADaformEdit"`
-	TADaformCorrect    string `json:"refTADaformCorrect" gorm:"column:refTADaformCorrect"  mapstructure:"refTADaformCorrect"`
-	TADbformEdit       string `json:"refTADbformEdit" gorm:"column:refTADbformEdit"  mapstructure:"refTADbformEdit"`
-	TADbformCorrect    string `json:"refTADbformCorrect" gorm:"column:refTADbformCorrect"  mapstructure:"refTADbformCorrect"`
-	TADcformEdit       string `json:"refTADcformEdit" gorm:"column:refTADcformEdit"  mapstructure:"refTADcformEdit"`
-	TADcformCorrect    string `json:"refTADcformCorrect" gorm:"column:refTADcformCorrect"  mapstructure:"refTADcformCorrect"`
+	TASform            string `json:"refTASform" gorm:"column:refTASform"  mapstructure:"refTASform"`
+	TADaform           string `json:"refTADaform" gorm:"column:refTADaform"  mapstructure:"refTADaform"`
+	TADbform           string `json:"refTADbform" gorm:"column:refTADbform"  mapstructure:"refTADbform"`
+	TADcform           string `json:"refTADcform" gorm:"column:refTADcform"  mapstructure:"refTADcform"`
+	TAXform            string `json:"refTAXform" gorm:"column:refTAXform"  mapstructure:"refTAXform"`
+	TAEditform         string `json:"refTAEditform" gorm:"column:refTAEditform"  mapstructure:"refTAEditform"`
 	TADScribeTotalcase string `json:"refTADScribeTotalcase" gorm:"column:refTADScribeTotalcase"  mapstructure:"refTADScribeTotalcase"`
 }
 
@@ -54,68 +52,64 @@ type GetInvoiceDataReponse struct {
 
 type UserTotalCase struct {
 	TotalAppointments int `json:"total_appointments" gorm:"column:total_appointments"`
-	SFormEdit         int `json:"SFormEdit" gorm:"column:SFormEdit"`
-	SFormCorrect      int `json:"SFormCorrect" gorm:"column:SFormCorrect"`
-	DaFormEdit        int `json:"DaFormEdit" gorm:"column:DaFormEdit"`
-	DaFormCorrect     int `json:"DaFormCorrect" gorm:"column:DaFormCorrect"`
-	DbFormEdit        int `json:"DbFormEdit" gorm:"column:DbFormEdit"`
-	DbFormCorrect     int `json:"DbFormCorrect" gorm:"column:DbFormCorrect"`
-	DcFormEdit        int `json:"DcFormEdit" gorm:"column:DcFormEdit"`
-	DcFormCorrect     int `json:"DcFormCorrect" gorm:"column:DcFormCorrect"`
+	SForm             int `json:"SForm" gorm:"column:SForm"`
+	DaForm            int `json:"DaForm" gorm:"column:DaForm"`
+	DbForm            int `json:"DbForm" gorm:"column:DbForm"`
+	DcForm            int `json:"DcForm" gorm:"column:DcForm"`
+	XForm             int `json:"xForm" gorm:"column:xForm"`
+	EditForm          int `json:"editForm" gorm:"column:editForm"`
 }
 
 type GenerateInvoiceReq struct {
-	SCId                    int                  `json:"refSCId" mapstructure:"refSCId"`
-	UserId                  int                  `json:"refUserId" mapstructure:"refUserId"`
-	FromId                  int                  `json:"fromId" mapstructure:"fromId"`
-	FromName                string               `json:"fromName" mapstructure:"fromName"`
-	FromPhone               string               `json:"fromPhone" mapstructure:"fromPhone"`
-	FromEmail               string               `json:"fromEmail" mapstructure:"fromEmail"`
-	FromPan                 string               `json:"fromPan" mapstructure:"fromPan"`
-	FromGst                 string               `json:"fromGst" mapstructure:"fromGst"`
-	FromAddress             string               `json:"fromAddress" mapstructure:"fromAddress"`
-	ToId                    int                  `json:"toId" mapstructure:"toId"`
-	ToName                  string               `json:"toName" mapstructure:"toName"`
-	BillingFrom             string               `json:"billingfrom" mapstructure:"billingfrom"`
-	BillingTo               string               `json:"billingto" mapstructure:"billingto"`
-	ModeOfPayment           string               `json:"modeofpayment" mapstructure:"modeofpayment"`
-	UpiId                   string               `json:"upiId" mapstructure:"upiId"`
-	AccountHolderName       string               `json:"accountHolderName" mapstructure:"accountHolderName"`
-	AccountNumber           string               `json:"accountNumber" mapstructure:"accountNumber"`
-	Bank                    string               `json:"bank" mapstructure:"bank"`
-	Branch                  string               `json:"branch" mapstructure:"branch"`
-	IFSC                    string               `json:"ifsc" mapstructure:"ifsc"`
-	ToAddress               string               `json:"toAddress" mapstructure:"toAddress"`
-	Signature               string               `json:"signature" mapstructure:"signature"`
-	SformEditquantity       int                  `json:"refTASformEditquantity" mapstructure:"refTASformEditquantity"`
-	SformEditamount         int                  `json:"refTASformEditamount" mapstructure:"refTASformEditamount"`
-	SformCorrectquantity    int                  `json:"refTASformCorrectquantity" mapstructure:"refTASformCorrectquantity"`
-	SformCorrectamount      int                  `json:"refTASformCorrectamount" mapstructure:"refTASformCorrectamount"`
-	DaformEditquantity      int                  `json:"refTADaformEditquantity" mapstructure:"refTADaformEditquantity"`
-	DaformEditamount        int                  `json:"refTADaformEditamount" mapstructure:"refTADaformEditamount"`
-	DaformCorrectquantity   int                  `json:"refTADaformCorrectquantity" mapstructure:"refTADaformCorrectquantity"`
-	DaformCorrectamount     int                  `json:"refTADaformCorrectamount" mapstructure:"refTADaformCorrectamount"`
-	DbformEditquantity      int                  `json:"refTADbformEditquantity" mapstructure:"refTADbformEditquantity"`
-	DbformEditamount        int                  `json:"refTADbformEditamount" mapstructure:"refTADbformEditamount"`
-	DbformCorrectquantity   int                  `json:"refTADbformCorrectquantity" mapstructure:"refTADbformCorrectquantity"`
-	DbformCorrectamount     int                  `json:"refTADbformCorrectamount" mapstructure:"refTADbformCorrectamount"`
-	DcformEditquantity      int                  `json:"refTADcformEditquantity" mapstructure:"refTADcformEditquantity"`
-	DcformEditamount        int                  `json:"refTADcformEditamount" mapstructure:"refTADcformEditamount"`
-	DcformCorrectquantity   int                  `json:"refTADcformCorrectquantity" mapstructure:"refTADcformCorrectquantity"`
-	DcformCorrectamount     int                  `json:"refTADcformCorrectamount" mapstructure:"refTADcformCorrectamount"`
-	ScribeTotalcasequantity int                  `json:"refTADScribeTotalcasequantity" mapstructure:"refTADScribeTotalcasequantity"`
-	ScribeTotalcaseamount   int                  `json:"refTADScribeTotalcaseamount" mapstructure:"refTADScribeTotalcaseamount"`
-	OtherExpensiveName      string               `json:"otherExpensiveName" mapstructure:"otherExpensiveName"`
-	OtherAmount             int                  `json:"otherAmount" mapstructure:"otherAmount"`
-	ScanCenterTotalCase     int                  `json:"refScanCenterTotalCase" mapstructure:"refScanCenterTotalCase"`
-	ScancentercaseAmount    int                  `json:"refScancentercaseAmount" mapstructure:"refScancentercaseAmount"`
-	Total                   int                  `json:"total" mapstructure:"total"`
-	OtherExpenses           []OtherExpensesModel `json:"otherExpenses" mapstructure:"otherExpenses"`
+	SCId                     int                  `json:"refSCId" mapstructure:"refSCId"`
+	UserId                   int                  `json:"refUserId" mapstructure:"refUserId"`
+	FromId                   int                  `json:"fromId" mapstructure:"fromId"`
+	FromName                 string               `json:"fromName" mapstructure:"fromName"`
+	FromPhone                string               `json:"fromPhone" mapstructure:"fromPhone"`
+	FromEmail                string               `json:"fromEmail" mapstructure:"fromEmail"`
+	FromPan                  string               `json:"fromPan" mapstructure:"fromPan"`
+	FromGst                  string               `json:"fromGst" mapstructure:"fromGst"`
+	FromAddress              string               `json:"fromAddress" mapstructure:"fromAddress"`
+	ToId                     int                  `json:"toId" mapstructure:"toId"`
+	ToName                   string               `json:"toName" mapstructure:"toName"`
+	BillingFrom              string               `json:"billingfrom" mapstructure:"billingfrom"`
+	BillingTo                string               `json:"billingto" mapstructure:"billingto"`
+	ModeOfPayment            string               `json:"modeofpayment" mapstructure:"modeofpayment"`
+	UpiId                    string               `json:"upiId" mapstructure:"upiId"`
+	AccountHolderName        string               `json:"accountHolderName" mapstructure:"accountHolderName"`
+	AccountNumber            string               `json:"accountNumber" mapstructure:"accountNumber"`
+	Bank                     string               `json:"bank" mapstructure:"bank"`
+	Branch                   string               `json:"branch" mapstructure:"branch"`
+	IFSC                     string               `json:"ifsc" mapstructure:"ifsc"`
+	ToAddress                string               `json:"toAddress" mapstructure:"toAddress"`
+	Signature                string               `json:"signature" mapstructure:"signature"`
+	SFormquantity            int                  `json:"refIHSFormquantity" mapstructure:"refIHSFormquantity"`
+	SFormamount              int                  `json:"refIHSFormamount" mapstructure:"refIHSFormamount"`
+	DaFormquantity           int                  `json:"refIHDaFormquantity" mapstructure:"refIHDaFormquantity"`
+	DaFormamount             int                  `json:"refIHDaFormamount" mapstructure:"refIHDaFormamount"`
+	DbFormquantity           int                  `json:"refIHDbFormquantity" mapstructure:"refIHDbFormquantity"`
+	DbFormamount             int                  `json:"refIHDbFormamount" mapstructure:"refIHDbFormamount"`
+	DcFormquantity           int                  `json:"refIHDcFormquantity" mapstructure:"refIHDcFormquantity"`
+	DcFormamount             int                  `json:"refIHDcFormamount" mapstructure:"refIHDcFormamount"`
+	XFormquantity            int                  `json:"refIHxFormquantity" mapstructure:"refIHxFormquantity"`
+	XFormamount              int                  `json:"refIHxFormamount" mapstructure:"refIHxFormamount"`
+	Editquantity             int                  `json:"refIHEditquantity" mapstructure:"refIHEditquantity"`
+	EditFormamount           int                  `json:"refIHEditFormamount" mapstructure:"refIHEditFormamount"`
+	ScribeTotalcasequantity  int                  `json:"refTADScribeTotalcasequantity" mapstructure:"refTADScribeTotalcasequantity"`
+	ScribeTotalcaseamount    int                  `json:"refTADScribeTotalcaseamount" mapstructure:"refTADScribeTotalcaseamount"`
+	ScanCenterTotalCase      int                  `json:"refScanCenterTotalCase" mapstructure:"refScanCenterTotalCase"`
+	ScancentercaseAmount     int                  `json:"refScancentercaseAmount" mapstructure:"refScancentercaseAmount"`
+	Total                    int                  `json:"total" mapstructure:"total"`
+	OtherExpenses            []OtherExpensesModel `json:"otherExpenses" mapstructure:"otherExpenses"`
+	DeductibleExpenses       []OtherExpensesModel `json:"deductibleExpenses" mapstructure:"deductibleExpenses"`
+	OtherExpensesAmount      int                  `json:"otherExpensesAmount" mapstructure:"otherExpensesAmount"`
+	DeductibleExpensesAmount int                  `json:"deductibleExpensesAmount" mapstructure:"deductibleExpensesAmount"`
 }
 
 type OtherExpensesModel struct {
 	Name   string `json:"name" gorm:"column:refOIAName" mapstructure:"name"`
 	Amount int    `json:"amount" gorm:"column:refOIAAmount" mapstructure:"amount"`
+	Type   string `json:"type" gorm:"column:refOIAAmountType" mapstructure:"type"`
 }
 
 type GetInvoiceHistoryReq struct {
@@ -155,26 +149,20 @@ type InvoiceHistory struct {
 	RefIHToAddress               string               `json:"refIHToAddress" gorm:"column:refIHToAddress"`
 	RefIHSignature               string               `json:"refIHSignature" gorm:"column:refIHSignature"`
 	RefIHSignatureFile           *FileData            `json:"refIHSignatureFile" gorm:"-"`
-	RefIHSformEditquantity       int                  `json:"refIHSformEditquantity" gorm:"column:refIHSformEditquantity"`
-	RefIHSformEditamount         int                  `json:"refIHSformEditamount" gorm:"column:refIHSformEditamount"`
-	RefIHSformCorrectquantity    int                  `json:"refIHSformCorrectquantity" gorm:"column:refIHSformCorrectquantity"`
-	RefIHSformCorrectamount      int                  `json:"refIHSformCorrectamount" gorm:"column:refIHSformCorrectamount"`
-	RefIHDaformEditquantity      int                  `json:"refIHDaformEditquantity" gorm:"column:refIHDaformEditquantity"`
-	RefIHDaformEditamount        int                  `json:"refIHDaformEditamount" gorm:"column:refIHDaformEditamount"`
-	RefIHDaformCorrectquantity   int                  `json:"refIHDaformCorrectquantity" gorm:"column:refIHDaformCorrectquantity"`
-	RefIHDaformCorrectamount     int                  `json:"refIHDaformCorrectamount" gorm:"column:refIHDaformCorrectamount"`
-	RefIHDbformEditquantity      int                  `json:"refIHDbformEditquantity" gorm:"column:refIHDbformEditquantity"`
-	RefIHDbformEditamount        int                  `json:"refIHDbformEditamount" gorm:"column:refIHDbformEditamount"`
-	RefIHDbformCorrectquantity   int                  `json:"refIHDbformCorrectquantity" gorm:"column:refIHDbformCorrectquantity"`
-	RefIHDbformCorrectamount     int                  `json:"refIHDbformCorrectamount" gorm:"column:refIHDbformCorrectamount"`
-	RefIHDcformEditquantity      int                  `json:"refIHDcformEditquantity" gorm:"column:refIHDcformEditquantity"`
-	RefIHDcformEditamount        int                  `json:"refIHDcformEditamount" gorm:"column:refIHDcformEditamount"`
-	RefIHDcformCorrectquantity   int                  `json:"refIHDcformCorrectquantity" gorm:"column:refIHDcformCorrectquantity"`
-	RefIHDcformCorrectamount     int                  `json:"refIHDcformCorrectamount" gorm:"column:refIHDcformCorrectamount"`
+	RefIHSFormquantity           int                  `json:"refIHSFormquantity" gorm:"column:refIHSFormquantity"`
+	RefIHSFormamount             int                  `json:"refIHSFormamount" gorm:"column:refIHSFormamount"`
+	RefIHDaFormquantity          int                  `json:"refIHDaFormquantity" gorm:"column:refIHDaFormquantity"`
+	RefIHDaFormamount            int                  `json:"refIHDaFormamount" gorm:"column:refIHDaFormamount"`
+	RefIHDbFormquantity          int                  `json:"refIHDbFormquantity" gorm:"column:refIHDbFormquantity"`
+	RefIHDbFormamount            int                  `json:"refIHDbFormamount" gorm:"column:refIHDbFormamount"`
+	RefIHDcFormquantity          int                  `json:"refIHDcFormquantity" gorm:"column:refIHDcFormquantity"`
+	RefIHDcFormamount            int                  `json:"refIHDcFormamount" gorm:"column:refIHDcFormamount"`
+	RefIHxFormquantity           int                  `json:"refIHxFormquantity" gorm:"column:refIHxFormquantity"`
+	RefIHxFormamount             int                  `json:"refIHxFormamount" gorm:"column:refIHxFormamount"`
+	RefIHEditquantity            int                  `json:"refIHEditquantity" gorm:"column:refIHEditquantity"`
+	RefIHEditFormamount          int                  `json:"refIHEditFormamount" gorm:"column:refIHEditFormamount"`
 	RefIHScribeTotalcasequantity int                  `json:"refIHScribeTotalcasequantity" gorm:"column:refIHScribeTotalcasequantity"`
 	RefIHScribeTotalcaseamount   int                  `json:"refIHScribeTotalcaseamount" gorm:"column:refIHScribeTotalcaseamount"`
-	RefIHOtherExpensiveName      string               `json:"refIHOtherExpensiveName" gorm:"column:refIHOtherExpensiveName"`
-	RefIHOtherAmount             int                  `json:"refIHOtherAmount" gorm:"column:refIHOtherAmount"`
 	RefIHScanCenterTotalCase     int                  `json:"refIHScanCenterTotalCase" gorm:"column:refIHScanCenterTotalCase"`
 	RefIHScancentercaseAmount    int                  `json:"refIHScancentercaseAmount" gorm:"column:refIHScancentercaseAmount"`
 	RefIHTotal                   int                  `json:"refIHTotal" gorm:"column:refIHTotal"`

@@ -65,6 +65,8 @@ func GetAmountService(db *gorm.DB) (bool, []model.AmountModel, []model.ScanCente
 func UpdateAmountService(db *gorm.DB, reqVal model.AmountModel) (bool, string) {
 	log := logger.InitLogger()
 
+	fmt.Println(reqVal)
+
 	tx := db.Begin()
 	if tx.Error != nil {
 		log.Printf("ERROR: Failed to begin transaction: %v\n", tx.Error)
@@ -78,18 +80,14 @@ func UpdateAmountService(db *gorm.DB, reqVal model.AmountModel) (bool, string) {
 		}
 	}()
 
-	fmt.Println("==================>", reqVal)
-
 	UpdateErr := tx.Exec(
 		query.UpdateAmountSQL,
-		reqVal.TASformEdit,
-		reqVal.TASformCorrect,
-		reqVal.TADaformEdit,
-		reqVal.TADaformCorrect,
-		reqVal.TADbformEdit,
-		reqVal.TADbformCorrect,
-		reqVal.TADcformEdit,
-		reqVal.TADcformCorrect,
+		reqVal.TASform,
+		reqVal.TADaform,
+		reqVal.TADbform,
+		reqVal.TADcform,
+		reqVal.TAXform,
+		reqVal.TAEditform,
 		reqVal.TADScribeTotalcase,
 		1,
 	).Error
@@ -147,7 +145,7 @@ func GetInvoiceDataService(db *gorm.DB, reqVal model.GetInvoiceDataReq) model.Ge
 		}
 
 		// Get Scan Center Total Count
-		ScanCenterCountDataErr := tx.Raw(query.GetScanCenterCountPerMonthSQL, reqVal.Monthyear, reqVal.UserId).Scan(&response.GetCountScanCenterMonthModel).Error
+		ScanCenterCountDataErr := tx.Raw(query.GetScanCenterCountPerMonthSQL, reqVal.UserId, reqVal.Monthyear).Scan(&response.GetCountScanCenterMonthModel).Error
 		if ScanCenterCountDataErr != nil {
 			log.Error(ScanCenterCountDataErr.Error())
 			return model.GetInvoiceDataReponse{}
@@ -167,8 +165,13 @@ func GetInvoiceDataService(db *gorm.DB, reqVal model.GetInvoiceDataReq) model.Ge
 			response.GetUserModel[i].Pan = hashdb.Decrypt(data.Pan)
 		}
 
+		var Date = ""
+		if len(reqVal.Monthyear) > 0 {
+			Date = reqVal.Monthyear + "-01"
+		}
+
 		// Total Count for User
-		UserCountDataErr := tx.Raw(query.WellGreenUserIndicatesAnalayticsInvoiceSQL, reqVal.UserId, reqVal.Monthyear).Scan(&response.AdminOverallScanIndicatesAnalayticsModel).Error
+		UserCountDataErr := tx.Raw(query.WellGreenUserIndicatesAnalayticsInvoiceSQL, reqVal.UserId, Date).Scan(&response.AdminOverallScanIndicatesAnalayticsModel).Error
 		if UserCountDataErr != nil {
 			log.Error(UserCountDataErr.Error())
 			return model.GetInvoiceDataReponse{}
@@ -234,26 +237,22 @@ func GenerateInvoiceDataService(db *gorm.DB, reqVal model.GenerateInvoiceReq, id
 		idValue,
 		reqVal.ToAddress,
 		reqVal.Signature,
-		reqVal.SformEditquantity,
-		reqVal.SformEditamount,
-		reqVal.SformCorrectquantity,
-		reqVal.SformCorrectamount,
-		reqVal.DaformEditquantity,
-		reqVal.DaformEditamount,
-		reqVal.DaformCorrectquantity,
-		reqVal.DaformCorrectamount,
-		reqVal.DbformEditquantity,
-		reqVal.DbformEditamount,
-		reqVal.DbformCorrectquantity,
-		reqVal.DbformCorrectamount,
-		reqVal.DcformEditquantity,
-		reqVal.DcformEditamount,
-		reqVal.DcformCorrectquantity,
-		reqVal.DcformCorrectamount,
+		reqVal.SFormquantity,
+		reqVal.SFormamount,
+		reqVal.DaFormquantity,
+		reqVal.DaFormamount,
+		reqVal.DbFormquantity,
+		reqVal.DbFormamount,
+		reqVal.DcFormquantity,
+		reqVal.DcFormamount,
+		reqVal.XFormquantity,
+		reqVal.XFormamount,
+		reqVal.Editquantity,
+		reqVal.EditFormamount,
 		reqVal.ScribeTotalcasequantity,
 		reqVal.ScribeTotalcaseamount,
-		reqVal.OtherExpensiveName,
-		reqVal.OtherAmount,
+		reqVal.OtherExpensesAmount,
+		reqVal.DeductibleExpensesAmount,
 		reqVal.ScanCenterTotalCase,
 		reqVal.ScancentercaseAmount,
 		reqVal.Total,
@@ -265,7 +264,15 @@ func GenerateInvoiceDataService(db *gorm.DB, reqVal model.GenerateInvoiceReq, id
 
 	if len(invoiceHistory) > 0 {
 		for _, data := range reqVal.OtherExpenses {
-			InsertOtherInvoiceErr := tx.Exec(query.InsertOtherInvoiceAmount, invoiceHistory[0].RefIHId, data.Name, data.Amount).Error
+			InsertOtherInvoiceErr := tx.Exec(query.InsertOtherInvoiceAmount, invoiceHistory[0].RefIHId, data.Name, data.Amount, "plus").Error
+			if InsertOtherInvoiceErr != nil {
+				log.Error(InsertOtherInvoiceErr)
+				return false, "Something went wrong, Try Again"
+			}
+		}
+
+		for _, data := range reqVal.DeductibleExpenses {
+			InsertOtherInvoiceErr := tx.Exec(query.InsertOtherInvoiceAmount, invoiceHistory[0].RefIHId, data.Name, data.Amount, "minus").Error
 			if InsertOtherInvoiceErr != nil {
 				log.Error(InsertOtherInvoiceErr)
 				return false, "Something went wrong, Try Again"

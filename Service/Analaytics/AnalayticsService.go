@@ -187,7 +187,7 @@ func UserAnalaytics(db *gorm.DB, reqVal model.OneUserReq, UserId int, roleIdValu
 	}
 
 	//Total TAT Timing
-	TotalTATErr := db.Raw(query.TotalTATSQL, reqVal.StartDate, reqVal.EndDate, UserId).Scan(&response.DurationBucketModel).Error
+	TotalTATErr := db.Raw(query.TotalTATSQL, UserId, reqVal.StartDate, reqVal.EndDate).Scan(&response.DurationBucketModel).Error
 	if TotalTATErr != nil {
 		log.Error(TotalTATErr.Error())
 		return model.OneUserReponse{}
@@ -237,7 +237,7 @@ func OneUserService(db *gorm.DB, reqVal model.OneUserReq, idValue int, roleIdVal
 			}
 
 			//Particualr Month Scan Indications
-			AdminOverallScanIndicatesAnalayticsErr := db.Raw(query.AdminOverallScanIndicatesAnalayticsSQL, reqVal.StartDate, reqVal.EndDate, ScancenterId, ScancenterId).Scan(&response.AdminOverallScanIndicatesAnalayticsModel).Error
+			AdminOverallScanIndicatesAnalayticsErr := db.Raw(query.AdminOverallUserIndicatesAnalayticsSQL, reqVal.StartDate, reqVal.EndDate, ScancenterId).Scan(&response.AdminOverallScanIndicatesAnalayticsModel).Error
 			if AdminOverallScanIndicatesAnalayticsErr != nil {
 				log.Error(AdminOverallScanIndicatesAnalayticsErr.Error())
 				return model.OneUserReponse{}

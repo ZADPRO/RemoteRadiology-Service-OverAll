@@ -469,6 +469,16 @@ WHERE "refRHId" = (
 )
 `
 
+var CheckUserId = `
+SELECT COALESCE(MAX("refRHId"), 0) AS refRHId
+FROM notes."refReportsHistory"
+WHERE
+  "refAppointmentId" = ?
+  AND "refRHHandledUserId" = ?
+  AND "refUserId" = ?;
+
+`
+
 var InsertReportTemplate = `
 INSERT INTO
   notes."refReportFormate" (
