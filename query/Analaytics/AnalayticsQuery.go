@@ -499,11 +499,15 @@ FROM (SELECT DISTINCT ON (rrh."refAppointmentId") rrh."refAppointmentId",
                                                                  OR
                                                              (ui."refRTId" IN (6) AND rrhi."refRHHandleStatus" = 'Draft')
                                                              )
-                                                           AND (
-                                                             ui."refRTId" NOT IN (1, 5, 10)
-                                                                 OR
-                                                             (ui."refRTId" IN (1, 5, 10) AND rrhi."refRHHandleStatus" = 'Signed Off')
-                                                             )
+                                                            AND (
+                                                              ui."refRTId" NOT IN (1, 5)
+                                                                  OR
+                                                              (ui."refRTId" IN (1, 5) AND rrhi."refRHHandleStatus" = 'Signed Off')
+                                                              )
+                                                            AND (ui."refRTId" NOT IN (10)
+                                                              OR
+                                                                (ui."refRTId" IN (10) AND rrhi."refRHHandleStatus" = 'Reviewed 1')
+                                                            )
                                                            AND rrhi."refRHHandledUserId" = $1
                                                          ORDER BY rrhi."refAppointmentId", rrhi."refRHId" DESC) newCrt
                                                    WHERE newCrt."refAppointmentId" = rrh."refAppointmentId") AS "totalCorrect",
@@ -533,10 +537,14 @@ FROM (SELECT DISTINCT ON (rrh."refAppointmentId") rrh."refAppointmentId",
                                                              (ui."refRTId" IN (6) AND rrhi."refRHHandleStatus" = 'Draft')
                                                              )
                                                            AND (
-                                                             ui."refRTId" NOT IN (1, 5, 10)
-                                                                 OR
-                                                             (ui."refRTId" IN (1, 5, 10) AND rrhi."refRHHandleStatus" = 'Signed Off')
-                                                             )
+                                                              ui."refRTId" NOT IN (1, 5)
+                                                                  OR
+                                                              (ui."refRTId" IN (1, 5) AND rrhi."refRHHandleStatus" = 'Signed Off')
+                                                              )
+                                                            AND (ui."refRTId" NOT IN (10)
+                                                              OR
+                                                                (ui."refRTId" IN (10) AND rrhi."refRHHandleStatus" = 'Reviewed 1')
+                                                            )
                                                            AND rrhi."refRHHandledUserId" = $1
                                                          ORDER BY rrhi."refAppointmentId", rrhi."refRHId" DESC) newCrt
                                                    WHERE newCrt."refAppointmentId" = rrh."refAppointmentId") AS "totalEdit"
@@ -567,8 +575,13 @@ FROM (SELECT DISTINCT ON (rrh."refAppointmentId") rrh."refAppointmentId",
                             OR (ui."refRTId" IN (6) AND rrhi."refRHHandleStatus" = 'Draft')
                         )
                       AND (
-                        ui."refRTId" NOT IN (1, 5, 10)
-                            OR (ui."refRTId" IN (1, 5, 10) AND rrhi."refRHHandleStatus" = 'Signed Off')
+                          ui."refRTId" NOT IN (1, 5)
+                              OR
+                          (ui."refRTId" IN (1, 5) AND rrhi."refRHHandleStatus" = 'Signed Off')
+                          )
+                        AND (ui."refRTId" NOT IN (10)
+                          OR
+                            (ui."refRTId" IN (10) AND rrhi."refRHHandleStatus" = 'Reviewed 1')
                         )
                       AND rrhi."refRHHandledUserId" = $1
                       AND rrhi."refAppointmentId" = rrh."refAppointmentId")
@@ -1993,10 +2006,15 @@ SELECT uid."refUserId",
                                                                      (ui."refRTId" IN (6) AND rrhi."refRHHandleStatus" = 'Draft')
                                                                      )
                                                                    AND (
-                                                                     ui."refRTId" NOT IN (1, 5, 10)
-                                                                         OR
-                                                                     (ui."refRTId" IN (1, 5, 10) AND rrhi."refRHHandleStatus" = 'Signed Off')
-                                                                     )
+                                                             ui."refRTId" NOT IN (10)
+                                                                 OR
+                                                             (ui."refRTId" IN (10) AND rrhi."refRHHandleStatus" = 'Reviewed 1')
+                                                             )
+                                                           AND (
+                                                             ui."refRTId" NOT IN (1, 5)
+                                                                 OR
+                                                             (ui."refRTId" IN (1, 5) AND rrhi."refRHHandleStatus" = 'Signed Off')
+                                                             )
                                                                    AND rrhi."refRHHandledUserId" = uid."refUserId"
                                                                  ORDER BY rrhi."refAppointmentId", rrhi."refRHId"
                                                                      DESC) newCrt
@@ -2028,10 +2046,15 @@ SELECT uid."refUserId",
                                                                      (ui."refRTId" IN (6) AND rrhi."refRHHandleStatus" = 'Draft')
                                                                      )
                                                                    AND (
-                                                                     ui."refRTId" NOT IN (1, 5, 10)
-                                                                         OR
-                                                                     (ui."refRTId" IN (1, 5, 10) AND rrhi."refRHHandleStatus" = 'Signed Off')
-                                                                     )
+                                                             ui."refRTId" NOT IN (10)
+                                                                 OR
+                                                             (ui."refRTId" IN (10) AND rrhi."refRHHandleStatus" = 'Reviewed 1')
+                                                             )
+                                                           AND (
+                                                             ui."refRTId" NOT IN (1, 5)
+                                                                 OR
+                                                             (ui."refRTId" IN (1, 5) AND rrhi."refRHHandleStatus" = 'Signed Off')
+                                                             )
                                                                    AND rrhi."refRHHandledUserId" = uid."refUserId"
                                                                  ORDER BY rrhi."refAppointmentId", rrhi."refRHId"
                                                                      DESC) newCrt
@@ -2063,9 +2086,15 @@ SELECT uid."refUserId",
                                     OR (ui."refRTId" IN (6) AND rrhi."refRHHandleStatus" = 'Draft')
                                 )
                               AND (
-                                ui."refRTId" NOT IN (1, 5, 10)
-                                    OR (ui."refRTId" IN (1, 5, 10) AND rrhi."refRHHandleStatus" = 'Signed Off')
-                                )
+                                                             ui."refRTId" NOT IN (10)
+                                                                 OR
+                                                             (ui."refRTId" IN (10) AND rrhi."refRHHandleStatus" = 'Reviewed 1')
+                                                             )
+                                                           AND (
+                                                             ui."refRTId" NOT IN (1, 5)
+                                                                 OR
+                                                             (ui."refRTId" IN (1, 5) AND rrhi."refRHHandleStatus" = 'Signed Off')
+                                                             )
                               AND rrhi."refRHHandledUserId" = uid."refUserId"
                               AND rrhi."refAppointmentId" = rrh."refAppointmentId")
               ORDER BY rrh."refAppointmentId", rrh."refRHId" DESC) sub
